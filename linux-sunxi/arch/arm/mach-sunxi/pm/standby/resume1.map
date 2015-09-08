@@ -1,0 +1,639 @@
+
+Allocating common symbols
+Common symbol       size              file
+
+mem_para_info       0xc4              arch/arm/mach-sunxi/pm/standby/super/resume/resume1_c_part.o
+saved_context_r13_irq
+                    0x8               arch/arm/mach-sunxi/pm/standby/../mem_cpu.o
+saved_context_r12_svc
+                    0x8               arch/arm/mach-sunxi/pm/standby/../mem_cpu.o
+saved_spsr_fiq      0x4               arch/arm/mach-sunxi/pm/standby/../mem_cpu.o
+saved_spsr_und      0x4               arch/arm/mach-sunxi/pm/standby/../mem_cpu.o
+saved_spsr_irq      0x4               arch/arm/mach-sunxi/pm/standby/../mem_cpu.o
+saved_context_r13_abt
+                    0x8               arch/arm/mach-sunxi/pm/standby/../mem_cpu.o
+saved_spsr_mon      0x4               arch/arm/mach-sunxi/pm/standby/../mem_cpu.o
+saved_empty_context_svc
+                    0xb0              arch/arm/mach-sunxi/pm/standby/../mem_cpu.o
+saved_context_r13_fiq
+                    0x1c              arch/arm/mach-sunxi/pm/standby/../mem_cpu.o
+saved_cpsr_svc      0x4               arch/arm/mach-sunxi/pm/standby/../mem_cpu.o
+saved_context_r13_sys
+                    0x8               arch/arm/mach-sunxi/pm/standby/../mem_cpu.o
+saved_spsr_abt      0x4               arch/arm/mach-sunxi/pm/standby/../mem_cpu.o
+saved_context_r13_mon
+                    0x8               arch/arm/mach-sunxi/pm/standby/../mem_cpu.o
+func_entry          0x4               arch/arm/mach-sunxi/pm/standby/super/resume/resume1_c_part.o
+saved_spsr_svc      0x4               arch/arm/mach-sunxi/pm/standby/../mem_cpu.o
+saved_context_r13_und
+                    0x8               arch/arm/mach-sunxi/pm/standby/../mem_cpu.o
+
+Memory Configuration
+
+Name             Origin             Length             Attributes
+*default*        0x00000000         0xffffffff
+
+Linker script and memory map
+
+                0x00000000                __resume1_start = .
+
+.text           0x00000000     0x2fac
+ arch/arm/mach-sunxi/pm/standby/super/resume/resume_head.o(.rodata)
+ .rodata        0x00000000       0x30 arch/arm/mach-sunxi/pm/standby/super/resume/resume_head.o
+                0x00000000                resume_head
+ arch/arm/mach-sunxi/pm/standby/super/resume/resume1.o(.text)
+ .text          0x00000030       0x5c arch/arm/mach-sunxi/pm/standby/super/resume/resume1.o
+                0x00000030                _start
+ *(.text)
+ .text          0x0000008c        0x0 arch/arm/mach-sunxi/pm/standby/super/resume/resume_head.o
+ .text          0x0000008c       0x28 arch/arm/mach-sunxi/pm/standby/super/common.o
+                0x0000008c                mem_memcpy
+ .text          0x000000b4        0x0 arch/arm/mach-sunxi/pm/standby/super/super_twi.o
+ .text          0x000000b4       0x28 arch/arm/mach-sunxi/pm/standby/super/super_delay.o
+                0x000000b4                mem_delay
+ .text          0x000000dc        0x0 arch/arm/mach-sunxi/pm/standby/super/super_clock.o
+ .text          0x000000dc        0x0 arch/arm/mach-sunxi/pm/standby/super/super_power.o
+ .text          0x000000dc        0x0 arch/arm/mach-sunxi/pm/standby/super/super_cpus.o
+ .text          0x000000dc      0x2a4 arch/arm/mach-sunxi/pm/standby/super/resume/resume1_c_part.o
+                0x000000dc                resume1_c_part
+                0x00000214                set_pll
+ .text          0x00000380      0x378 arch/arm/mach-sunxi/pm/standby/../pm_debug.o
+                0x00000380                busy_waiting
+                0x000003a0                save_mem_flag
+                0x000003a4                clear_mem_flag
+                0x000003a8                mem_status_init
+                0x000003cc                mem_status_init_nommu
+                0x000003f0                mem_status_clear
+                0x00000484                mem_status_exit
+                0x00000488                save_mem_status
+                0x0000051c                get_mem_status
+                0x00000570                show_mem_status
+                0x000005e8                save_mem_status_nommu
+                0x0000067c                io_init
+                0x00000694                io_init_high
+                0x000006ac                io_init_low
+                0x000006c4                io_high
+ .text          0x000006f8      0x200 arch/arm/mach-sunxi/pm/standby/../mem_timing.o
+                0x000006f8                init_perfcounters
+                0x0000072c                backup_perfcounter
+                0x00000748                restore_perfcounter
+                0x0000076c                get_cyclecount
+                0x00000774                reset_counter
+                0x00000784                change_runtime_env
+                0x000007b8                delay_us
+                0x00000840                delay_ms
+                0x00000874                init_event_counter
+                0x000008a0                set_event_counter
+                0x000008cc                get_event_counter
+ *fill*         0x000008f8        0x8 00
+ .text          0x00000900       0xa0 arch/arm/mach-sunxi/pm/standby/../mem_mmu_pc.o
+                0x00000900                save_mmu_state
+                0x0000093c                restore_mmu_state
+ .text          0x000009a0      0x560 arch/arm/mach-sunxi/pm/standby/../mem_mmu_pc_asm.o
+                0x000009a0                save_sp
+                0x000009ac                save_sp_nommu
+                0x000009b8                restore_sp
+                0x000009c0                get_sp
+                0x000009d0                get_cur_cluster_id
+                0x000009e0                invalidate_dcache
+                0x00000a74                invalidate_icache
+                0x00000a8c                flush_dcache
+                0x00000b28                flush_icache
+                0x00000b4c                disable_cache
+                0x00000b6c                disable_dcache
+                0x00000b88                disable_icache
+                0x00000ba4                disable_l2cache
+                0x00000bc0                enable_cache
+                0x00000be0                enable_icache
+                0x00000bfc                invalidate_branch_predictor
+                0x00000c14                disable_program_flow_prediction
+                0x00000c30                enable_program_flow_prediction
+                0x00000c4c                mem_flush_tlb
+                0x00000c70                mem_preload_tlb
+                0x00000d7c                disable_mmu
+                0x00000db4                enable_mmu
+                0x00000df4                jump_to_suspend
+                0x00000e10                jump_to_resume
+                0x00000e30                jump_to_resume0
+                0x00000e40                jump_to_resume0_nommu
+ .text          0x00000f00      0x7b0 arch/arm/mach-sunxi/pm/standby/../mem_cpu.o
+                0x00000f00                __save_processor_state
+                0x00001304                __restore_processor_state
+                0x000015c8                disable_cache_invalidate
+                0x000015e0                set_copro_default
+                0x00001674                save_processor_state
+                0x00001680                restore_processor_state
+                0x0000168c                restore_processor_ttbr0
+                0x000016a0                set_ttbr0
+ .text          0x000016b0      0x544 arch/arm/mach-sunxi/pm/standby/../mem_serial.o
+                0x00001804                serial_exit
+                0x00001844                serial_init_nommu
+                0x000018c8                serial_puts_nommu
+                0x00001978                serial_gets_nommu
+                0x00001a04                serial_init_manager
+                0x00001a18                serial_exit_manager
+                0x00001a2c                serial_init
+                0x00001ab8                serial_puts
+                0x00001b68                serial_gets
+ .text          0x00001bf4      0x7ec arch/arm/mach-sunxi/pm/standby/../mem_printk.o
+                0x00001e40                printk
+                0x00002110                printk_nommu
+ .text          0x000023e0      0x1dc arch/arm/mach-sunxi/pm/standby/../mem_divlib.o
+                0x000023e0                standby_delay
+                0x00002408                standby_delay_cycle
+                0x00002414                Ldiv0
+                0x00002424                __aeabi_uidiv
+                0x000024c0                __aeabi_idiv
+                0x0000258c                __aeabi_uidivmod
+                0x000025a4                __aeabi_idivmod
+ .text          0x000025bc       0x58 arch/arm/mach-sunxi/pm/standby/../mem_divlibc.o
+                0x000025bc                __mem_div0
+                0x000025c8                raw_lib_udiv
+ .text          0x00002614      0x19c arch/arm/mach-sunxi/pm/standby/../mem_int.o
+                0x00002614                mem_int_init
+                0x000026a4                mem_int_exit
+                0x000026f8                mem_enable_int
+                0x00002754                mem_query_int
+ .text          0x000027b0       0xa0 arch/arm/mach-sunxi/pm/standby/../mem_gpio.o
+                0x000027b0                mem_gpio_save
+                0x000027dc                mem_gpio_restore
+                0x00002808                config_gpio_clk
+ .text          0x00002850      0x1e8 arch/arm/mach-sunxi/pm/standby/../mem_tmr.o
+                0x00002850                mem_tmr_save
+                0x000028b0                mem_tmr_restore
+                0x00002900                mem_tmr_init
+                0x00002938                mem_tmr_exit
+                0x00002960                mem_tmr_enable_watchdog
+                0x000029a8                mem_tmr_disable_watchdog
+                0x000029e8                mem_tmr_set
+ .text          0x00002a38       0x58 arch/arm/mach-sunxi/pm/standby/../mem_tmstmp.o
+                0x00002a38                mem_tmstmp_save
+                0x00002a68                mem_tmstmp_restore
+ .text          0x00002a90      0x178 arch/arm/mach-sunxi/pm/standby/../mem_hwspinlock.o
+                0x00002a90                hwspinlock_init
+                0x00002ac0                hwspin_lock_timeout
+                0x00002b3c                hwspin_unlock
+                0x00002b6c                hwspin_lock_timeout_nommu
+                0x00002bd8                hwspin_unlock_nommu
+ .text          0x00002c08      0x3a4 arch/arm/mach-sunxi/pm/standby/../mem_clk.o
+                0x00002c08                mem_clk_init
+                0x00002c38                mem_get_ba
+                0x00002c48                mem_clk_save
+                0x00002c84                mem_clk_restore
+                0x00002cb8                mem_clk_setdiv
+                0x00002d28                mem_clk_getdiv
+                0x00002d70                mem_clk_set_pll_factor
+                0x00002dc4                mem_clk_get_pll_factor
+                0x00002e0c                mem_clk_set_misc
+                0x00002ec0                mem_clk_get_misc
+                0x00002f50                mem_clk_get_cpu_freq
+
+.glue_7         0x00002fac        0x0
+ .glue_7        0x00000000        0x0 linker stubs
+
+.glue_7t        0x00002fac        0x0
+ .glue_7t       0x00000000        0x0 linker stubs
+
+.vfp11_veneer   0x00002fac        0x0
+ .vfp11_veneer  0x00000000        0x0 linker stubs
+
+.v4_bx          0x00002fac        0x0
+ .v4_bx         0x00000000        0x0 linker stubs
+
+.iplt           0x00002fac        0x0
+ .iplt          0x00000000        0x0 arch/arm/mach-sunxi/pm/standby/super/resume/resume_head.o
+
+.rodata         0x00002fac       0x1c
+ *(.rodata)
+ .rodata        0x00002fac       0x10 arch/arm/mach-sunxi/pm/standby/../mem_timing.o
+ .rodata        0x00002fbc        0xc arch/arm/mach-sunxi/pm/standby/../mem_serial.o
+
+.rodata.str1.4  0x00002fc8      0x19c
+ .rodata.str1.4
+                0x00002fc8      0x106 arch/arm/mach-sunxi/pm/standby/super/resume/resume1_c_part.o
+                                0x108 (size before relaxing)
+ *fill*         0x000030ce        0x2 00
+ .rodata.str1.4
+                0x000030d0       0x17 arch/arm/mach-sunxi/pm/standby/../pm_debug.o
+                                 0x18 (size before relaxing)
+ *fill*         0x000030e7        0x1 00
+ .rodata.str1.4
+                0x000030e8       0x25 arch/arm/mach-sunxi/pm/standby/../mem_printk.o
+                                 0x28 (size before relaxing)
+ *fill*         0x0000310d        0x3 00
+ .rodata.str1.4
+                0x00003110       0x1a arch/arm/mach-sunxi/pm/standby/../mem_divlibc.o
+                                 0x1c (size before relaxing)
+ *fill*         0x0000312a        0x2 00
+ .rodata.str1.4
+                0x0000312c       0x1b arch/arm/mach-sunxi/pm/standby/../mem_int.o
+                                 0x1c (size before relaxing)
+ *fill*         0x00003147        0x1 00
+ .rodata.str1.4
+                0x00003148       0x1c arch/arm/mach-sunxi/pm/standby/../mem_hwspinlock.o
+
+.rel.dyn        0x00003164        0x0
+ .rel.iplt      0x00000000        0x0 arch/arm/mach-sunxi/pm/standby/super/resume/resume_head.o
+
+.data           0x00003164        0x4
+ *(.data)
+ .data          0x00003164        0x0 arch/arm/mach-sunxi/pm/standby/super/resume/resume_head.o
+ .data          0x00003164        0x0 arch/arm/mach-sunxi/pm/standby/super/resume/resume1.o
+ .data          0x00003164        0x0 arch/arm/mach-sunxi/pm/standby/super/common.o
+ .data          0x00003164        0x0 arch/arm/mach-sunxi/pm/standby/super/super_twi.o
+ .data          0x00003164        0x0 arch/arm/mach-sunxi/pm/standby/super/super_delay.o
+ .data          0x00003164        0x0 arch/arm/mach-sunxi/pm/standby/super/super_clock.o
+ .data          0x00003164        0x0 arch/arm/mach-sunxi/pm/standby/super/super_power.o
+ .data          0x00003164        0x0 arch/arm/mach-sunxi/pm/standby/super/super_cpus.o
+ .data          0x00003164        0x4 arch/arm/mach-sunxi/pm/standby/super/resume/resume1_c_part.o
+ .data          0x00003168        0x0 arch/arm/mach-sunxi/pm/standby/../pm_debug.o
+ .data          0x00003168        0x0 arch/arm/mach-sunxi/pm/standby/../mem_timing.o
+ .data          0x00003168        0x0 arch/arm/mach-sunxi/pm/standby/../mem_mmu_pc.o
+ .data          0x00003168        0x0 arch/arm/mach-sunxi/pm/standby/../mem_mmu_pc_asm.o
+ .data          0x00003168        0x0 arch/arm/mach-sunxi/pm/standby/../mem_cpu.o
+ .data          0x00003168        0x0 arch/arm/mach-sunxi/pm/standby/../mem_serial.o
+ .data          0x00003168        0x0 arch/arm/mach-sunxi/pm/standby/../mem_printk.o
+ .data          0x00003168        0x0 arch/arm/mach-sunxi/pm/standby/../mem_divlib.o
+ .data          0x00003168        0x0 arch/arm/mach-sunxi/pm/standby/../mem_divlibc.o
+ .data          0x00003168        0x0 arch/arm/mach-sunxi/pm/standby/../mem_int.o
+ .data          0x00003168        0x0 arch/arm/mach-sunxi/pm/standby/../mem_gpio.o
+ .data          0x00003168        0x0 arch/arm/mach-sunxi/pm/standby/../mem_tmr.o
+ .data          0x00003168        0x0 arch/arm/mach-sunxi/pm/standby/../mem_tmstmp.o
+ .data          0x00003168        0x0 arch/arm/mach-sunxi/pm/standby/../mem_hwspinlock.o
+ .data          0x00003168        0x0 arch/arm/mach-sunxi/pm/standby/../mem_clk.o
+                0x00003168                __bss_start = .
+
+.igot.plt       0x00003168        0x0
+ .igot.plt      0x00000000        0x0 arch/arm/mach-sunxi/pm/standby/super/resume/resume_head.o
+
+.bss            0x00003168      0x3e8
+ *(.sbss)
+ *(.scommon)
+ *(.bss)
+ .bss           0x00003168        0x0 arch/arm/mach-sunxi/pm/standby/super/resume/resume_head.o
+ .bss           0x00003168        0x0 arch/arm/mach-sunxi/pm/standby/super/resume/resume1.o
+ .bss           0x00003168        0x0 arch/arm/mach-sunxi/pm/standby/super/common.o
+ .bss           0x00003168        0x0 arch/arm/mach-sunxi/pm/standby/super/super_twi.o
+ .bss           0x00003168        0x0 arch/arm/mach-sunxi/pm/standby/super/super_delay.o
+ .bss           0x00003168        0x0 arch/arm/mach-sunxi/pm/standby/super/super_clock.o
+ .bss           0x00003168        0x0 arch/arm/mach-sunxi/pm/standby/super/super_power.o
+ .bss           0x00003168        0x0 arch/arm/mach-sunxi/pm/standby/super/super_cpus.o
+ .bss           0x00003168        0x0 arch/arm/mach-sunxi/pm/standby/super/resume/resume1_c_part.o
+ .bss           0x00003168       0x14 arch/arm/mach-sunxi/pm/standby/../pm_debug.o
+                0x00003178                print_flag
+ .bss           0x0000317c       0x10 arch/arm/mach-sunxi/pm/standby/../mem_timing.o
+ .bss           0x0000318c        0x0 arch/arm/mach-sunxi/pm/standby/../mem_mmu_pc.o
+ .bss           0x0000318c        0x0 arch/arm/mach-sunxi/pm/standby/../mem_mmu_pc_asm.o
+ .bss           0x0000318c       0xa0 arch/arm/mach-sunxi/pm/standby/../mem_cpu.o
+ .bss           0x0000322c       0x14 arch/arm/mach-sunxi/pm/standby/../mem_serial.o
+ .bss           0x00003240      0x100 arch/arm/mach-sunxi/pm/standby/../mem_printk.o
+ .bss           0x00003340        0x0 arch/arm/mach-sunxi/pm/standby/../mem_divlib.o
+ .bss           0x00003340        0x0 arch/arm/mach-sunxi/pm/standby/../mem_divlibc.o
+ .bss           0x00003340        0x8 arch/arm/mach-sunxi/pm/standby/../mem_int.o
+ .bss           0x00003348        0x4 arch/arm/mach-sunxi/pm/standby/../mem_gpio.o
+ .bss           0x0000334c       0x10 arch/arm/mach-sunxi/pm/standby/../mem_tmr.o
+ .bss           0x0000335c        0x4 arch/arm/mach-sunxi/pm/standby/../mem_tmstmp.o
+ .bss           0x00003360        0x4 arch/arm/mach-sunxi/pm/standby/../mem_hwspinlock.o
+ .bss           0x00003364        0xc arch/arm/mach-sunxi/pm/standby/../mem_clk.o
+ *(COMMON)
+ COMMON         0x00003370       0xc8 arch/arm/mach-sunxi/pm/standby/super/resume/resume1_c_part.o
+                0x00003370                mem_para_info
+                0x00003434                func_entry
+ COMMON         0x00003438      0x118 arch/arm/mach-sunxi/pm/standby/../mem_cpu.o
+                0x00003438                saved_context_r13_irq
+                0x00003440                saved_context_r12_svc
+                0x00003448                saved_spsr_fiq
+                0x0000344c                saved_spsr_und
+                0x00003450                saved_spsr_irq
+                0x00003454                saved_context_r13_abt
+                0x0000345c                saved_spsr_mon
+                0x00003460                saved_empty_context_svc
+                0x00003510                saved_context_r13_fiq
+                0x0000352c                saved_cpsr_svc
+                0x00003530                saved_context_r13_sys
+                0x00003538                saved_spsr_abt
+                0x0000353c                saved_context_r13_mon
+                0x00003544                saved_spsr_svc
+                0x00003548                saved_context_r13_und
+                0x00003550                __bss_end = .
+                0x00003550                __resume1_end = .
+LOAD arch/arm/mach-sunxi/pm/standby/super/common.o
+LOAD arch/arm/mach-sunxi/pm/standby/super/super_twi.o
+LOAD arch/arm/mach-sunxi/pm/standby/super/super_delay.o
+LOAD arch/arm/mach-sunxi/pm/standby/super/super_clock.o
+LOAD arch/arm/mach-sunxi/pm/standby/super/super_power.o
+LOAD arch/arm/mach-sunxi/pm/standby/super/super_cpus.o
+LOAD arch/arm/mach-sunxi/pm/standby/super/resume/resume1.o
+LOAD arch/arm/mach-sunxi/pm/standby/super/resume/resume_head.o
+LOAD arch/arm/mach-sunxi/pm/standby/super/resume/resume1_c_part.o
+LOAD arch/arm/mach-sunxi/pm/standby/../pm_debug.o
+LOAD arch/arm/mach-sunxi/pm/standby/../mem_timing.o
+LOAD arch/arm/mach-sunxi/pm/standby/../mem_mmu_pc.o
+LOAD arch/arm/mach-sunxi/pm/standby/../mem_mmu_pc_asm.o
+LOAD arch/arm/mach-sunxi/pm/standby/../mem_cpu.o
+LOAD arch/arm/mach-sunxi/pm/standby/../mem_serial.o
+LOAD arch/arm/mach-sunxi/pm/standby/../mem_printk.o
+LOAD arch/arm/mach-sunxi/pm/standby/../mem_divlib.o
+LOAD arch/arm/mach-sunxi/pm/standby/../mem_divlibc.o
+LOAD arch/arm/mach-sunxi/pm/standby/../mem_int.o
+LOAD arch/arm/mach-sunxi/pm/standby/../mem_gpio.o
+LOAD arch/arm/mach-sunxi/pm/standby/../mem_tmr.o
+LOAD arch/arm/mach-sunxi/pm/standby/../mem_tmstmp.o
+LOAD arch/arm/mach-sunxi/pm/standby/../mem_hwspinlock.o
+LOAD arch/arm/mach-sunxi/pm/standby/../mem_clk.o
+OUTPUT(arch/arm/mach-sunxi/pm/standby/resume1.elf elf32-littlearm)
+
+.debug_info     0x00000000     0x5db4
+ .debug_info    0x00000000      0x1b4 arch/arm/mach-sunxi/pm/standby/super/resume/resume_head.o
+ .debug_info    0x000001b4       0xd0 arch/arm/mach-sunxi/pm/standby/super/common.o
+ .debug_info    0x00000284       0x6c arch/arm/mach-sunxi/pm/standby/super/super_twi.o
+ .debug_info    0x000002f0       0x6c arch/arm/mach-sunxi/pm/standby/super/super_clock.o
+ .debug_info    0x0000035c       0x6c arch/arm/mach-sunxi/pm/standby/super/super_power.o
+ .debug_info    0x000003c8       0x6c arch/arm/mach-sunxi/pm/standby/super/super_cpus.o
+ .debug_info    0x00000434     0x10c0 arch/arm/mach-sunxi/pm/standby/super/resume/resume1_c_part.o
+ .debug_info    0x000014f4      0x3e1 arch/arm/mach-sunxi/pm/standby/../pm_debug.o
+ .debug_info    0x000018d5      0x4fa arch/arm/mach-sunxi/pm/standby/../mem_timing.o
+ .debug_info    0x00001dcf      0x14f arch/arm/mach-sunxi/pm/standby/../mem_mmu_pc.o
+ .debug_info    0x00001f1e      0x594 arch/arm/mach-sunxi/pm/standby/../mem_cpu.o
+ .debug_info    0x000024b2     0x11bd arch/arm/mach-sunxi/pm/standby/../mem_serial.o
+ .debug_info    0x0000366f      0x844 arch/arm/mach-sunxi/pm/standby/../mem_printk.o
+ .debug_info    0x00003eb3       0xfa arch/arm/mach-sunxi/pm/standby/../mem_divlibc.o
+ .debug_info    0x00003fad      0x2d1 arch/arm/mach-sunxi/pm/standby/../mem_int.o
+ .debug_info    0x0000427e      0x16a arch/arm/mach-sunxi/pm/standby/../mem_gpio.o
+ .debug_info    0x000043e8      0x48c arch/arm/mach-sunxi/pm/standby/../mem_tmr.o
+ .debug_info    0x00004874      0x1ba arch/arm/mach-sunxi/pm/standby/../mem_tmstmp.o
+ .debug_info    0x00004a2e      0x303 arch/arm/mach-sunxi/pm/standby/../mem_hwspinlock.o
+ .debug_info    0x00004d31     0x1083 arch/arm/mach-sunxi/pm/standby/../mem_clk.o
+
+.debug_abbrev   0x00000000     0x14ed
+ .debug_abbrev  0x00000000       0x97 arch/arm/mach-sunxi/pm/standby/super/resume/resume_head.o
+ .debug_abbrev  0x00000097       0x8b arch/arm/mach-sunxi/pm/standby/super/common.o
+ .debug_abbrev  0x00000122       0x2a arch/arm/mach-sunxi/pm/standby/super/super_twi.o
+ .debug_abbrev  0x0000014c       0x2a arch/arm/mach-sunxi/pm/standby/super/super_clock.o
+ .debug_abbrev  0x00000176       0x2a arch/arm/mach-sunxi/pm/standby/super/super_power.o
+ .debug_abbrev  0x000001a0       0x2a arch/arm/mach-sunxi/pm/standby/super/super_cpus.o
+ .debug_abbrev  0x000001ca      0x190 arch/arm/mach-sunxi/pm/standby/super/resume/resume1_c_part.o
+ .debug_abbrev  0x0000035a      0x192 arch/arm/mach-sunxi/pm/standby/../pm_debug.o
+ .debug_abbrev  0x000004ec      0x1f0 arch/arm/mach-sunxi/pm/standby/../mem_timing.o
+ .debug_abbrev  0x000006dc       0xa8 arch/arm/mach-sunxi/pm/standby/../mem_mmu_pc.o
+ .debug_abbrev  0x00000784      0x148 arch/arm/mach-sunxi/pm/standby/../mem_cpu.o
+ .debug_abbrev  0x000008cc      0x31c arch/arm/mach-sunxi/pm/standby/../mem_serial.o
+ .debug_abbrev  0x00000be8      0x221 arch/arm/mach-sunxi/pm/standby/../mem_printk.o
+ .debug_abbrev  0x00000e09       0x81 arch/arm/mach-sunxi/pm/standby/../mem_divlibc.o
+ .debug_abbrev  0x00000e8a       0xcb arch/arm/mach-sunxi/pm/standby/../mem_int.o
+ .debug_abbrev  0x00000f55       0xda arch/arm/mach-sunxi/pm/standby/../mem_gpio.o
+ .debug_abbrev  0x0000102f       0xf2 arch/arm/mach-sunxi/pm/standby/../mem_tmr.o
+ .debug_abbrev  0x00001121       0xd5 arch/arm/mach-sunxi/pm/standby/../mem_tmstmp.o
+ .debug_abbrev  0x000011f6      0x148 arch/arm/mach-sunxi/pm/standby/../mem_hwspinlock.o
+ .debug_abbrev  0x0000133e      0x1af arch/arm/mach-sunxi/pm/standby/../mem_clk.o
+
+.debug_line     0x00000000     0x13b2
+ .debug_line    0x00000000       0xbc arch/arm/mach-sunxi/pm/standby/super/resume/resume_head.o
+ .debug_line    0x000000bc       0x76 arch/arm/mach-sunxi/pm/standby/super/common.o
+ .debug_line    0x00000132       0x1d arch/arm/mach-sunxi/pm/standby/super/super_twi.o
+ .debug_line    0x0000014f       0x1d arch/arm/mach-sunxi/pm/standby/super/super_clock.o
+ .debug_line    0x0000016c       0x1d arch/arm/mach-sunxi/pm/standby/super/super_power.o
+ .debug_line    0x00000189       0x1d arch/arm/mach-sunxi/pm/standby/super/super_cpus.o
+ .debug_line    0x000001a6      0x186 arch/arm/mach-sunxi/pm/standby/super/resume/resume1_c_part.o
+ .debug_line    0x0000032c      0x14d arch/arm/mach-sunxi/pm/standby/../pm_debug.o
+ .debug_line    0x00000479      0x133 arch/arm/mach-sunxi/pm/standby/../mem_timing.o
+ .debug_line    0x000005ac       0xb0 arch/arm/mach-sunxi/pm/standby/../mem_mmu_pc.o
+ .debug_line    0x0000065c      0x144 arch/arm/mach-sunxi/pm/standby/../mem_cpu.o
+ .debug_line    0x000007a0      0x20b arch/arm/mach-sunxi/pm/standby/../mem_serial.o
+ .debug_line    0x000009ab      0x34a arch/arm/mach-sunxi/pm/standby/../mem_printk.o
+ .debug_line    0x00000cf5       0x86 arch/arm/mach-sunxi/pm/standby/../mem_divlibc.o
+ .debug_line    0x00000d7b      0x125 arch/arm/mach-sunxi/pm/standby/../mem_int.o
+ .debug_line    0x00000ea0       0xac arch/arm/mach-sunxi/pm/standby/../mem_gpio.o
+ .debug_line    0x00000f4c      0x100 arch/arm/mach-sunxi/pm/standby/../mem_tmr.o
+ .debug_line    0x0000104c       0xb3 arch/arm/mach-sunxi/pm/standby/../mem_tmstmp.o
+ .debug_line    0x000010ff      0x121 arch/arm/mach-sunxi/pm/standby/../mem_hwspinlock.o
+ .debug_line    0x00001220      0x192 arch/arm/mach-sunxi/pm/standby/../mem_clk.o
+
+.debug_str      0x00000000     0x1f08
+ .debug_str     0x00000000      0x25a arch/arm/mach-sunxi/pm/standby/super/resume/resume_head.o
+                                0x292 (size before relaxing)
+ .debug_str     0x0000025a       0x49 arch/arm/mach-sunxi/pm/standby/super/common.o
+                                0x134 (size before relaxing)
+ .debug_str     0x000002a3       0x31 arch/arm/mach-sunxi/pm/standby/super/super_twi.o
+                                0x117 (size before relaxing)
+ .debug_str     0x000002d4       0x33 arch/arm/mach-sunxi/pm/standby/super/super_clock.o
+                                0x119 (size before relaxing)
+ .debug_str     0x00000307       0x33 arch/arm/mach-sunxi/pm/standby/super/super_power.o
+                                0x119 (size before relaxing)
+ .debug_str     0x0000033a       0x32 arch/arm/mach-sunxi/pm/standby/super/super_cpus.o
+                                0x118 (size before relaxing)
+ .debug_str     0x0000036c      0xa3e arch/arm/mach-sunxi/pm/standby/super/resume/resume1_c_part.o
+                                0xc23 (size before relaxing)
+ .debug_str     0x00000daa      0x1a8 arch/arm/mach-sunxi/pm/standby/../pm_debug.o
+                                0x37b (size before relaxing)
+ .debug_str     0x00000f52      0x1c0 arch/arm/mach-sunxi/pm/standby/../mem_timing.o
+                                0x39d (size before relaxing)
+ .debug_str     0x00001112       0x50 arch/arm/mach-sunxi/pm/standby/../mem_mmu_pc.o
+                                0x183 (size before relaxing)
+ .debug_str     0x00001162      0x285 arch/arm/mach-sunxi/pm/standby/../mem_cpu.o
+                                0x4a3 (size before relaxing)
+ .debug_str     0x000013e7      0x1d3 arch/arm/mach-sunxi/pm/standby/../mem_serial.o
+                                0xa7d (size before relaxing)
+ .debug_str     0x000015ba       0xe5 arch/arm/mach-sunxi/pm/standby/../mem_printk.o
+                                0x2ca (size before relaxing)
+ .debug_str     0x0000169f       0x6f arch/arm/mach-sunxi/pm/standby/../mem_divlibc.o
+                                0x161 (size before relaxing)
+ .debug_str     0x0000170e      0x279 arch/arm/mach-sunxi/pm/standby/../mem_int.o
+                                0x43e (size before relaxing)
+ .debug_str     0x00001987       0x9b arch/arm/mach-sunxi/pm/standby/../mem_gpio.o
+                                0x1a1 (size before relaxing)
+ .debug_str     0x00001a22      0x241 arch/arm/mach-sunxi/pm/standby/../mem_tmr.o
+                                0x456 (size before relaxing)
+ .debug_str     0x00001c63       0x9f arch/arm/mach-sunxi/pm/standby/../mem_tmstmp.o
+                                0x26e (size before relaxing)
+ .debug_str     0x00001d02       0xda arch/arm/mach-sunxi/pm/standby/../mem_hwspinlock.o
+                                0x2b0 (size before relaxing)
+ .debug_str     0x00001ddc      0x12c arch/arm/mach-sunxi/pm/standby/../mem_clk.o
+                                0xa6d (size before relaxing)
+
+.comment        0x00000000       0x64
+ .comment       0x00000000       0x64 arch/arm/mach-sunxi/pm/standby/super/resume/resume_head.o
+                                 0x65 (size before relaxing)
+ .comment       0x00000000       0x65 arch/arm/mach-sunxi/pm/standby/super/common.o
+ .comment       0x00000000       0x65 arch/arm/mach-sunxi/pm/standby/super/super_twi.o
+ .comment       0x00000000       0x65 arch/arm/mach-sunxi/pm/standby/super/super_clock.o
+ .comment       0x00000000       0x65 arch/arm/mach-sunxi/pm/standby/super/super_power.o
+ .comment       0x00000000       0x65 arch/arm/mach-sunxi/pm/standby/super/super_cpus.o
+ .comment       0x00000000       0x65 arch/arm/mach-sunxi/pm/standby/super/resume/resume1_c_part.o
+ .comment       0x00000000       0x65 arch/arm/mach-sunxi/pm/standby/../pm_debug.o
+ .comment       0x00000000       0x65 arch/arm/mach-sunxi/pm/standby/../mem_timing.o
+ .comment       0x00000000       0x65 arch/arm/mach-sunxi/pm/standby/../mem_mmu_pc.o
+ .comment       0x00000000       0x65 arch/arm/mach-sunxi/pm/standby/../mem_cpu.o
+ .comment       0x00000000       0x65 arch/arm/mach-sunxi/pm/standby/../mem_serial.o
+ .comment       0x00000000       0x65 arch/arm/mach-sunxi/pm/standby/../mem_printk.o
+ .comment       0x00000000       0x65 arch/arm/mach-sunxi/pm/standby/../mem_divlibc.o
+ .comment       0x00000000       0x65 arch/arm/mach-sunxi/pm/standby/../mem_int.o
+ .comment       0x00000000       0x65 arch/arm/mach-sunxi/pm/standby/../mem_gpio.o
+ .comment       0x00000000       0x65 arch/arm/mach-sunxi/pm/standby/../mem_tmr.o
+ .comment       0x00000000       0x65 arch/arm/mach-sunxi/pm/standby/../mem_tmstmp.o
+ .comment       0x00000000       0x65 arch/arm/mach-sunxi/pm/standby/../mem_hwspinlock.o
+ .comment       0x00000000       0x65 arch/arm/mach-sunxi/pm/standby/../mem_clk.o
+
+.note.GNU-stack
+                0x00000000        0x0
+ .note.GNU-stack
+                0x00000000        0x0 arch/arm/mach-sunxi/pm/standby/super/resume/resume_head.o
+ .note.GNU-stack
+                0x00000000        0x0 arch/arm/mach-sunxi/pm/standby/super/common.o
+ .note.GNU-stack
+                0x00000000        0x0 arch/arm/mach-sunxi/pm/standby/super/super_twi.o
+ .note.GNU-stack
+                0x00000000        0x0 arch/arm/mach-sunxi/pm/standby/super/super_clock.o
+ .note.GNU-stack
+                0x00000000        0x0 arch/arm/mach-sunxi/pm/standby/super/super_power.o
+ .note.GNU-stack
+                0x00000000        0x0 arch/arm/mach-sunxi/pm/standby/super/super_cpus.o
+ .note.GNU-stack
+                0x00000000        0x0 arch/arm/mach-sunxi/pm/standby/super/resume/resume1_c_part.o
+ .note.GNU-stack
+                0x00000000        0x0 arch/arm/mach-sunxi/pm/standby/../pm_debug.o
+ .note.GNU-stack
+                0x00000000        0x0 arch/arm/mach-sunxi/pm/standby/../mem_timing.o
+ .note.GNU-stack
+                0x00000000        0x0 arch/arm/mach-sunxi/pm/standby/../mem_mmu_pc.o
+ .note.GNU-stack
+                0x00000000        0x0 arch/arm/mach-sunxi/pm/standby/../mem_cpu.o
+ .note.GNU-stack
+                0x00000000        0x0 arch/arm/mach-sunxi/pm/standby/../mem_serial.o
+ .note.GNU-stack
+                0x00000000        0x0 arch/arm/mach-sunxi/pm/standby/../mem_printk.o
+ .note.GNU-stack
+                0x00000000        0x0 arch/arm/mach-sunxi/pm/standby/../mem_divlibc.o
+ .note.GNU-stack
+                0x00000000        0x0 arch/arm/mach-sunxi/pm/standby/../mem_int.o
+ .note.GNU-stack
+                0x00000000        0x0 arch/arm/mach-sunxi/pm/standby/../mem_gpio.o
+ .note.GNU-stack
+                0x00000000        0x0 arch/arm/mach-sunxi/pm/standby/../mem_tmr.o
+ .note.GNU-stack
+                0x00000000        0x0 arch/arm/mach-sunxi/pm/standby/../mem_tmstmp.o
+ .note.GNU-stack
+                0x00000000        0x0 arch/arm/mach-sunxi/pm/standby/../mem_hwspinlock.o
+ .note.GNU-stack
+                0x00000000        0x0 arch/arm/mach-sunxi/pm/standby/../mem_clk.o
+
+.ARM.attributes
+                0x00000000       0x31
+ .ARM.attributes
+                0x00000000       0x33 arch/arm/mach-sunxi/pm/standby/super/resume/resume_head.o
+ .ARM.attributes
+                0x00000033       0x21 arch/arm/mach-sunxi/pm/standby/super/resume/resume1.o
+ .ARM.attributes
+                0x00000054       0x33 arch/arm/mach-sunxi/pm/standby/super/common.o
+ .ARM.attributes
+                0x00000087       0x33 arch/arm/mach-sunxi/pm/standby/super/super_twi.o
+ .ARM.attributes
+                0x000000ba       0x21 arch/arm/mach-sunxi/pm/standby/super/super_delay.o
+ .ARM.attributes
+                0x000000db       0x33 arch/arm/mach-sunxi/pm/standby/super/super_clock.o
+ .ARM.attributes
+                0x0000010e       0x33 arch/arm/mach-sunxi/pm/standby/super/super_power.o
+ .ARM.attributes
+                0x00000141       0x33 arch/arm/mach-sunxi/pm/standby/super/super_cpus.o
+ .ARM.attributes
+                0x00000174       0x33 arch/arm/mach-sunxi/pm/standby/super/resume/resume1_c_part.o
+ .ARM.attributes
+                0x000001a7       0x33 arch/arm/mach-sunxi/pm/standby/../pm_debug.o
+ .ARM.attributes
+                0x000001da       0x33 arch/arm/mach-sunxi/pm/standby/../mem_timing.o
+ .ARM.attributes
+                0x0000020d       0x33 arch/arm/mach-sunxi/pm/standby/../mem_mmu_pc.o
+ .ARM.attributes
+                0x00000240       0x21 arch/arm/mach-sunxi/pm/standby/../mem_mmu_pc_asm.o
+ .ARM.attributes
+                0x00000261       0x33 arch/arm/mach-sunxi/pm/standby/../mem_cpu.o
+ .ARM.attributes
+                0x00000294       0x33 arch/arm/mach-sunxi/pm/standby/../mem_serial.o
+ .ARM.attributes
+                0x000002c7       0x33 arch/arm/mach-sunxi/pm/standby/../mem_printk.o
+ .ARM.attributes
+                0x000002fa       0x21 arch/arm/mach-sunxi/pm/standby/../mem_divlib.o
+ .ARM.attributes
+                0x0000031b       0x33 arch/arm/mach-sunxi/pm/standby/../mem_divlibc.o
+ .ARM.attributes
+                0x0000034e       0x33 arch/arm/mach-sunxi/pm/standby/../mem_int.o
+ .ARM.attributes
+                0x00000381       0x33 arch/arm/mach-sunxi/pm/standby/../mem_gpio.o
+ .ARM.attributes
+                0x000003b4       0x33 arch/arm/mach-sunxi/pm/standby/../mem_tmr.o
+ .ARM.attributes
+                0x000003e7       0x33 arch/arm/mach-sunxi/pm/standby/../mem_tmstmp.o
+ .ARM.attributes
+                0x0000041a       0x33 arch/arm/mach-sunxi/pm/standby/../mem_hwspinlock.o
+ .ARM.attributes
+                0x0000044d       0x33 arch/arm/mach-sunxi/pm/standby/../mem_clk.o
+
+.debug_loc      0x00000000     0x1dc4
+ .debug_loc     0x00000000       0x64 arch/arm/mach-sunxi/pm/standby/super/common.o
+ .debug_loc     0x00000064       0xae arch/arm/mach-sunxi/pm/standby/super/resume/resume1_c_part.o
+ .debug_loc     0x00000112      0x1ee arch/arm/mach-sunxi/pm/standby/../pm_debug.o
+ .debug_loc     0x00000300      0x3a0 arch/arm/mach-sunxi/pm/standby/../mem_timing.o
+ .debug_loc     0x000006a0       0x42 arch/arm/mach-sunxi/pm/standby/../mem_cpu.o
+ .debug_loc     0x000006e2      0x539 arch/arm/mach-sunxi/pm/standby/../mem_serial.o
+ .debug_loc     0x00000c1b      0x9e9 arch/arm/mach-sunxi/pm/standby/../mem_printk.o
+ .debug_loc     0x00001604       0xb2 arch/arm/mach-sunxi/pm/standby/../mem_divlibc.o
+ .debug_loc     0x000016b6      0x1d9 arch/arm/mach-sunxi/pm/standby/../mem_int.o
+ .debug_loc     0x0000188f       0x8f arch/arm/mach-sunxi/pm/standby/../mem_gpio.o
+ .debug_loc     0x0000191e       0x4f arch/arm/mach-sunxi/pm/standby/../mem_tmr.o
+ .debug_loc     0x0000196d       0x3c arch/arm/mach-sunxi/pm/standby/../mem_tmstmp.o
+ .debug_loc     0x000019a9      0x1d7 arch/arm/mach-sunxi/pm/standby/../mem_hwspinlock.o
+ .debug_loc     0x00001b80      0x244 arch/arm/mach-sunxi/pm/standby/../mem_clk.o
+
+.debug_aranges  0x00000000      0x1e0
+ .debug_aranges
+                0x00000000       0x20 arch/arm/mach-sunxi/pm/standby/super/common.o
+ .debug_aranges
+                0x00000020       0x20 arch/arm/mach-sunxi/pm/standby/super/resume/resume1_c_part.o
+ .debug_aranges
+                0x00000040       0x20 arch/arm/mach-sunxi/pm/standby/../pm_debug.o
+ .debug_aranges
+                0x00000060       0x20 arch/arm/mach-sunxi/pm/standby/../mem_timing.o
+ .debug_aranges
+                0x00000080       0x20 arch/arm/mach-sunxi/pm/standby/../mem_mmu_pc.o
+ .debug_aranges
+                0x000000a0       0x20 arch/arm/mach-sunxi/pm/standby/../mem_cpu.o
+ .debug_aranges
+                0x000000c0       0x20 arch/arm/mach-sunxi/pm/standby/../mem_serial.o
+ .debug_aranges
+                0x000000e0       0x20 arch/arm/mach-sunxi/pm/standby/../mem_printk.o
+ .debug_aranges
+                0x00000100       0x20 arch/arm/mach-sunxi/pm/standby/../mem_divlibc.o
+ .debug_aranges
+                0x00000120       0x20 arch/arm/mach-sunxi/pm/standby/../mem_int.o
+ .debug_aranges
+                0x00000140       0x20 arch/arm/mach-sunxi/pm/standby/../mem_gpio.o
+ .debug_aranges
+                0x00000160       0x20 arch/arm/mach-sunxi/pm/standby/../mem_tmr.o
+ .debug_aranges
+                0x00000180       0x20 arch/arm/mach-sunxi/pm/standby/../mem_tmstmp.o
+ .debug_aranges
+                0x000001a0       0x20 arch/arm/mach-sunxi/pm/standby/../mem_hwspinlock.o
+ .debug_aranges
+                0x000001c0       0x20 arch/arm/mach-sunxi/pm/standby/../mem_clk.o
+
+.debug_frame    0x00000000      0x804
+ .debug_frame   0x00000000       0x20 arch/arm/mach-sunxi/pm/standby/super/common.o
+ .debug_frame   0x00000020       0x48 arch/arm/mach-sunxi/pm/standby/super/resume/resume1_c_part.o
+ .debug_frame   0x00000068      0x144 arch/arm/mach-sunxi/pm/standby/../pm_debug.o
+ .debug_frame   0x000001ac       0xdc arch/arm/mach-sunxi/pm/standby/../mem_timing.o
+ .debug_frame   0x00000288       0x30 arch/arm/mach-sunxi/pm/standby/../mem_mmu_pc.o
+ .debug_frame   0x000002b8       0x90 arch/arm/mach-sunxi/pm/standby/../mem_cpu.o
+ .debug_frame   0x00000348      0x110 arch/arm/mach-sunxi/pm/standby/../mem_serial.o
+ .debug_frame   0x00000458       0xdc arch/arm/mach-sunxi/pm/standby/../mem_printk.o
+ .debug_frame   0x00000534       0x30 arch/arm/mach-sunxi/pm/standby/../mem_divlibc.o
+ .debug_frame   0x00000564       0x5c arch/arm/mach-sunxi/pm/standby/../mem_int.o
+ .debug_frame   0x000005c0       0x40 arch/arm/mach-sunxi/pm/standby/../mem_gpio.o
+ .debug_frame   0x00000600       0x80 arch/arm/mach-sunxi/pm/standby/../mem_tmr.o
+ .debug_frame   0x00000680       0x30 arch/arm/mach-sunxi/pm/standby/../mem_tmstmp.o
+ .debug_frame   0x000006b0       0x68 arch/arm/mach-sunxi/pm/standby/../mem_hwspinlock.o
+ .debug_frame   0x00000718       0xec arch/arm/mach-sunxi/pm/standby/../mem_clk.o
+
+.debug_ranges   0x00000000      0x1a8
+ .debug_ranges  0x00000000      0x128 arch/arm/mach-sunxi/pm/standby/../mem_serial.o
+ .debug_ranges  0x00000128       0x30 arch/arm/mach-sunxi/pm/standby/../mem_printk.o
+ .debug_ranges  0x00000158       0x50 arch/arm/mach-sunxi/pm/standby/../mem_hwspinlock.o

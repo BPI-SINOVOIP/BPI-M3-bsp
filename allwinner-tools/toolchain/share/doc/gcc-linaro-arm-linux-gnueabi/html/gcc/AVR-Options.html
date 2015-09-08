@@ -1,0 +1,194 @@
+<html lang="en">
+<head>
+<title>AVR Options - Using the GNU Compiler Collection (GCC)</title>
+<meta http-equiv="Content-Type" content="text/html">
+<meta name="description" content="Using the GNU Compiler Collection (GCC)">
+<meta name="generator" content="makeinfo 4.13">
+<link title="Top" rel="start" href="index.html#Top">
+<link rel="up" href="Submodel-Options.html#Submodel-Options" title="Submodel Options">
+<link rel="prev" href="ARM-Options.html#ARM-Options" title="ARM Options">
+<link rel="next" href="Blackfin-Options.html#Blackfin-Options" title="Blackfin Options">
+<link href="http://www.gnu.org/software/texinfo/" rel="generator-home" title="Texinfo Homepage">
+<!--
+Copyright (C) 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997,
+1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
+2010 Free Software Foundation, Inc.
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3 or
+any later version published by the Free Software Foundation; with the
+Invariant Sections being ``Funding Free Software'', the Front-Cover
+Texts being (a) (see below), and with the Back-Cover Texts being (b)
+(see below).  A copy of the license is included in the section entitled
+``GNU Free Documentation License''.
+
+(a) The FSF's Front-Cover Text is:
+
+     A GNU Manual
+
+(b) The FSF's Back-Cover Text is:
+
+     You have freedom to copy and modify this GNU Manual, like GNU
+     software.  Copies published by the Free Software Foundation raise
+     funds for GNU development.-->
+<meta http-equiv="Content-Style-Type" content="text/css">
+<style type="text/css"><!--
+  pre.display { font-family:inherit }
+  pre.format  { font-family:inherit }
+  pre.smalldisplay { font-family:inherit; font-size:smaller }
+  pre.smallformat  { font-family:inherit; font-size:smaller }
+  pre.smallexample { font-size:smaller }
+  pre.smalllisp    { font-size:smaller }
+  span.sc    { font-variant:small-caps }
+  span.roman { font-family:serif; font-weight:normal; } 
+  span.sansserif { font-family:sans-serif; font-weight:normal; } 
+--></style>
+</head>
+<body>
+<div class="node">
+<a name="AVR-Options"></a>
+<p>
+Next:&nbsp;<a rel="next" accesskey="n" href="Blackfin-Options.html#Blackfin-Options">Blackfin Options</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="ARM-Options.html#ARM-Options">ARM Options</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="Submodel-Options.html#Submodel-Options">Submodel Options</a>
+<hr>
+</div>
+
+<h4 class="subsection">3.17.3 AVR Options</h4>
+
+<p><a name="index-AVR-Options-1062"></a>
+These options are defined for AVR implementations:
+
+     <dl>
+<dt><code>-mmcu=</code><var>mcu</var><dd><a name="index-mmcu-1063"></a>Specify ATMEL AVR instruction set or MCU type.
+
+     <p>Instruction set avr1 is for the minimal AVR core, not supported by the C
+compiler, only for assembler programs (MCU types: at90s1200, attiny10,
+attiny11, attiny12, attiny15, attiny28).
+
+     <p>Instruction set avr2 (default) is for the classic AVR core with up to
+8K program memory space (MCU types: at90s2313, at90s2323, attiny22,
+at90s2333, at90s2343, at90s4414, at90s4433, at90s4434, at90s8515,
+at90c8534, at90s8535).
+
+     <p>Instruction set avr3 is for the classic AVR core with up to 128K program
+memory space (MCU types: atmega103, atmega603, at43usb320, at76c711).
+
+     <p>Instruction set avr4 is for the enhanced AVR core with up to 8K program
+memory space (MCU types: atmega8, atmega83, atmega85).
+
+     <p>Instruction set avr5 is for the enhanced AVR core with up to 128K program
+memory space (MCU types: atmega16, atmega161, atmega163, atmega32, atmega323,
+atmega64, atmega128, at43usb355, at94k).
+
+     <br><dt><code>-mno-interrupts</code><dd><a name="index-mno_002dinterrupts-1064"></a>Generated code is not compatible with hardware interrupts. 
+Code size will be smaller.
+
+     <br><dt><code>-mcall-prologues</code><dd><a name="index-mcall_002dprologues-1065"></a>Functions prologues/epilogues expanded as call to appropriate
+subroutines.  Code size will be smaller.
+
+     <br><dt><code>-mtiny-stack</code><dd><a name="index-mtiny_002dstack-1066"></a>Change only the low 8 bits of the stack pointer.
+
+     <br><dt><code>-mint8</code><dd><a name="index-mint8-1067"></a>Assume int to be 8 bit integer.  This affects the sizes of all types: A
+char will be 1 byte, an int will be 1 byte, a long will be 2 bytes
+and long long will be 4 bytes.  Please note that this option does not
+comply to the C standards, but it will provide you with smaller code
+size. 
+</dl>
+
+<h5 class="subsubsection">3.17.3.1 <code>EIND</code> and Devices with more than 128k Bytes of Flash</h5>
+
+<p>Pointers in the implementation are 16 bits wide. 
+The address of a function or label is represented as word address so
+that indirect jumps and calls can address any code address in the
+range of 64k words.
+
+ <p>In order to faciliate indirect jump on devices with more than 128k
+bytes of program memory space, there is a special function register called
+<code>EIND</code> that serves as most significant part of the target address
+when <code>EICALL</code> or <code>EIJMP</code> instructions are used.
+
+ <p>Indirect jumps and calls on these devices are handled as follows and
+are subject to some limitations:
+
+     <ul>
+<li>The compiler never sets <code>EIND</code>.
+
+     <li>The startup code from libgcc never sets <code>EIND</code>. 
+Notice that startup code is a blend of code from libgcc and avr-libc. 
+For the impact of avr-libc on <code>EIND</code>, see the
+<a href="http://nongnu.org/avr-libc/user-manual">avr-libc&nbsp;user&nbsp;manual</a><!-- /@w -->.
+
+     <li>The compiler uses <code>EIND</code> implicitely in <code>EICALL</code>/<code>EIJMP</code>
+instructions or might read <code>EIND</code> directly.
+
+     <li>The compiler assumes that <code>EIND</code> never changes during the startup
+code or run of the application. In particular, <code>EIND</code> is not
+saved/restored in function or interrupt service routine
+prologue/epilogue.
+
+     <li>It is legitimate for user-specific startup code to set up <code>EIND</code>
+early, for example by means of initialization code located in
+section <code>.init3</code>, and thus prior to general startup code that
+initializes RAM and calls constructors.
+
+     <li>For indirect calls to functions and computed goto, the linker will
+generate <em>stubs</em>. Stubs are jump pads sometimes also called
+<em>trampolines</em>. Thus, the indirect call/jump will jump to such a stub. 
+The stub contains a direct jump to the desired address.
+
+     <li>Stubs will be generated automatically by the linker if
+the following two conditions are met:
+          <ul>
+<li>The address of a label is taken by means of the <code>gs</code> modifier
+(short for <em>generate stubs</em>) like so:
+          <pre class="example">               LDI r24, lo8(gs(<var>func</var>))
+               LDI r25, hi8(gs(<var>func</var>))
+</pre>
+          <li>The final location of that label is in a code segment
+<em>outside</em> the segment where the stubs are located. 
+</ul>
+
+     <li>The compiler will emit such <code>gs</code> modifiers for code labels in the
+following situations:
+          <ul>
+<li>Taking address of a function or code label. 
+<li>Computed goto. 
+<li>If prologue-save function is used, see <samp><span class="option">-mcall-prologues</span></samp>
+command line option. 
+<li>Switch/case dispatch tables. If you do not want such dispatch
+tables you can specify the <samp><span class="option">-fno-jump-tables</span></samp> command line option. 
+<li>C and C++ constructors/destructors called during startup/shutdown. 
+<li>If the tools hit a <code>gs()</code> modifier explained above. 
+</ul>
+
+     <li>The default linker script is arranged for code with <code>EIND = 0</code>. 
+If code is supposed to work for a setup with <code>EIND != 0</code>, a custom
+linker script has to be used in order to place the sections whose
+name start with <code>.trampolines</code> into the segment where <code>EIND</code>
+points to.
+
+     <li>Jumping to non-symbolic addresses like so is <em>not</em> supported:
+
+     <pre class="example">          int main (void)
+          {
+              /* Call function at word address 0x2 */
+              return ((int(*)(void)) 0x2)();
+          }
+</pre>
+     <p>Instead, a stub has to be set up:
+
+     <pre class="example">          int main (void)
+          {
+              extern int func_4 (void);
+          
+              /* Call function at byte address 0x4 */
+              return func_4();
+          }
+</pre>
+     <p>and the application be linked with <code>-Wl,--defsym,func_4=0x4</code>. 
+Alternatively, <code>func_4</code> can be defined in the linker script. 
+</ul>
+
+ </body></html>
+

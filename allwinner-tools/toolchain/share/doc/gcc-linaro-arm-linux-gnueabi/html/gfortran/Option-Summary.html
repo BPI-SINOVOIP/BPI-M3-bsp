@@ -1,0 +1,127 @@
+<html lang="en">
+<head>
+<title>Option Summary - The GNU Fortran Compiler</title>
+<meta http-equiv="Content-Type" content="text/html">
+<meta name="description" content="The GNU Fortran Compiler">
+<meta name="generator" content="makeinfo 4.13">
+<link title="Top" rel="start" href="index.html#Top">
+<link rel="up" href="Invoking-GNU-Fortran.html#Invoking-GNU-Fortran" title="Invoking GNU Fortran">
+<link rel="next" href="Fortran-Dialect-Options.html#Fortran-Dialect-Options" title="Fortran Dialect Options">
+<link href="http://www.gnu.org/software/texinfo/" rel="generator-home" title="Texinfo Homepage">
+<!--
+Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3 or
+any later version published by the Free Software Foundation; with the
+Invariant Sections being ``Funding Free Software'', the Front-Cover
+Texts being (a) (see below), and with the Back-Cover Texts being (b)
+(see below).  A copy of the license is included in the section entitled
+``GNU Free Documentation License''.
+
+(a) The FSF's Front-Cover Text is:
+
+     A GNU Manual
+
+(b) The FSF's Back-Cover Text is:
+
+     You have freedom to copy and modify this GNU Manual, like GNU
+     software.  Copies published by the Free Software Foundation raise
+     funds for GNU development.-->
+<meta http-equiv="Content-Style-Type" content="text/css">
+<style type="text/css"><!--
+  pre.display { font-family:inherit }
+  pre.format  { font-family:inherit }
+  pre.smalldisplay { font-family:inherit; font-size:smaller }
+  pre.smallformat  { font-family:inherit; font-size:smaller }
+  pre.smallexample { font-size:smaller }
+  pre.smalllisp    { font-size:smaller }
+  span.sc    { font-variant:small-caps }
+  span.roman { font-family:serif; font-weight:normal; } 
+  span.sansserif { font-family:sans-serif; font-weight:normal; } 
+--></style>
+</head>
+<body>
+<div class="node">
+<a name="Option-Summary"></a>
+<p>
+Next:&nbsp;<a rel="next" accesskey="n" href="Fortran-Dialect-Options.html#Fortran-Dialect-Options">Fortran Dialect Options</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="Invoking-GNU-Fortran.html#Invoking-GNU-Fortran">Invoking GNU Fortran</a>
+<hr>
+</div>
+
+<h3 class="section">2.1 Option summary</h3>
+
+<!-- man begin OPTIONS -->
+<p>Here is a summary of all the options specific to GNU Fortran, grouped
+by type.  Explanations are in the following sections.
+
+     <dl>
+<dt><em>Fortran Language Options</em><dd>See <a href="Fortran-Dialect-Options.html#Fortran-Dialect-Options">Options controlling Fortran dialect</a>.
+     <pre class="smallexample">          -fall-intrinsics  -ffree-form  -fno-fixed-form 
+          -fdollar-ok  -fimplicit-none  -fmax-identifier-length 
+          -std=<var>std</var> -fd-lines-as-code  -fd-lines-as-comments 
+          -ffixed-line-length-<var>n</var>  -ffixed-line-length-none 
+          -ffree-line-length-<var>n</var>  -ffree-line-length-none 
+          -fdefault-double-8  -fdefault-integer-8  -fdefault-real-8 
+          -fcray-pointer  -fopenmp  -fno-range-check -fbackslash -fmodule-private
+</pre>
+     <br><dt><em>Preprocessing Options</em><dd>See <a href="Preprocessing-Options.html#Preprocessing-Options">Enable and customize preprocessing</a>.
+     <pre class="smallexample">          -cpp -dD -dI -dM -dN -dU -fworking-directory 
+          -imultilib <var>dir</var> -iprefix <var>file</var> -isysroot <var>dir</var> 
+          -iquote -isystem <var>dir</var> -nocpp -nostdinc -undef 
+          -A<var>question</var>=<var>answer</var> -A-<var>question</var><span class="roman">[</span>=<var>answer</var><span class="roman">]</span> 
+          -C -CC -D<var>macro</var><span class="roman">[</span>=<var>defn</var><span class="roman">]</span> -U<var>macro</var> -H -P
+</pre>
+     <br><dt><em>Error and Warning Options</em><dd>See <a href="Error-and-Warning-Options.html#Error-and-Warning-Options">Options to request or suppress errors and warnings</a>.
+     <pre class="smallexample">          -fmax-errors=<var>n</var> 
+          -fsyntax-only  -pedantic  -pedantic-errors 
+          -Wall  -Waliasing  -Wampersand  -Warray-bounds -Wcharacter-truncation 
+          -Wconversion -Wimplicit-interface  -Wimplicit-procedure  -Wline-truncation 
+          -Wintrinsics-std  -Wsurprising  -Wno-tabs  -Wunderflow  -Wunused-parameter 
+          -Wintrinsic-shadow  -Wno-align-commons
+</pre>
+     <br><dt><em>Debugging Options</em><dd>See <a href="Debugging-Options.html#Debugging-Options">Options for debugging your program or GNU Fortran</a>.
+     <pre class="smallexample">          -fdump-fortran-original  -fdump-fortran-optimized 
+          -ffpe-trap=<var>list</var>  -fdump-core -fbacktrace -fdump-parse-tree
+</pre>
+     <br><dt><em>Directory Options</em><dd>See <a href="Directory-Options.html#Directory-Options">Options for directory search</a>.
+     <pre class="smallexample">          -I<var>dir</var>  -J<var>dir</var> -fintrinsic-modules-path <var>dir</var>
+</pre>
+     <br><dt><em>Link Options</em><dd>See <a href="Link-Options.html#Link-Options">Options for influencing the linking step</a>.
+     <pre class="smallexample">          -static-libgfortran
+</pre>
+     <br><dt><em>Runtime Options</em><dd>See <a href="Runtime-Options.html#Runtime-Options">Options for influencing runtime behavior</a>.
+     <pre class="smallexample">          -fconvert=<var>conversion</var>  -fno-range-check
+          -frecord-marker=<var>length</var>   -fmax-subrecord-length=<var>length</var>
+          -fsign-zero
+</pre>
+     <br><dt><em>Code Generation Options</em><dd>See <a href="Code-Gen-Options.html#Code-Gen-Options">Options for code generation conventions</a>.
+     <pre class="smallexample">          -fno-automatic  -ff2c  -fno-underscoring 
+          -fno-whole-file -fsecond-underscore 
+          -fbounds-check -fcheck-array-temporaries  -fmax-array-constructor =<var>n</var> 
+          -fcheck=<var>&lt;all|array-temps|bounds|do|mem|pointer|recursion&gt;</var> 
+          -fcoarray=<var>&lt;none|single&gt;</var> -fmax-stack-var-size=<var>n</var> 
+          -fpack-derived  -frepack-arrays  -fshort-enums  -fexternal-blas 
+          -fblas-matmul-limit=<var>n</var> -frecursive -finit-local-zero 
+          -finit-integer=<var>n</var> -finit-real=<var>&lt;zero|inf|-inf|nan|snan&gt;</var> 
+          -finit-logical=<var>&lt;true|false&gt;</var> -finit-character=<var>n</var> 
+          -fno-align-commons -fno-protect-parens -frealloc-lhs
+</pre>
+     </dl>
+
+<ul class="menu">
+<li><a accesskey="1" href="Fortran-Dialect-Options.html#Fortran-Dialect-Options">Fortran Dialect Options</a>:   Controlling the variant of Fortran language
+                             compiled. 
+<li><a accesskey="2" href="Preprocessing-Options.html#Preprocessing-Options">Preprocessing Options</a>:   Enable and customize preprocessing. 
+<li><a accesskey="3" href="Error-and-Warning-Options.html#Error-and-Warning-Options">Error and Warning Options</a>:      How picky should the compiler be? 
+<li><a accesskey="4" href="Debugging-Options.html#Debugging-Options">Debugging Options</a>:    Symbol tables, measurements, and debugging dumps. 
+<li><a accesskey="5" href="Directory-Options.html#Directory-Options">Directory Options</a>:    Where to find module files
+<li><a accesskey="6" href="Link-Options.html#Link-Options">Link Options </a>:        Influencing the linking step
+<li><a accesskey="7" href="Runtime-Options.html#Runtime-Options">Runtime Options</a>:      Influencing runtime behavior
+<li><a accesskey="8" href="Code-Gen-Options.html#Code-Gen-Options">Code Gen Options</a>:     Specifying conventions for function calls, data layout
+                        and register usage. 
+</ul>
+
+   </body></html>
+

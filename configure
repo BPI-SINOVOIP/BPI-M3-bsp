@@ -1,0 +1,57 @@
+#!/bin/sh
+
+set -e
+
+SOC=a83t
+MACH=sun8iw6p1
+PLATFORM=
+BOARD=
+
+CUR_DIR=$PWD
+CROSS_COMPILE=$CUR_DIR/allwinner-tools/toolchain/bin
+
+list_boards() {
+	ls -1 sunxi-pack/chips/sun8iw6p1/configs/*/*/*.fex |
+	sed -n -e 's|.*/\([^/]\+\)\.fex$|\1|p' | sort -V |
+        sed -e 's|.*|\t* \0 \0-android|'
+}
+
+# keep the output `sh` friendly
+# i.e., no spaces around the '='
+generate_board_mk() {
+	
+	cat <<-EOT
+	BOARD=$BOARD
+	SOC=$SOC
+	MACH=$MACH
+	COMPILE_TOOL=$CROSS_COMPILE
+	UBOOT_CONFIG=$MACH
+	KERNEL_CONFIG=sun8iw6p1smp_bpi_defconfig
+	EOT
+
+}
+
+usage() {
+	cat <<-EOT >&2
+	Usage: $0 <board>
+
+	supported boards:
+	EOT
+	#list_boards  #DK, update later
+}
+
+if [ $# -eq 0 ]; then
+	usage
+	exit 1
+fi
+
+BOARD=$1
+
+out=chosen_board.mk
+if generate_board_mk "$1" > $out~; then
+	mv $out~ $out
+	echo "$1 configured. Now run \`make\`"
+else
+	rm $out~
+	exit 1
+fi
