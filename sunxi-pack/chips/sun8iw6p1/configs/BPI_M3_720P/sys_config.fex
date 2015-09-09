@@ -6,7 +6,7 @@
 
 [product]
 version = "100"
-machine = "f1"
+machine = "BPI-M3"
 
 ;---------------------------------------------------------------------------------------------------------
 ; eraseflag - 1 erase data partition, 0 - do not erase data partition
@@ -124,47 +124,12 @@ pg_bias         = "axp81x:dcdc1:3000"
 ph_bias         = "axp81x:dcdc1:3000"
 pl_bias         = "axp81x:aldo3:3000"
 
-;-------------------------------------------------------------------------------
-;	sprite_work_delay	:
-;	 sprite_err_delay	:
-;		 sprite_gpio0	：	卡量产、一键recovery状态指示灯
-;			next_work	： 卡量产完成，工作状态(默认关机)
-;-------------------------------------------------------------------------------
 [card_boot]
 logical_start   = 40960
-sprite_work_delay	= 500
-sprite_err_delay	= 200
-sprite_gpio0    = port:power1<1><default><default><default>
+sprite_gpio0    =
 next_work       = 3
 
-;-------------------------------------------------------------------------------
-; 	boot阶段上电初始化GPIO
-;		used		:模块使能端     置1：开启模块   置0：关闭模块
-;		gpiox ：上电初始化gpio （名称自定，但不能重复，并且GPIO允许可以多个）
-;		PH06  : 系统显示LED GPIO
-;-------------------------------------------------------------------------------
-[boot_init_gpio]
-used	=	1
-gpio0	=  port:power1<1><default><default><0>
-gpio0	=  port:power0<1><default><default><1>
 
-;----------------------------------------------------------------------------------
-;	used: 模块使能端     1：开启模块   0：关闭模块
-;	mode: 模式选择		 1：一键进入OTA升级		2：一键恢复（通过sysrecovery分区来恢复）  其他值：无效
-;	recovery_key ： 按键配置  （例如：recovery_key= port:PH16<0><default>）
-;----------------------------------------------------------------------------------
-[recovery_para]
-used =	1
-mode =	2
-recovery_key = port:PL09<0><default><default><default>
-
-
-;---------------------------------------------------------------------------------------------------------
-; if 1 == standby_mode, then support super standby;
-; else, support normal standby.
-;---------------------------------------------------------------------------------------------------------
-[pm_para]
-standby_mode		= 1
 
 [card0_boot_para]
 card_ctrl       = 0
@@ -218,12 +183,13 @@ jtag_do         = port:PF03<3><default><default><default>
 jtag_di         = port:PF01<3><default><default><default>
 
 [clock]
-pll_ve           = 432
-;pll_periph       = 600
-pll_gpu          = 432
-pll_hsic         = 480
-pll_de           = 504
+pll_ve          = 432
+;pll_periph      = 600
+pll_gpu         = 432
+pll_hsic        = 480
+pll_de          = 504
 pll_video1       = 297
+;apb2            = 40
 
 ;*****************************************************************************
 ;sdram configuration
@@ -534,7 +500,7 @@ tkey_int            =
 ;motor configuration
 ;----------------------------------------------------------------------------------
 [motor_para]
-motor_used          = 1
+motor_used          = 0
 motor_shake         = 0
 motor_ldo           = vcc-vibrator
 motor_ldo_voltage   = 3300
@@ -575,14 +541,14 @@ ths_trip2_0         = 105
 ;----------------------------------------------------------------------------------
 [cooler_table]
 cooler_count = 8
-cooler0 = "2016000 4 2016000 4"
-cooler1 = "1800000 4 1800000 4"
-cooler2 = "1608000 4 1608000 4"
-cooler3 = "1200000 4 1200000 4"
-cooler4 = "1200000 4 1200000 2"
-cooler5 = "1200000 4 4294967295 0"
-cooler6 = "1200000 2 4294967295 0 1"
-cooler7 = "1200000 1 4294967295 0 1"
+cooler0 = "0 4 0 4"
+cooler1 = "1 4 1 4"
+cooler2 = "2 4 2 4"
+cooler3 = "3 4 3 4"
+cooler4 = "3 4 3 2"
+cooler5 = "3 4 4294967295 0"
+cooler6 = "3 2 4294967295 0 1"
+cooler7 = "3 1 4294967295 0 1"
 ;----------------------------------------------------------------------------------
 
 [nand0_para]
@@ -656,10 +622,10 @@ disp_init_enable         = 1
 disp_mode                = 0
 
 screen0_output_type      = 3
-screen0_output_mode      = 4
+screen0_output_mode      = 5
 
 screen1_output_type      = 3
-screen1_output_mode      = 4
+screen1_output_mode      = 5
 
 fb0_format               = 0
 fb0_width                = 0
@@ -733,21 +699,13 @@ lcd_cmap_en         = 0
 
 lcdgamma4iep        = 22
 
-lcd_bl_en           = port:PD29<1><0><default><1>
-lcd_bl_regulator    = "none"
-lcd_power           = "vcc-lcd"
+lcd_bl_en           = 
+lcd_power           = "vcc-dsi-18"
+lcd_power1          = "vcc-lcd-0"
+lcd_power2          = "vcc_dsi"
 
-lcdd0               = port:PD18<3><0><default><default>
-lcdd1               = port:PD19<3><0><default><default>
-lcdd2               = port:PD20<3><0><default><default>
-lcdd3               = port:PD21<3><0><default><default>
-lcdd4               = port:PD22<3><0><default><default>
-lcdd5               = port:PD23<3><0><default><default>
-lcdd6               = port:PD24<3><0><default><default>
-lcdd7               = port:PD25<3><0><default><default>
-lcdd8               = port:PD26<3><0><default><default>
-lcdd9               = port:PD27<3><0><default><default>
-lcd_io_regulator    = "vcc-lvds-18"
+lcd_gpio_0          = 
+lcd_gpio_1          = 
 lcd_io_regulator1   = "vcc-pd"
 
 ;----------------------------------------------------------------------------------
@@ -767,7 +725,7 @@ hdmi_power          = "vcc-hdmi-18"
 ;tv_dn :data pin config
 ;----------------------------------------------------------------------------------
 [tv_para]
-tv_used = 1
+tv_used = 0
 tv_module_name = "gm7121"
 tv_power = "vcc-cvbs-33"
 tv_twi_used = 1
@@ -1091,8 +1049,8 @@ vendor_id           = 0x18D1
 mass_storage_id     = 0x0001
 adb_id              = 0x0002
 
-manufacturer_name   = "USB Developer"
-product_name        = "Android"
+manufacturer_name   = "BPI"
+product_name        = "M3"
 serial_number       = "20080411"
 
 [msc_feature]
@@ -1165,7 +1123,7 @@ lsm303d                   = 0
 [rf_para]
 module_num          = 10
 module_power1       = "vcc-wifi-io"
-module_power1_vol   =
+module_power1_vol   = 3300000
 module_power2       = ""
 module_power2_vol   = 
 module_power3       = ""
@@ -1364,7 +1322,7 @@ i2s_din             = port:PB07<3><1><default><default>
 
 [audio0]
 audio_int_ctrl       	= port:PL11<6><default><default><0>
-audio_pa_ctrl       	= port:PG15<1><default><default><0>
+audio_pa_ctrl       	= 
 ;aif3_voltage       = "axp15_cldo3"
 speaker_val = 0x1b
 headset_val = 0x3b
@@ -1415,7 +1373,7 @@ ir_tx               =
 ;gpio configuration   Justin
 ;----------------------------------------------------------------------------------
 [gpio_para]                    
-gpio_used                = 1
+gpio_used                = 0
 gpio_num                 = 29
 gpio_pin_1               = port:PH5<1><default><default><1>
 gpio_pin_2               = port:PH4<1><default><default><1>
@@ -1450,7 +1408,7 @@ gpio_pin_29              = port:PD25<1><default><default><1>
 
 ;-------------------------------------------------------------------------------------
 ;pmu_used                    ---0:not used,1:used
-;pmu_id                      ---0:axp19x,1:axp22x,2:axp806,3:axp808,4:axp809,5:axp803,6:axp813
+;pmu_id                      ---0:axp19x,1:axp209,2:axp22x,3:axp806,4:axp808,5:axp809,6:axp803,7:axp813
 ;pmu_twi_addr                ---slave address
 ;pmu_twi_id                  ---i2c bus number (0 TWI0, 1 TWI2, 2 TWI3)
 ;pmu_irq_id                  ---irq number (0 irq0,1 irq1,……)
@@ -1555,20 +1513,20 @@ gpio_pin_29              = port:PD25<1><default><default><1>
 ;--------------------------------------------------------------------------------------------------------
 [pmu1_para]
 pmu_used                   = 1
-pmu_id                     = 5
+pmu_id                     = 7
 pmu_twi_addr               = 0x34
 pmu_twi_id                 = 0
 pmu_irq_id                 = 0
-pmu_battery_rdc            = 100
-pmu_battery_cap            = 0
+pmu_battery_rdc            = 128
+pmu_battery_cap            = 2978
 pmu_batdeten               = 1
 pmu_chg_ic_temp            = 0
 pmu_runtime_chgcur         = 1000
 pmu_earlysuspend_chgcur    = 1000
-pmu_suspend_chgcur         = 1600
-pmu_shutdown_chgcur        = 1600
+pmu_suspend_chgcur         = 1800
+pmu_shutdown_chgcur        = 1950
 pmu_init_chgvol            = 4200
-pmu_init_chgend_rate       = 15
+pmu_init_chgend_rate       = 10
 pmu_init_chg_enabled       = 1
 pmu_init_bc_en             = 0
 pmu_init_adc_freq          = 800
@@ -1636,10 +1594,10 @@ pmu_chgled_func            = 0
 pmu_chgled_type            = 0
 pmu_vbusen_func            = 1
 pmu_reset                  = 0
-pmu_IRQ_wakeup             = 0
+pmu_IRQ_wakeup             = 1
 pmu_hot_shutdowm           = 1
 pmu_inshort                = 0
-power_start                = 3
+power_start                = 0
 
 pmu_temp_enable            = 0
 pmu_charge_ltf             = 2261
@@ -1939,39 +1897,48 @@ B_LV7_volt = 840
 B_LV8_freq = 0
 B_LV8_volt = 840
 
+;----------------------------------------------------------------------------------
+;sgx544 parameters
+;normal_vol       : the normal voltage of gpu
+;normal_freq      : the normal frequency of gpu
+;extreme_vol      : the maximum voltage of gpu
+;extreme_freq     : the maximum frequency of gpu
+;scene_ctrl_status: scene control status, if this is enabled, android layer can ask
+;                   gpu driver to change frequency in certain scene
+;temp_ctrl_status : temperature control status, if this is enabled, the gpu frequency
+;                   will drop down if gpu's temperature is too high
+;tft_count        : the temperature frequency data count to use
+;----------------------------------------------------------------------------------
+[gpu_sgx544_0]
+normal_vol        = 900
+normal_freq       = 624
+extreme_vol       = 1100
+extreme_freq      = 744
+scene_ctrl_status = 1
+temp_ctrl_status  = 1
+tft_count         = 2
 
+tf0_temp = 85
+tf0_freq = 504
 
-[gpu_dvfs_table]
-G_normal_level = 4
-G_dvfs_enable  = 1
-G_LV_count = 9
+tf1_temp = 95
+tf1_freq = 288
 
-G_LV0_freq = 252
-G_LV0_volt = 700
+[gpu_sgx544_1]
+normal_vol        = 900
+normal_freq       = 552
+extreme_vol       = 1100
+extreme_freq      = 720
+scene_ctrl_status = 1
+temp_ctrl_status  = 1
+tft_count         = 2
 
-G_LV1_freq = 288
-G_LV1_volt = 740
+tf0_temp = 85
+tf0_freq = 456
 
-G_LV2_freq = 456
-G_LV2_volt = 800
-
-G_LV3_freq = 504
-G_LV3_volt = 840
-
-G_LV4_freq = 624
-G_LV4_volt = 900
-
-G_LV5_freq = 648
-G_LV5_volt = 940
-
-G_LV6_freq = 672
-G_LV6_volt = 1000
-
-G_LV7_freq = 696
-G_LV7_volt = 1040
-
-G_LV8_freq = 744
-G_LV8_volt = 1100
+tf1_temp = 95
+tf1_freq = 288
+;----------------------------------------------------------------------------------
 
 ;----------------------------------------------------------------------------------
 ;virtual device

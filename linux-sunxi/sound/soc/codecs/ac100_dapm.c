@@ -485,6 +485,9 @@ static int late_enable_adc(struct snd_soc_dapm_widget *w,
 	mutex_unlock(&ac100->adc_mutex);
 	return 0;
 }
+
+/* bpi, m3 not use pa */
+#if 0
 static int ac100_speaker_event(struct snd_soc_dapm_widget *w,
 				struct snd_kcontrol *k,
 				int event)
@@ -511,6 +514,8 @@ static int ac100_speaker_event(struct snd_soc_dapm_widget *w,
 	}
 	return 0;
 }
+#endif
+
 static int ac100_earpiece_event(struct snd_soc_dapm_widget *w,
 				struct snd_kcontrol *k,
 				int event)
@@ -1339,8 +1344,15 @@ static const struct snd_soc_dapm_widget ac100_dapm_widgets[] = {
 		   SND_SOC_DAPM_PRE_PMU|SND_SOC_DAPM_POST_PMD),
 	/*headphone*/
 	SND_SOC_DAPM_HP("Headphone", ac100_headphone_event),
+	
 	/*speaker*/
+#if 0
 	SND_SOC_DAPM_SPK("External Speaker", ac100_speaker_event),
+#else
+	/* bpi, m3 not use pa */
+	SND_SOC_DAPM_SPK("External Speaker", NULL),
+#endif
+
 	/*earpiece*/
 	SND_SOC_DAPM_SPK("Earpiece", ac100_earpiece_event),
 	/*DMIC*/
@@ -2489,8 +2501,13 @@ static void codec_resume_work(struct work_struct *work)
 	}
 	/*enable this bit to prevent leakage from ldoin*/
 	snd_soc_update_bits(codec, ADDA_TUNE3, (0x1<<OSCEN), (0x1<<OSCEN));
+
+	/*bpi, m3 not use pa*/
+#if 0
 	gpio_direction_output(item.gpio.gpio, 1);
 	gpio_set_value(item.gpio.gpio, 0);
+#endif
+
 	#ifndef CONFIG_ANDROID_SWITCH_GPIO_TS3A225
 	msleep(200);
 	ret = snd_soc_read(codec, HMIC_STS);
@@ -2645,6 +2662,8 @@ static int ac100_codec_probe(struct snd_soc_codec *codec)
 	mutex_init(&ac100->adc_mutex);
 	mutex_init(&ac100->aifclk_mutex);
 
+	/*bpi, m3 not use pa*/
+#if 0
 	/*get the default pa val(close)*/
 	type = script_get_item("audio0", "audio_pa_ctrl", &item);
 	if (SCIRPT_ITEM_VALUE_TYPE_PIO != type) {
@@ -2662,6 +2681,7 @@ static int ac100_codec_probe(struct snd_soc_codec *codec)
 	*/
 	gpio_direction_output(item.gpio.gpio, 1);
 	gpio_set_value(item.gpio.gpio, 0);
+#endif
 
 #ifndef CONFIG_ANDROID_SWITCH_GPIO_TS3A225
 	/*
@@ -2808,9 +2828,14 @@ static int ac100_codec_suspend(struct snd_soc_codec *codec)
 	config = SUNXI_PINCFG_PACK(SUNXI_PINCFG_TYPE_FUNC, 7);
 	pin_config_set(SUNXI_PINCTRL, pin_name, config);
 	#endif
+
+	/*bpi, m3 not use pa*/
+#if 0
 	sunxi_gpio_to_name(item.gpio.gpio, pin_name);
 	config = SUNXI_PINCFG_PACK(SUNXI_PINCFG_TYPE_FUNC, 7);
 	pin_config_set(SUNXI_PINCTRL, pin_name, config);
+#endif
+
 	return 0;
 }
 
@@ -2920,8 +2945,11 @@ static void ac100_shutdown(struct platform_device *pdev)
 	reg_val &= ~((0x1<<RHPPA_MUTE)|(0x1<<LHPPA_MUTE));
 	snd_soc_write(codec, HPOUT_CTRL, reg_val);
 
+	/*bpi, m3 not use pa*/
+#if 0
 	/*disable pa_ctrl*/
 	gpio_set_value(item.gpio.gpio, 0);
+#endif
 
 }
 static int __devexit ac100_remove(struct platform_device *pdev)

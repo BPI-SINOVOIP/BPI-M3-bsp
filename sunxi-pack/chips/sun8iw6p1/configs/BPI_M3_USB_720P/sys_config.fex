@@ -6,7 +6,7 @@
 
 [product]
 version = "100"
-machine = "f1"
+machine = "BPI-M3"
 
 ;---------------------------------------------------------------------------------------------------------
 ; eraseflag - 1 erase data partition, 0 - do not erase data partition
@@ -500,7 +500,7 @@ tkey_int            =
 ;motor configuration
 ;----------------------------------------------------------------------------------
 [motor_para]
-motor_used          = 1
+motor_used          = 0
 motor_shake         = 0
 motor_ldo           = vcc-vibrator
 motor_ldo_voltage   = 3300
@@ -1049,8 +1049,8 @@ vendor_id           = 0x18D1
 mass_storage_id     = 0x0001
 adb_id              = 0x0002
 
-manufacturer_name   = "USB Developer"
-product_name        = "Android"
+manufacturer_name   = "BPI"
+product_name        = "M3"
 serial_number       = "20080411"
 
 [msc_feature]
@@ -1123,7 +1123,7 @@ lsm303d                   = 0
 [rf_para]
 module_num          = 10
 module_power1       = "vcc-wifi-io"
-module_power1_vol   =
+module_power1_vol   = 3300000
 module_power2       = ""
 module_power2_vol   = 
 module_power3       = ""
@@ -1322,7 +1322,7 @@ i2s_din             = port:PB07<3><1><default><default>
 
 [audio0]
 audio_int_ctrl       	= port:PL11<6><default><default><0>
-audio_pa_ctrl       	= port:PG15<1><default><default><0>
+audio_pa_ctrl       	= 
 ;aif3_voltage       = "axp15_cldo3"
 speaker_val = 0x1b
 headset_val = 0x3b
@@ -1373,7 +1373,7 @@ ir_tx               =
 ;gpio configuration   Justin
 ;----------------------------------------------------------------------------------
 [gpio_para]                    
-gpio_used                = 1
+gpio_used                = 0
 gpio_num                 = 29
 gpio_pin_1               = port:PH5<1><default><default><1>
 gpio_pin_2               = port:PH4<1><default><default><1>
