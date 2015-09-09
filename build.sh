@@ -5,7 +5,7 @@
 cp_download_files()
 {
 	. ./chosen_board.mk
-	local pack_out=sunxi-pack/out
+	local pack_out=output/$BOARD/pack
 	local download=download/$BOARD
 
 	rm -rf $download
