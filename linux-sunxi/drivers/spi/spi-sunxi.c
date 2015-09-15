@@ -1692,9 +1692,9 @@ static int __devinit sunxi_spi_probe(struct platform_device *pdev)
 		goto err7;
 	}
 
-	SPI_INF("allwinners SoC SPI Driver loaded for Bus SPI-%d with %d Slaves at most\n",
+	pr_info("allwinners SoC SPI Driver loaded for Bus SPI-%d with %d Slaves at most\n",
             pdev->id, master->num_chipselect);
-	SPI_INF("[spi-%d]: driver probe succeed, base %p, irq %d!\n", master->bus_num, sspi->base_addr, sspi->irq);
+	pr_info("[spi-%d]: driver probe succeed, base %p, irq %d!\n", master->bus_num, sspi->base_addr, sspi->irq);
 	return 0;
 
 err7:
@@ -1966,7 +1966,7 @@ static int __init sunxi_spi_register_spidev(void)
     }
 	spidev_num = spi_dev_num.val;
 
-    SPI_INF("[spi]: Found %d spi devices in config files\n", spidev_num);
+    pr_info("[spi]: Found %d spi devices in config files\n", spidev_num);
 
     /* alloc spidev board information structure */
     spi_boards = (struct spi_board_info*)kzalloc(sizeof(struct spi_board_info) * spidev_num, GFP_KERNEL);
@@ -1975,7 +1975,7 @@ static int __init sunxi_spi_register_spidev(void)
         return -1;
     }
 
-    SPI_INF("%-16s %-16s %-16s %-8s %-4s %-4s\n", "boards_num", "modalias", "max_spd_hz", "bus_num", "cs", "mode");
+    pr_info("%-16s %-16s %-16s %-8s %-4s %-4s\n", "boards_num", "modalias", "max_spd_hz", "bus_num", "cs", "mode");
 
     for (i=0; i<spidev_num; i++) {
         board = &spi_boards[i];
@@ -2016,7 +2016,7 @@ static int __init sunxi_spi_register_spidev(void)
 		}
 		board->mode = temp_info.val;
 
-        SPI_INF("%-16d %-16s %-16d %-8d %-4d %-4d\n", i, board->modalias, board->max_speed_hz,
+        pr_info("%-16d %-16s %-16d %-8d %-4d %-4d\n", i, board->modalias, board->max_speed_hz,
                 board->bus_num, board->chip_select, board->mode);
     }
 

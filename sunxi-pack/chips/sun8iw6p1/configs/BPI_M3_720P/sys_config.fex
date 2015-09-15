@@ -346,9 +346,9 @@ twi_scl         = port:PH2<2><default><default><default>
 twi_sda         = port:PH3<2><default><default><default>
 
 [twi2]
-twi_used        = 0
-twi_scl         = port:PH4<2><default><default><default>
-twi_sda         = port:PH5<2><default><default><default>
+twi_used        = 1
+twi_scl         = port:PH4<2><1><default><default>
+twi_sda         = port:PH5<2><1><default><default>
 
 ;----------------------------------------------------------------------------------
 ;uart configuration
@@ -373,7 +373,7 @@ uart_cts        = port:PG09<2><1><default><default>
 uart_regulator	= "vcc-io"
 
 [uart2]
-uart_used       = 0
+uart_used       = 1
 uart_port       = 2
 uart_type       = 4
 uart_tx         = port:PB00<2><1><default><default>
@@ -383,7 +383,7 @@ uart_cts        = port:PB03<2><1><default><default>
 uart_regulator	= "vcc-io"
 
 [uart3]
-uart_used       = 0
+uart_used       = 1
 uart_port       = 3
 uart_type       = 4
 uart_tx         = port:PG10<3><1><default><default>
@@ -405,7 +405,7 @@ uart_regulator	= "vcc-io"
 ;SPI controller configuration
 ;----------------------------------------------------------------------------------
 [spi0]
-spi_used       = 0
+spi_used       = 1
 spi_cs_bitmap  = 1
 spi_mosi       = port:PC00<3><default><default><default>
 spi_miso       = port:PC01<3><default><default><default>
@@ -429,11 +429,13 @@ spi_regulator  = "vcc-io"
 spi_dev_num = 1
 
 [spi_board0]
-modalias      = "m25p32"
+modalias      = "spidev"
 max_speed_hz  = 33000000
 bus_num       = 0
 chip_select   = 0
-mode          = 0
+mode          = 3
+full_duplex   = 0
+manual_cs     = 0
 
 ;----------------------------------------------------------------------------------
 ;resistance tp configuration
