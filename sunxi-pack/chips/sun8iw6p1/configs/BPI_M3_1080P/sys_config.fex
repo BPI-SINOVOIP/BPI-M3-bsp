@@ -347,8 +347,8 @@ twi_sda         = port:PH3<2><default><default><default>
 
 [twi2]
 twi_used        = 1
-twi_scl         = port:PH4<2><1><default><default>
-twi_sda         = port:PH5<2><1><default><default>
+twi_scl         = port:PH4<2><default><default><default>
+twi_sda         = port:PH5<2><default><default><default>
 
 ;----------------------------------------------------------------------------------
 ;uart configuration
