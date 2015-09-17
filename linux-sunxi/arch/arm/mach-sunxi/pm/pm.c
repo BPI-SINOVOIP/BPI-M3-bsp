@@ -421,6 +421,10 @@ static int init_sys_pwr_dm(void)
     //add_sys_pwr_dm("vcc-cpvdd");
     add_sys_pwr_dm("vcc-ldoin");
     add_sys_pwr_dm("vcc-pll");
+
+	/* bpi, vcc-pd on for usbhub USB1-DRV pin always high */
+	add_sys_pwr_dm("vcc-pd");
+	
     
     sys_mask = get_sys_pwr_dm_mask();
     printk(KERN_INFO "after inited: sys_mask config = 0x%x. \n", sys_mask);
