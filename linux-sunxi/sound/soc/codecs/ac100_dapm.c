@@ -420,6 +420,11 @@ void set_configuration(struct snd_soc_codec *codec)
 	/*headphone calibration clock frequency select*/
 	snd_soc_update_bits(codec, SPKOUT_CTRL, (0x7<<HPCALICKS), (0x7<<HPCALICKS));
 
+	/* bpi, disable speaker and earpiece here */
+	snd_soc_update_bits(codec, SPKOUT_CTRL, (0x1<<LSPK_EN), (0x1<<LSPK_EN));
+	snd_soc_update_bits(codec, SPKOUT_CTRL, (0x1<<LSPKINVEN), (0x1<<LSPKINVEN));
+	snd_soc_update_bits(codec, SPKOUT_CTRL, (0x1<<RSPK_EN), (0x1<<RSPK_EN));
+	snd_soc_update_bits(codec, SPKOUT_CTRL, (0x1<<RSPKINVEN), (0x1<<RSPKINVEN));
 }
 static int late_enable_dac(struct snd_soc_dapm_widget *w,
 			  struct snd_kcontrol *kcontrol, int event)
@@ -2449,11 +2454,15 @@ static void earphone_switch_work(struct work_struct *work)
 static irqreturn_t audio_hmic_irq(int irq, void *para)
 {
 	struct ac100_priv *ac100 = (struct ac100_priv *)para;
+
+	pr_err("------------%s----------", __func__);
+	
 	if (ac100 == NULL) {
 		return -EINVAL;
 	}
 	if(codec_irq_queue == NULL)
 		pr_err("------------codec_irq_queue is null!!----------");
+	
 	if(&ac100->clear_codec_irq == NULL)
 		pr_err("------------ac100->clear_codec_irq is null!!----------");
 
@@ -2690,6 +2699,17 @@ static int ac100_codec_probe(struct snd_soc_codec *codec)
 	* item_eint.gpio.gpio = ****;
 	*/
 #ifdef CONFIG_ARCH_SUN8IW6
+
+	/*
+	* item_eint.gpio.gpio = GPIO*(*);
+	* select HOSC 24Mhz(PIO Interrupt Clock Select)
+	*/
+	req_status = gpio_request(item_eint.gpio.gpio, NULL);
+	if (0 != req_status) {
+		pr_warn("[AC100]request gpio[%d] failed!\n", item_eint.gpio.gpio);
+		return -EINVAL;
+	}
+
 	ac100->virq = gpio_to_irq(item_eint.gpio.gpio);
 	if (IS_ERR_VALUE(ac100->virq)) {
 		pr_warn("[AC100] map gpio to virq failed, errno = %d\n",ac100->virq);
@@ -2704,15 +2724,6 @@ static int ac100_codec_probe(struct snd_soc_codec *codec)
 	        return -EINVAL;
 	}
 
-	/*
-	* item_eint.gpio.gpio = GPIO*(*);
-	* select HOSC 24Mhz(PIO Interrupt Clock Select)
-	*/
-	req_status = gpio_request(item_eint.gpio.gpio, NULL);
-	if (0 != req_status) {
-		pr_warn("[AC100]request gpio[%d] failed!\n", item_eint.gpio.gpio);
-		return -EINVAL;
-	}
 	gpio_set_debounce(item_eint.gpio.gpio, 1);
 
 #endif
@@ -2747,6 +2758,7 @@ static int ac100_codec_probe(struct snd_soc_codec *codec)
 	/*enable this bit to prevent leakage from ldoin*/
 	snd_soc_update_bits(codec, ADDA_TUNE3, (0x1<<OSCEN), (0x1<<OSCEN));
 	snd_soc_write(codec, DAC_VOL_CTRL, 0);
+	
 	ret = snd_soc_add_codec_controls(codec, ac100_controls,
 					ARRAY_SIZE(ac100_controls));
 	if (ret) {
@@ -2756,6 +2768,7 @@ static int ac100_codec_probe(struct snd_soc_codec *codec)
 
 	snd_soc_dapm_new_controls(dapm, ac100_dapm_widgets, ARRAY_SIZE(ac100_dapm_widgets));
  	snd_soc_dapm_add_routes(dapm, ac100_dapm_routes, ARRAY_SIZE(ac100_dapm_routes));
+	
 	return 0;
 #ifndef CONFIG_ANDROID_SWITCH_GPIO_TS3A225
 err_switch_work_queue:
@@ -2901,7 +2914,7 @@ static int __devinit ac100_probe(struct platform_device *pdev)
 {
 	int ret = 0;
 	struct ac100_priv *ac100;
-	pr_debug("%s,line:%d\n", __func__, __LINE__);
+	pr_info("%s,line:%d\n", __func__, __LINE__);
 	ac100 = devm_kzalloc(&pdev->dev, sizeof(struct ac100_priv), GFP_KERNEL);
 	if (ac100 == NULL) {
 		return -ENOMEM;
