@@ -57,7 +57,7 @@ keyen_flag = 1
 ;
 ;----------------------------------------------------------------------------------
 [power_sply]
-dcdc1_vol                  = 1003000
+dcdc1_vol                  = 1003300
 dcdc2_vol                  = 1000900
 dcdc3_vol                  = 1000900
 dcdc4_vol                  = 1000900
@@ -91,13 +91,13 @@ fldo2_vol                  = 1000900
 ;---------------------------------------------
 [gpio_bias]
 ;pa_bias         = "axp81x:dcdc1:3000"
-pb_bias         = "axp81x:dcdc1:3000"
-pc_bias         = "axp81x:dcdc1:3000"
+pb_bias         = "axp81x:dcdc1:3300"
+pc_bias         = "axp81x:dcdc1:3300"
 pd_bias         = "axp81x:dldo3:1800"
-pe_bias         = "axp81x:dcdc1:3000"
-pf_bias         = "axp81x:dcdc1:3000"
-pg_bias         = "axp81x:dcdc1:3000"
-ph_bias         = "axp81x:dcdc1:3000"
+pe_bias         = "axp81x:dcdc1:3300"
+pf_bias         = "axp81x:dcdc1:3300"
+pg_bias         = "axp81x:dcdc1:3300"
+ph_bias         = "axp81x:dcdc1:3300"
 pl_bias         = "axp81x:aldo3:3000"
 
 [card_boot]
@@ -969,7 +969,7 @@ usb_restric_flag    = 0
 usb_restric_voltage = 3550000
 usb_restric_capacity= 5
 usb_regulator_io    = "vcc-usb0-33"
-usb_regulator_vol   = 3000000
+usb_regulator_vol   = 3300000
 usb_not_suspend     = 0
 
 ;--------------------------------
@@ -984,7 +984,7 @@ usb_restrict_gpio   =
 usb_host_init_state = 1
 usb_restric_flag    = 0
 usb_regulator_io    = "vcc-usb0-33"
-usb_regulator_vol   = 3000000
+usb_regulator_vol   = 3300000
 usb_not_suspend     = 0
 
 ;--------------------------------
@@ -999,7 +999,7 @@ usb_restrict_gpio   =
 usb_host_init_state = 1
 usb_restric_flag    = 0
 usb_regulator_io    = "vcc-usb0-33"
-usb_regulator_vol   = 3000000
+usb_regulator_vol   = 3300000
 usb_not_suspend     = 0
 
 
@@ -1336,7 +1336,7 @@ ir_tx               =
 ;----------------------------------------------------------------------------------
 [gpio_para]                    
 gpio_used                = 1
-gpio_num                 = 29
+gpio_num                 = 30
 gpio_pin_1               = port:PH5<1><default><default><1>
 gpio_pin_2               = port:PH4<1><default><default><1>
 gpio_pin_3               = port:PL10<1><default><default><1>
@@ -1366,6 +1366,7 @@ gpio_pin_26              = port:PE5<1><default><default><1>
 gpio_pin_27              = port:PE18<1><default><default><1>
 gpio_pin_28              = port:PE19<1><default><default><1>
 gpio_pin_29              = port:PD25<1><default><default><1>
+gpio_pin_30              = port:PD15<1><default><default><0>
 
 
 ;-------------------------------------------------------------------------------------
