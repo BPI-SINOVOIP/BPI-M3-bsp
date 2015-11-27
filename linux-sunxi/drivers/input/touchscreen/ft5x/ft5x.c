@@ -47,7 +47,7 @@
 #include <mach/hardware.h>
 
 
-#define CONFIG_SUPPORT_FTS_CTP_UPG
+//#define CONFIG_SUPPORT_FTS_CTP_UPG		//update the Firmware of  the FT_CTP
 
 #define FOR_TSLIB_TEST
 //#define TOUCH_KEY_SUPPORT
@@ -309,6 +309,8 @@ struct ft5x_ts_data {
 	struct ts_event		event;
 	struct work_struct 	pen_event_work;
 	struct workqueue_struct *ts_workqueue;
+	bool irq_is_disable;
+	spinlock_t irq_lock;
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	struct early_suspend	early_suspend;
 #endif
@@ -365,6 +367,50 @@ void delay_qt_ms(unsigned long  w_ms)
 			 udelay(1);
 		}
 	}
+}
+/*******************************************************
+Function:
+    Disable irq function
+Input:
+    ts: goodix i2c_client private data
+Output:
+    None.
+*********************************************************/
+void ft5x_irq_disable(struct ft5x_ts_data *ts)
+{
+	unsigned long irqflags;
+        int ret;
+    	dprintk(DEBUG_INT_INFO, "%s ---start!---\n", __func__);
+    	spin_lock_irqsave(&ts->irq_lock, irqflags);
+        if (!ts->irq_is_disable) {
+       		ts->irq_is_disable = 1;
+        	ret = input_set_int_enable(&(config_info.input_type), 0);
+                if (ret < 0)
+                	dprintk(DEBUG_OTHERS_INFO,"irq disable failed!!!\n");
+    	}
+    	spin_unlock_irqrestore(&ts->irq_lock, irqflags);
+}
+/*******************************************************
+Function:
+    Enable irq function
+Input:
+    ts: goodix i2c_client private data
+Output:
+    None.
+*********************************************************/
+void ft5x_irq_enable(struct ft5x_ts_data *ts)
+{
+    	unsigned long irqflags = 0;
+        int ret;
+    	
+	spin_lock_irqsave(&ts->irq_lock, irqflags);
+	if (ts->irq_is_disable) {
+        	ts->irq_is_disable = 0;
+        	ret = input_set_int_enable(&(config_info.input_type), 1);
+        	if (ret < 0)
+                	dprintk(DEBUG_OTHERS_INFO,"irq enable failed!!!\n");
+    	}
+    	spin_unlock_irqrestore(&ts->irq_lock, irqflags);
 }
 /*
 [function]: 
@@ -582,7 +628,7 @@ static void fts_get_upgrade_info(struct Upgrade_Info *upgrade_info)
 		upgrade_info->upgrade_id_2 = FT5X06_UPGRADE_ID_2;
 		upgrade_info->delay_readid = FT5X06_UPGRADE_READID_DELAY;
 		break;
-	case 0x08:    //IC_FT5606或者IC_FT5506
+	case 0x08:    //IC_FT5606\810\863?C_FT5506
 		upgrade_info->delay_55 = FT5606_UPGRADE_55_DELAY;
 		upgrade_info->delay_aa = FT5606_UPGRADE_AA_DELAY;
 		upgrade_info->upgrade_id_1 = FT5606_UPGRADE_ID_1;
@@ -624,7 +670,7 @@ E_UPGRADE_ERR_TYPE  ft5x06_ctpm_fw_upgrade(u8* pbt_buf, u16 dw_lenth)
 
         /*********Step 1:Reset  CTPM *****/
         /*write 0xaa to register 0xfc*/
-        //delay_ms(100);//最新的源码去掉延时
+        //delay_ms(100);//?\A7\E4\810\858\810\935\810\857\810\8A5\810\A74\810\858?\A1\C0
         fts_register_write(0xfc,0xaa);
         delay_ms(upgradeinfo.delay_aa);
 
@@ -732,8 +778,7 @@ E_UPGRADE_ERR_TYPE  ft5x06_ctpm_fw_upgrade(u8* pbt_buf, u16 dw_lenth)
 
         /*********Step 6: read out checksum***********************/
         /*send the opration head*/
-        //cmd_write(0xcc,0x00,0x00,0x00,1);//把0xcc当作寄存器地址，去读出一个字节
-        // byte_read(reg_val,1);//change by zhengdixu
+        //cmd_write(0xcc,0x00,0x00,0x00,1);//\A1\E3\810\CF8xcc\810\858\A1\C0?\810\864\810\906\A0]\810\858?\A1\A4\810\845\810\851\810\A74\810\859s???        // byte_read(reg_val,1);//change by zhengdixu
 
 	fts_register_read(0xcc, reg_val,1);	
         printk("Step 6:  ecc read 0x%x, new firmware 0x%x. \n", reg_val[0], bt_ecc);
@@ -955,7 +1000,7 @@ void getVerNo(u8* buf, int len)
 	int i = 0;
 	start_reg = 0xa6;
 
-#if 0
+#if 1
 	printk("read 0xa6 one time. \n");
 	if(FTS_FALSE == fts_register_read(0xa6, buf, len)){
                 return ;
@@ -1182,7 +1227,7 @@ static int ft5x_read_data(void)
 		if(1 == revert_y_flag){
 			event->y5 = SCREEN_MAX_Y - event->y5;
 		}
-		event->touch_ID5=(s16)(buf[0x1d] & 0xF0)>>4;
+		event->touch_ID5=(s16)(buf[0x1D] & 0xF0)>>4;
 		
 		dprintk(DEBUG_X_Y_INFO,"touch id : %d. \n",event->touch_ID5);
 	case 4:
@@ -1251,8 +1296,9 @@ static int ft5x_read_data(void)
 	default:
 		return -1;
 	}
-	event->pressure = 20;
+	event->pressure = 200;
         return 0;
+	
 }
 
 #ifdef TOUCH_KEY_LIGHT_SUPPORT
@@ -1426,10 +1472,12 @@ static void ft5x_report_value(void)
 static void ft5x_ts_pen_irq_work(struct work_struct *work)
 {
 	int ret = -1;
+	struct ft5x_ts_data *ft5x_ts = container_of(work, struct ft5x_ts_data, pen_event_work);
 	ret = ft5x_read_data();
 	if (ret == 0) {
 		ft5x_report_value();
 	}
+	ft5x_irq_enable(ft5x_ts);
 	dprintk(DEBUG_INT_INFO,"%s:ret:%d\n",__func__,ret);
 }
 
@@ -1437,6 +1485,7 @@ irqreturn_t ft5x_ts_interrupt(int irq, void *dev_id)
 {
 	struct ft5x_ts_data *ft5x_ts = (struct ft5x_ts_data *)dev_id;
 	dprintk(DEBUG_INT_INFO,"==========ft5x_ts TS Interrupt============\n"); 
+	ft5x_irq_disable(ft5x_ts);
 	queue_work(ft5x_ts->ts_workqueue, &ft5x_ts->pen_event_work);
 	return IRQ_HANDLED;
 }
@@ -1447,6 +1496,7 @@ static void ft5x_resume_events (struct work_struct *work)
     int ret = 0;
 	ctp_wakeup(0, 20);
    
+	struct ft5x_ts_data *ft5x_ts = i2c_get_clientdata(this_client);
 #ifdef CONFIG_HAS_EARLYSUSPEND	
 	if(STANDBY_WITH_POWER_OFF != standby_level){
 		goto standby_with_power_on; 
@@ -1476,12 +1526,14 @@ static void ft5x_resume_events (struct work_struct *work)
 #ifdef CONFIG_HAS_EARLYSUSPEND
 standby_with_power_on:
 #endif
-	ret = input_set_int_enable(&(config_info.input_type), 1);
-	if (ret < 0)
-		dprintk(DEBUG_SUSPEND,"%s irq disable failed\n", __func__);
+	if (ft5x_ts->irq_is_disable)
+	{
+		ft5x_ts->irq_is_disable = 0;
+		ret = input_set_int_enable(&(config_info.input_type), 1);
+		if (ret < 0)
+			dprintk(DEBUG_SUSPEND,"%s irq disable failed\n", __func__);
+	}
 }
-
-
 static int ft5x_ts_suspend(struct i2c_client *client, pm_message_t mesg)
 {
 	struct ft5x_ts_data *data = i2c_get_clientdata(client);
@@ -1494,9 +1546,13 @@ static int ft5x_ts_suspend(struct i2c_client *client, pm_message_t mesg)
 	if (data->is_suspended == true) {
 	//	ft5x_ts_release();
 		flush_workqueue(ft5x_resume_wq);
-		ret = input_set_int_enable(&(config_info.input_type), 0);
-		if (ret < 0)
-			dprintk(DEBUG_SUSPEND,"%s irq disable failed\n", __func__);
+		if (!data->irq_is_disable)
+		{
+			data->irq_is_disable = 1;
+			ret = input_set_int_enable(&(config_info.input_type), 0);
+			if (ret < 0)
+				dprintk(DEBUG_SUSPEND,"%s irq disable failed\n", __func__);
+		}
 		cancel_work_sync(&data->pen_event_work);
 		flush_workqueue(data->ts_workqueue);
 		ft5x_set_reg(FT5X0X_REG_PMODE, PMODE_HIBERNATE);
@@ -1528,9 +1584,13 @@ static void ft5x_ts_early_suspend(struct early_suspend *handler)
 	ft5x_ts_release();
     data->is_suspended = false;
 	flush_workqueue(ft5x_resume_wq);
-	ret = input_set_int_enable(&(config_info.input_type), 0);
-	if (ret < 0)
-		dprintk(DEBUG_SUSPEND,"%s irq disable failed\n", __func__);
+	if (!data->irq_is_disable)
+	{
+		data->irq_is_disable = 1;
+		ret = input_set_int_enable(&(config_info.input_type), 0);
+		if (ret < 0)
+			dprintk(DEBUG_SUSPEND,"%s irq disable failed\n", __func__);
+	}
 	cancel_work_sync(&data->pen_event_work);
 	flush_workqueue(data->ts_workqueue);
 	ft5x_set_reg(FT5X0X_REG_PMODE, PMODE_HIBERNATE);
@@ -1862,7 +1922,10 @@ static long aw_ioctl(struct file *file, unsigned int cmd,unsigned long arg )
 	switch (cmd) {
 	case UPGRADE:
 	        dprintk(DEBUG_OTHERS_INFO,"==UPGRADE_WORK=\n");
-		fts_ctpm_fw_upgrade_with_i_file();
+#ifdef CONFIG_SUPPORT_FTS_CTP_UPG
+			fts_ctpm_fw_upgrade_with_i_file();
+#endif
+
 		// calibrate();
 		break;
 	default:
