@@ -1,4 +1,4 @@
-;A83 PAD application
+;;A83 PAD application
 ;---------------------------------------------------------------------------------------------------------
 ; 说明： 脚本中的字符串区分大小写，用户可以修改"="后面的数值，但是不要修改前面的字符串
 ; 描述gpio的形式：Port:端口+组内序号<功能分配><内部电阻状态><驱动能力><输出电平状态>
@@ -45,19 +45,7 @@ charging_type = 1
 ; 当keyen_flag = 0 时，不支持
 ;---------------------------------------------------------------------------------
 [key_detect_en]
-keyen_flag = 0
-
-;---------------------------------------------------------------------------------
-;	used 1: box 0:pad
-;	start_type 1: 直接启动系统 0: 上电不允许直接启动系统 
-;	irkey_used 0:禁用ir key  1:启用ir key 
-;	pmukey_used 0:禁用pmu power key  1:启用pmu power key 
-;---------------------------------------------------------------------------------
-[box_start_os]
-used = 1
-start_type = 1
-irkey_used = 1
-pmukey_used = 1
+keyen_flag = 1
 
 ;----------------------------------------------------------------------------------
 ;
@@ -67,32 +55,20 @@ pmukey_used = 1
 ;  电压名称  = 000XXXX  : 表示把该路电压设置为XXXX指定的电压值，同时关闭输出开关，当有需要时由内核驱动打开
 ;  电压名称  = 0        : 表示关闭该路电压输出开关，不修改原有的值
 ;
-; *** H8 proto board ***
-; dcdc1 -- nand/emmc/sd/usb0/ac100
-; dcdc2 -- cpua
-; dcdc3 -- cpub
-; dcdc4 -- gpu
-; dcdc5 -- dram (ddr3=1500mv, ddr3L=1350mv, lpddr2/lpddr3=1200mv)
-; dcdc6 -- sys/usb0/hdmi
-; aldo1 -- efuse/hdmi
-; aldo2 -- pll/lpddr/drampll
-; aldo3 -- avcc/pl
-; fldo2 -- cpus
-; dldo1 -- cvbs/av
 ;----------------------------------------------------------------------------------
 [power_sply]
 dcdc1_vol                  = 1003000
 dcdc2_vol                  = 1000900
 dcdc3_vol                  = 1000900
 dcdc4_vol                  = 1000900
-;dcdc5_vol                 = 1001200
+;dcdc5_vol                  = 1001200
 dcdc6_vol                  = 1000900
 aldo1_vol                  = 1800
 aldo2_vol                  = 1001800
 aldo3_vol                  = 1003000
 eldo2_vol                  = 1800
 dldo1_vol                  = 3300
-dldo2_vol                  = 4200
+dldo2_vol                  = 3300
 dldo3_vol                  = 1002500
 dldo4_vol                  = 2800
 fldo2_vol                  = 1000900
@@ -117,7 +93,7 @@ fldo2_vol                  = 1000900
 ;pa_bias         = "axp81x:dcdc1:3000"
 pb_bias         = "axp81x:dcdc1:3000"
 pc_bias         = "axp81x:dcdc1:3000"
-pd_bias         = "axp81x:aldo1:1800"
+pd_bias         = "axp81x:dldo3:1800"
 pe_bias         = "axp81x:dcdc1:3000"
 pf_bias         = "axp81x:dcdc1:3000"
 pg_bias         = "axp81x:dcdc1:3000"
@@ -162,8 +138,8 @@ sdc_ddrmode		= 1
 
 [twi_para]
 twi_port        = 0
-twi_scl         = port:PH14<2><default><default><default>
-twi_sda         = port:PH15<2><default><default><default>
+twi_scl         =
+twi_sda         =
 
 [uart_para]
 uart_debug_port = 0
@@ -182,14 +158,6 @@ jtag_ck         = port:PF05<3><default><default><default>
 jtag_do         = port:PF03<3><default><default><default>
 jtag_di         = port:PF01<3><default><default><default>
 
-[clock]
-pll_ve          = 432
-;pll_periph      = 600
-pll_gpu         = 432
-pll_hsic        = 480
-pll_de          = 504
-pll_video1       = 297
-;apb2            = 40
 
 ;*****************************************************************************
 ;sdram configuration
@@ -278,15 +246,7 @@ rx-delay           = 7
 ;	help;
 ;	u need to make sure the standby mode support the wakeup src. Also, some hw
 ;	condition must be guaranteed.
-;	including:
-;	cpu_en: power on or off.
-;		1: mean power on
-;		0: mean power off
-;	cpu_freq: indicating lowest freq. unit is Mhz;
-;	dram selfresh_en: selfresh or not.
-;		1: enable enter selfresh
-;		0: disable enter selfresh
-;	dram_pll: if not enter selfresh, indicating lowest freq. unit is Mhz;
+;	see: scene_lock for more help info;
 ;	wakeup_src: to make the scenario work, the wakeup src is needed.
 ;---------------------------------------------------------------------------------------------------------
 [wakeup_src_para]
@@ -383,7 +343,7 @@ uart_cts        = port:PB03<2><1><default><default>
 uart_regulator	= "vcc-io"
 
 [uart3]
-uart_used       = 1
+uart_used       = 0
 uart_port       = 3
 uart_type       = 4
 uart_tx         = port:PG10<3><1><default><default>
@@ -405,7 +365,7 @@ uart_regulator	= "vcc-io"
 ;SPI controller configuration
 ;----------------------------------------------------------------------------------
 [spi0]
-spi_used       = 1
+spi_used       = 0
 spi_cs_bitmap  = 1
 spi_mosi       = port:PC00<3><default><default><default>
 spi_miso       = port:PC01<3><default><default><default>
@@ -429,13 +389,11 @@ spi_regulator  = "vcc-io"
 spi_dev_num = 1
 
 [spi_board0]
-modalias      = "spidev"
+modalias      = "m25p32"
 max_speed_hz  = 33000000
 bus_num       = 0
 chip_select   = 0
-mode          = 3
-full_duplex   = 0
-manual_cs     = 0
+mode          = 0
 
 ;----------------------------------------------------------------------------------
 ;resistance tp configuration
@@ -456,21 +414,21 @@ rtp_exchange_x_y_flag = 0
 ;notice ---    tp_int_port &  tp_io_port use the same port
 ;----------------------------------------------------------------------------------
 [ctp_para]
-ctp_used            = 0
+ctp_used            = 1
 ctp_gesture_wakeup  = 0
 ctp_twi_id          = 0
-ctp_twi_addr        = 0x5d
-ctp_name            = "gt9271_mb976a9"
-ctp_screen_max_x    = 1200
-ctp_screen_max_y    = 1920
+ctp_twi_addr        = 0x38
+;ctp_name            = "ft5x_ts"
+ctp_screen_max_x    = 800
+ctp_screen_max_y    = 480
 ctp_revert_x_flag   = 0
 ctp_revert_y_flag   = 0
-ctp_exchange_x_y_flag = 1
+ctp_exchange_x_y_flag = 0
 
-ctp_int_port        = port:PH07<6><default><default><default>
-ctp_wakeup          = port:PH06<1><default><default><1>
-ctp_power_ldo       = "vcc-ctp"
-ctp_power_ldo_vol   = 3000
+ctp_int_port        = port:PL07<3><default><default><default>
+ctp_wakeup          = port:PL06<1><default><default><1>
+ctp_power_ldo       = "vcc-tp-3v3"
+ctp_power_ldo_vol   =3300
 ctp_power_io        =
 
 ;--------------------------------------------------------------------------------
@@ -479,15 +437,15 @@ ctp_power_io        =
 ;Module name postposition 1 said detection, 0 means no detection.
 ;--------------------------------------------------------------------------------
 [ctp_list_para]
-ctp_det_used              = 0
+ctp_det_used              = 1
 ft5x_ts                   = 1
-gt82x                     = 1
-gslX680                   = 1
+gt82x                     = 0
+gslX680                   = 0
 gt9xx_ts                  = 0
-gt9xxnew_ts		  = 1
-gt811                     = 1
-zet622x                   = 1
-aw5306_ts                 = 1
+gt9xxnew_ts		  = 0
+gt811                     = 0
+zet622x                   = 0
+aw5306_ts                 = 0
 
 ;----------------------------------------------------------------------------------
 ;touch key configuration
@@ -502,7 +460,7 @@ tkey_int            =
 ;motor configuration
 ;----------------------------------------------------------------------------------
 [motor_para]
-motor_used          = 0
+motor_used          = 1
 motor_shake         = 0
 motor_ldo           = vcc-vibrator
 motor_ldo_voltage   = 3300
@@ -514,10 +472,10 @@ motor_ldo_voltage   = 3300
 ths_used            = 1
 ths_trend           = 0
 ths_trip1_count     = 6
-ths_trip1_0         = 50
-ths_trip1_1         = 60
-ths_trip1_2         = 70
-ths_trip1_3         = 85
+ths_trip1_0         = 65
+ths_trip1_1         = 75
+ths_trip1_2         = 85
+ths_trip1_3         = 90
 ths_trip1_4         = 95
 ths_trip1_5         = 105
 ths_trip1_6         = 0
@@ -599,14 +557,21 @@ nand1_ce2           = port:PC17<2><default><default><default>
 nand1_ce3           = port:PC18<2><default><default><default>
 nand1_ndqs          = port:PC16<2><default><default><default>
 
+
+;----------------------------------------------------------------------------------
+;boot display configuration
+;output_type  (0:none; 1:lcd; 2:tv; 3:hdmi; 4:vga)
+;output_mode  (used for tv/hdmi output, 0:480i 1:576i 2:480p 3:576p 4:720p50 5:720p60 6:1080i50 7:1080i60 8:1080p24 9:1080p50 10:1080p60 11:pal 14:ntsc)
+;output_mode  (used for vga output, 0:1680*1050 1:1440*900 2:1360*768 3:1280*1024 4:1024*768 5:800*600 6:640*480 10:1920*1080 11:1280*720)
+;tv_mode      (used for tv output, 0:480i 1:576i 2:480p 3:576p 4:720p50 5:720p60 6:1080i50 7:1080i60 8:1080p24 9:1080p50 10:1080p60 11:pal 14:ntsc)
+;auto_hpd     (auto detect hdmi/cvbs/ypbpr plug in)
+;----------------------------------------------------------------------------------
 [boot_disp]
-auto_hpd        = 1
-output_type     = 2
-hdmi_channel    = 0
-hdmi_mode       = 10
-cvbs_channel    = 1
-cvbs_mode       = 11
-output_full         = 1
+output_disp = 1
+output_type = 3
+;MIKEY
+;output_mode = 5
+output_mode = 10
 
 ;----------------------------------------------------------------------------------
 ;disp init configuration
@@ -624,9 +589,13 @@ disp_init_enable         = 1
 disp_mode                = 0
 
 screen0_output_type      = 3
+;MIKEY
+;screen0_output_mode      = 5
 screen0_output_mode      = 10
 
 screen1_output_type      = 3
+;MIKEY
+;screen1_output_mode      = 5
 screen1_output_mode      = 10
 
 fb0_format               = 0
@@ -639,6 +608,26 @@ fb1_height               = 0
 
 lcd0_backlight           = 50
 lcd1_backlight           = 50
+
+
+[hdmi_para]
+hdmi_used           = 1
+hdmi_power          = "vcc-hdmi-18"
+hdmi_hdcp_enable    = 0
+hdmi_cts_compatibility = 0
+hdmi_io_0           = port:PH6<2><0><default><default>
+hdmi_io_1           = port:PH7<2><0><default><default>
+hdmi_io_2           = port:PH8<2><0><default><default>
+
+[clock]
+pll_ve          = 432
+;pll_periph      = 600
+pll_gpu         = 432
+pll_hsic        = 480
+pll_de          = 504
+;apb2_parent     = pll_periph
+;apb2            = 40
+pll_video1      = 297
 
 ;----------------------------------------------------------------------------------
 ;lcd0 configuration
@@ -669,45 +658,52 @@ lcd1_backlight           = 50
 ;                      decrease it while lcd is not bright enough; increase while lcd is too bright
 ;----------------------------------------------------------------------------------
 [lcd0_para]
-lcd_used            = 0
+lcd_used            = 1
 
-lcd_driver_name     = "default_lcd"
-lcd_if              = 3
-lcd_x               = 1280
-lcd_y               = 800
-lcd_width           = 150
-lcd_height          = 94
-lcd_dclk_freq       = 70
+lcd_driver_name     = "S070WV20_MIPI_RGB"
+lcd_bl_0_percent    = 0
+lcd_bl_40_percent   = 23
+lcd_bl_100_percent  = 100
+
+lcd_if              = 4
+
+lcd_x               = 800
+lcd_y               = 480
+
+lcd_width           = 86
+lcd_height          = 154
+
+lcd_dclk_freq       = 20
+
 lcd_pwm_used        = 1
 lcd_pwm_ch          = 0
 lcd_pwm_freq        = 50000
 lcd_pwm_pol         = 1
 lcd_pwm_max_limit   = 255
-lcd_hbp             = 20
-lcd_ht              = 1418
-lcd_hspw            = 10
-lcd_vbp             = 10
-lcd_vt              = 814
-lcd_vspw            = 5
-lcd_lvds_if         = 0
-lcd_lvds_colordepth = 1
-lcd_lvds_mode       = 0
-lcd_frm             = 1
-lcd_hv_clk_phase    = 0
-lcd_hv_sync_polarity = 0
-lcd_gamma_en        = 0
-lcd_bright_curve_en = 0
+
+lcd_hbp             = 88
+lcd_ht              = 928
+lcd_hspw            = 48
+lcd_vbp             = 32
+lcd_vt              = 525
+lcd_vspw            = 3
+
+lcd_frm             = 0
 lcd_cmap_en         = 0
+lcd_dsi_if          = 0
+lcd_dsi_lane        = 4
+lcd_dsi_format      = 0
+lcd_dsi_te          = 0
+;lcd_gamma_en        = 0
+;lcd_bright_curve_en = 0
+;lcdgamma4iep        = 22
 
-lcdgamma4iep        = 22
-
-lcd_bl_en           = 
 lcd_power           = "vcc-dsi-18"
-lcd_power1          = "vcc-lcd-0"
-lcd_power2          = "vcc_dsi"
+lcd_power1          = "vcc-mipi"
+lcd_bl_en           =  port:PD29<1><0><2><1>
 
-lcd_gpio_0          = 
-lcd_gpio_1          = 
+lcd_gpio_0          = port:PD26<1><0><2><1>
+lcd_gpio_1          = port:PD27<1><0><2><1>
 lcd_io_regulator1   = "vcc-pd"
 
 ;----------------------------------------------------------------------------------
@@ -715,42 +711,12 @@ lcd_io_regulator1   = "vcc-pd"
 ;----------------------------------------------------------------------------------
 [hdmi_para]
 hdmi_used           = 1
-hdmi_power          = "vcc-hdmi-18"
-
-;tv(cvbs) configuration
-;tv_used 1:enable this module.
-;tv_module_name the module name.
-;tv_power
-;tv_twi_used 1: use i2c to communitcate with slave-device ; other: not use i2c.
-;tv_twi_id the id-number of i2c-controler of host-device.
-;tv_twi_addr the i2c-address of slave-device.
-;tv_dn :data pin config
-;----------------------------------------------------------------------------------
-[tv_para]
-tv_used = 0
-tv_module_name = "gm7121"
-tv_power = "vcc-cvbs-33"
-tv_twi_used = 1
-tv_twi_id = 0
-tv_twi_addr = 0x46
-tv_d0 = port:PE00<4><0><default><default>
-tv_d1 = port:PE01<4><0><default><default>
-tv_d2 = port:PE02<4><0><default><default>
-tv_d3 = port:PE03<4><0><default><default>
-tv_d4 = port:PE06<4><0><default><default>
-tv_d5 = port:PE07<4><0><default><default>
-tv_d6 = port:PE08<4><0><default><default>
-tv_d7 = port:PE09<4><0><default><default>
-tv_d8 = port:PE10<4><0><default><default>
-tv_d9 = port:PE11<4><0><default><default>
-tv_d10 = port:PE12<4><0><default><default>
-tv_d11 = port:PE13<4><0><default><default>
 
 ;----------------------------------------------------------------------------------
 ;pwm config
 ;----------------------------------------------------------------------------------
 [pwm0_para]
-pwm_used            = 0
+pwm_used            = 1
 pwm_positive        = port:PD28<2><0><default><default>
 
 
@@ -790,10 +756,10 @@ pwm_positive        = port:PD28<2><0><default><default>
 
 [csi0]
 
-vip_used                 = 0
+vip_used                 = 1
 vip_mode                 = 0
-vip_dev_qty              = 2
-vip_define_sensor_list     = 0
+vip_dev_qty              = 1
+vip_define_sensor_list   = 0
 
 vip_csi_pck              = port:PE00<2><default><default><default>
 vip_csi_mck              = port:PE01<2><default><default><default>
@@ -814,24 +780,24 @@ vip_csi_sck               = port:PE14<2><default><default><default>
 vip_csi_sda               = port:PE15<2><default><default><default>
 
 
-vip_dev0_mname           = "ov8858_4lane"
+vip_dev0_mname           = "ov8865_4lane"
 vip_dev0_pos             = "rear"
 vip_dev0_lane            = 4
 vip_dev0_twi_id          = 0
-vip_dev0_twi_addr        = 0x20
+vip_dev0_twi_addr        = 0x6c
 vip_dev0_isp_used        = 1
 vip_dev0_fmt             = 1
 vip_dev0_stby_mode       = 1
 vip_dev0_vflip           = 0
 vip_dev0_hflip           = 0
-vip_dev0_iovdd           = "axp81x_dldo3"
-vip_dev0_iovdd_vol       = 2800000
+vip_dev0_iovdd           = 
+vip_dev0_iovdd_vol       = 
 vip_dev0_avdd            = "axp81x_dldo4"
 vip_dev0_avdd_vol        = 2800000
 vip_dev0_dvdd            = "axp81x_eldo1"
 vip_dev0_dvdd_vol        = 1200000
-vip_dev0_afvdd           = "axp81x_dldo3"
-vip_dev0_afvdd_vol       = 2800000
+vip_dev0_afvdd           = 
+vip_dev0_afvdd_vol       = 
 vip_dev0_power_en        =
 vip_dev0_reset           = port:PE16<1><default><default><default>
 vip_dev0_pwdn            = port:PE17<1><default><default><default>
@@ -839,8 +805,8 @@ vip_dev0_flash_en        =
 vip_dev0_flash_mode      =
 vip_dev0_af_pwdn         =
 
-vip_dev0_act_used        = 0
-vip_dev0_act_name        = "dw9714_act"
+vip_dev0_act_used        = 1
+vip_dev0_act_name        = "vm149c_act"
 vip_dev0_act_slave       = 0x18
 
 
@@ -854,17 +820,17 @@ vip_dev1_fmt             = 0
 vip_dev1_stby_mode       = 1
 vip_dev1_vflip           = 0
 vip_dev1_hflip           = 0
-vip_dev1_iovdd           = "axp81x_dldo3"
-vip_dev1_iovdd_vol       = 2800000
+vip_dev1_iovdd           = 
+vip_dev1_iovdd_vol       = 
 vip_dev1_avdd            = "axp81x_dldo4"
 vip_dev1_avdd_vol        = 2800000
 vip_dev1_dvdd            = "axp81x_eldo3"
 vip_dev1_dvdd_vol        = 1800000
-vip_dev1_afvdd           = ""
-vip_dev1_afvdd_vol       = 2800000
+vip_dev1_afvdd           = 
+vip_dev1_afvdd_vol       = 
 vip_dev1_power_en        =
-vip_dev1_reset           =
-vip_dev1_pwdn            = 
+vip_dev1_reset           = port:PE18<1><default><default><default>
+vip_dev1_pwdn            = port:PE19<1><default><default><default>
 vip_dev1_flash_en        =
 vip_dev1_flash_mode      =
 vip_dev1_af_pwdn         =
@@ -944,7 +910,7 @@ sdc_regulator     = "none"
 sdc_power_supply  = "none"
 
 [mmc2_para]
-sdc_used          = 0
+sdc_used          = 1
 sdc_detmode       = 3
 sdc_buswidth      = 8
 sdc_clk           = port:PC05<3><1><2><default>
@@ -1051,8 +1017,8 @@ vendor_id           = 0x18D1
 mass_storage_id     = 0x0001
 adb_id              = 0x0002
 
-manufacturer_name   = "BPI"
-product_name        = "M3"
+manufacturer_name   = "USB Developer"
+product_name        = "Android"
 serial_number       = "20080411"
 
 [msc_feature]
@@ -1125,7 +1091,7 @@ lsm303d                   = 0
 [rf_para]
 module_num          = 10
 module_power1       = "vcc-wifi-io"
-module_power1_vol   = 3300000
+module_power1_vol   =
 module_power2       = ""
 module_power2_vol   = 
 module_power3       = ""
@@ -1324,7 +1290,7 @@ i2s_din             = port:PB07<3><1><default><default>
 
 [audio0]
 audio_int_ctrl       	= port:PL11<6><default><default><0>
-audio_pa_ctrl       	= 
+audio_pa_ctrl       	= port:PG15<1><default><default><0>
 ;aif3_voltage       = "axp15_cldo3"
 speaker_val = 0x1b
 headset_val = 0x3b
@@ -1375,7 +1341,7 @@ ir_tx               =
 ;gpio configuration   Justin
 ;----------------------------------------------------------------------------------
 [gpio_para]                    
-gpio_used                = 0
+gpio_used                = 1
 gpio_num                 = 29
 gpio_pin_1               = port:PH5<1><default><default><1>
 gpio_pin_2               = port:PH4<1><default><default><1>
@@ -1663,7 +1629,7 @@ regulator9      = "axp81x_aldo1 none vcc-dsi-18 vcc-csi2-18 vcc-lvds-18 vcc-efus
 regulator10     = "axp81x_aldo2 none vdd-drampll vdd-lpddr-18 vcc-pll vcc-adc vcc-cpvdd vcc-ldoin"
 regulator11     = "axp81x_aldo3 none vcc-avcc vcc-pl"
 regulator12     = "axp81x_dldo1 none vcc-wifi-io"
-regulator13     = "axp81x_dldo2 none vcc-lcd-0"
+regulator13     = "axp81x_dldo2 none vcc-lcd-0 vcc-mipi vcc-tp-3v3"
 regulator14     = "axp81x_dldo3 none vcc-gmac-25 vcc-pd"
 regulator15     = "axp81x_dldo4 none avdd-csi"
 regulator16     = "axp81x_eldo1 1 dvdd-csi-12"
@@ -1672,7 +1638,7 @@ regulator18     = "axp81x_eldo3 1 dvdd-csi-18"
 regulator19     = "axp81x_fldo1 none vcc-hsic-12"
 regulator20     = "axp81x_fldo2 none vdd-cpus"
 regulator21     = "axp81x_gpio0ldo none vcc-ctp"
-regulator22     = "axp81x_gpio1ldo none vcc-card"
+regulator22     = "axp81x_gpio1ldo none"
 regulator23     = "axp81x_dc1sw 1 vcc-gmac-33"
 
 ;--------------------------------------------------------------------------------------------------------

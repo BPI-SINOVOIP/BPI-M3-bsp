@@ -6,7 +6,7 @@
 
 [product]
 version = "100"
-machine = "BPI-M3"
+machine = "f1"
 
 ;---------------------------------------------------------------------------------------------------------
 ; eraseflag - 1 erase data partition, 0 - do not erase data partition
@@ -566,12 +566,10 @@ nand1_ndqs          = port:PC16<2><default><default><default>
 ;tv_mode      (used for tv output, 0:480i 1:576i 2:480p 3:576p 4:720p50 5:720p60 6:1080i50 7:1080i60 8:1080p24 9:1080p50 10:1080p60 11:pal 14:ntsc)
 ;auto_hpd     (auto detect hdmi/cvbs/ypbpr plug in)
 ;----------------------------------------------------------------------------------
-[boot_disp]
-output_disp = 1
-output_type = 3
-;MIKEY
+;[boot_disp]
+;output_disp = 1
+;output_type = 3
 ;output_mode = 5
-output_mode = 10
 
 ;----------------------------------------------------------------------------------
 ;disp init configuration
@@ -588,21 +586,17 @@ output_mode = 10
 disp_init_enable         = 1
 disp_mode                = 0
 
-screen0_output_type      = 3
-;MIKEY
-;screen0_output_mode      = 5
-screen0_output_mode      = 10
+screen0_output_type      = 1
+screen0_output_mode      = 5
 
 screen1_output_type      = 3
-;MIKEY
-;screen1_output_mode      = 5
-screen1_output_mode      = 10
+screen1_output_mode      = 5
 
-fb0_format               = 0
+fb0_format               = 8
 fb0_width                = 0
 fb0_height               = 0
 
-fb1_format               = 0
+fb1_format               = 8
 fb1_width                = 0
 fb1_height               = 0
 
