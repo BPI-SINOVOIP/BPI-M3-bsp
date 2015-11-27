@@ -14,7 +14,6 @@ int OSAL_Power_Enable(char *name)
 	strcpy(pmu_type, pmu);
 	strcpy(vol_type, temp);
 
-#ifndef CONFIG_ARCH_HOMELET
 #if defined(CONFIG_ARCH_SUN9IW1P1)
 	if(!strcmp("axp15", pmu_type))
 		strcpy(pmu_type, "axp806");
@@ -30,7 +29,6 @@ int OSAL_Power_Enable(char *name)
 	}
 #endif
 #endif
-#endif // #ifndef CONFIG_ARCH_HOMELET
 
 	if(!strcmp("ldoio0", vol_type))
 		strcpy(vol_type, "gpio0ldo");
@@ -55,7 +53,6 @@ int OSAL_Power_Disable(char *name)
 	strcpy(pmu_type, pmu);
 	strcpy(vol_type, temp);
 
-#ifndef CONFIG_ARCH_HOMELET
 #if defined(CONFIG_ARCH_SUN9IW1P1)
 	if(!strcmp("axp15", pmu_type))
 		strcpy(pmu_type, "axp806");
@@ -65,7 +62,6 @@ int OSAL_Power_Disable(char *name)
 		__wrn("unknown pmu type");
 #else
 #endif
-#endif // #ifndef CONFIG_ARCH_HOMELET
 
 	if(!strcmp("ldoio0", vol_type))
 		strcpy(vol_type, "gpio0ldo");

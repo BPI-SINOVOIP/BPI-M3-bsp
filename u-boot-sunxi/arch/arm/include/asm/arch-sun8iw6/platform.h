@@ -30,7 +30,7 @@
 #define SRAM_A1_SIZE		(0x8000)
 #define SRAM_A2_CPU12_BASE	(0x40000)
 #define SRAM_A2_CPU0_BASE	(0x0)
-#define SRAM_A2_SIZE		(0x14000)
+#define SRAM_A2_SIZE		(0x8000)
 #define SRAM_C_BASE			(0x01D00000)
 
 /* base address of modules */

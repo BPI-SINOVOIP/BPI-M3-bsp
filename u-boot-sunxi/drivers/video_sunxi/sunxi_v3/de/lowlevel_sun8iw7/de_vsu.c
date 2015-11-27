@@ -47,23 +47,12 @@ int de_vsu_update_regs(unsigned int sel)
 			vsu_cscale_block[sel][i].dirty = 0x0;}
 		if(vsu_yhcoeff0_block[sel][i].dirty == 0x1){
 			memcpy((void *)vsu_yhcoeff0_block[sel][i].off,vsu_yhcoeff0_block[sel][i].val,vsu_yhcoeff0_block[sel][i].size);
-			vsu_yhcoeff0_block[sel][i].dirty = 0x0;}
-		if(vsu_yhcoeff1_block[sel][i].dirty == 0x1){
 			memcpy((void *)vsu_yhcoeff1_block[sel][i].off,vsu_yhcoeff1_block[sel][i].val,vsu_yhcoeff1_block[sel][i].size);
-			vsu_yhcoeff1_block[sel][i].dirty = 0x0;}
-		if(vsu_yvcoeff_block[sel][i].dirty == 0x1){
 			memcpy((void *)vsu_yvcoeff_block[sel][i].off,vsu_yvcoeff_block[sel][i].val,vsu_yvcoeff_block[sel][i].size);
-			vsu_yvcoeff_block[sel][i].dirty = 0x0;}
-		if(vsu_chcoeff0_block[sel][i].dirty == 0x1){
 			memcpy((void *)vsu_chcoeff0_block[sel][i].off,vsu_chcoeff0_block[sel][i].val,vsu_chcoeff0_block[sel][i].size);
-			vsu_chcoeff0_block[sel][i].dirty = 0x0;}
-		if(vsu_chcoeff1_block[sel][i].dirty == 0x1){
 			memcpy((void *)vsu_chcoeff1_block[sel][i].off,vsu_chcoeff1_block[sel][i].val,vsu_chcoeff1_block[sel][i].size);
-			vsu_chcoeff1_block[sel][i].dirty = 0x0;}
-		if(vsu_cvcoeff_block[sel][i].dirty == 0x1){
 			memcpy((void *)vsu_cvcoeff_block[sel][i].off,vsu_cvcoeff_block[sel][i].val,vsu_cvcoeff_block[sel][i].size);
-			vsu_cvcoeff_block[sel][i].dirty = 0x0;}
-
+			vsu_yhcoeff0_block[sel][i].dirty = 0x0;}
 	}
 
 
@@ -112,32 +101,28 @@ int de_vsu_init(unsigned int sel, unsigned int reg_base)
 		vsu_yhcoeff0_block[sel][j].off		= vsu_base + 0x200;
 		vsu_yhcoeff0_block[sel][j].val		= memory + 0x200;
 		vsu_yhcoeff0_block[sel][j].size		= 0x80;
-		vsu_yhcoeff0_block[sel][j].dirty 	= 0;
 
 		vsu_yhcoeff1_block[sel][j].off		= vsu_base + 0x300;
 		vsu_yhcoeff1_block[sel][j].val		= memory + 0x300;
 		vsu_yhcoeff1_block[sel][j].size		= 0x80;
-		vsu_yhcoeff1_block[sel][j].dirty 	= 0;
 
 		vsu_yvcoeff_block[sel][j].off		= vsu_base + 0x400;
 		vsu_yvcoeff_block[sel][j].val		= memory + 0x400;
 		vsu_yvcoeff_block[sel][j].size		= 0x80;
-		vsu_yvcoeff_block[sel][j].dirty 	= 0;
 
 		vsu_chcoeff0_block[sel][j].off		= vsu_base + 0x600;
 		vsu_chcoeff0_block[sel][j].val		= memory + 0x600;
 		vsu_chcoeff0_block[sel][j].size		= 0x80;
-		vsu_chcoeff0_block[sel][j].dirty 	= 0;
 
 		vsu_chcoeff1_block[sel][j].off		= vsu_base + 0x700;
 		vsu_chcoeff1_block[sel][j].val		= memory + 0x700;
 		vsu_chcoeff1_block[sel][j].size		= 0x80;
-		vsu_chcoeff1_block[sel][j].dirty 	= 0;
 
 		vsu_cvcoeff_block[sel][j].off		= vsu_base + 0x800;
 		vsu_cvcoeff_block[sel][j].val		= memory + 0x800;
 		vsu_cvcoeff_block[sel][j].size		= 0x80;
-		vsu_cvcoeff_block[sel][j].dirty 	= 0;
+
+		vsu_yhcoeff0_block[sel][j].dirty 	= 0; //only use one para to represent all coeff block
 		
 		de_vsu_set_reg_base(sel, j, memory);
 	}
@@ -221,7 +206,7 @@ static unsigned int de_vsu_calc_fir_coef(unsigned int step)
 //*********************************************************************************************************************
 int de_vsu_set_para(unsigned int sel, unsigned int chno, unsigned int enable, unsigned char fmt,
 					unsigned int in_w, unsigned int in_h,unsigned int out_w, unsigned int out_h,
-					scaler_para *ypara,scaler_para *cpara)
+					scaler_para *ypara,scaler_para *cpara, unsigned char yv12_4k_en)
 {
 	unsigned int pt_coef,in_cw,in_ch,format;
 
@@ -273,6 +258,27 @@ int de_vsu_set_para(unsigned int sel, unsigned int chno, unsigned int enable, un
 			break;
 	}
 
+	if(yv12_4k_en)
+	{
+		out_h = out_h<<1;
+		out_w = out_w>>1;
+
+		in_h = out_h;
+		in_w = out_w;
+
+		in_ch = in_h;
+		in_cw = in_w>>1;
+
+		ypara->hstep = 1<<VSU_PHASE_FRAC_BITWIDTH;
+		ypara->vstep = 1<<VSU_PHASE_FRAC_BITWIDTH;
+		cpara->hstep = 1<<(VSU_PHASE_FRAC_BITWIDTH-1);
+		cpara->vstep = 1<<VSU_PHASE_FRAC_BITWIDTH;
+		ypara->hphase = 0;
+		ypara->vphase = 0;
+		cpara->hphase = 0;
+		cpara->vphase = 0;
+	}
+
 	//basic parameter
 	vsu_dev[sel][chno]->outsize.dwval = ((out_h - 1)<<16) | (out_w - 1);
 	vsu_dev[sel][chno]->ysize.dwval = ((in_h - 1)<<16) | (in_w - 1);
@@ -283,6 +289,10 @@ int de_vsu_set_para(unsigned int sel, unsigned int chno, unsigned int enable, un
 	vsu_dev[sel][chno]->cvstep.dwval = cpara->vstep<<VSU_PHASE_FRAC_REG_SHIFT;
 	vsu_dev[sel][chno]->yhphase.dwval = ypara->hphase<<VSU_PHASE_FRAC_REG_SHIFT;
 	vsu_dev[sel][chno]->yvphase0.dwval = ypara->vphase<<VSU_PHASE_FRAC_REG_SHIFT;
+
+	//modify 14-11-8
+	vsu_dev[sel][chno]->chphase.dwval = cpara->hphase<<VSU_PHASE_FRAC_REG_SHIFT;
+	vsu_dev[sel][chno]->cvphase0.dwval = cpara->vphase<<VSU_PHASE_FRAC_REG_SHIFT;
 
 	//fir coefficient
 	//ch0
@@ -318,11 +328,6 @@ int de_vsu_set_para(unsigned int sel, unsigned int chno, unsigned int enable, un
 	vsu_yscale_block[sel][chno].dirty 		= 1;
 	vsu_cscale_block[sel][chno].dirty 		= 1;
 	vsu_yhcoeff0_block[sel][chno].dirty 	= 1;
-	vsu_yhcoeff1_block[sel][chno].dirty 	= 1;
-	vsu_yvcoeff_block[sel][chno].dirty 		= 1;
-	vsu_chcoeff0_block[sel][chno].dirty 	= 1;
-	vsu_chcoeff1_block[sel][chno].dirty 	= 1;
-	vsu_cvcoeff_block[sel][chno].dirty 		= 1;
 
 	return 0;
 }
@@ -389,11 +394,17 @@ int de_vsu_calc_scaler_para(unsigned char fmt, de_rect64 crop, de_rect frame, de
 	}
 
 	tmp = (N2_POWER(crop.w,VSU_PHASE_FRAC_BITWIDTH));
-	do_div(tmp, frame.w);
+	if(frame.w)
+		do_div(tmp, frame.w);
+	else
+		tmp = 0;
 	ypara->hstep= (unsigned int)(tmp>>VSU_FB_FRAC_BITWIDTH);
 
 	tmp = (N2_POWER(crop.h,VSU_PHASE_FRAC_BITWIDTH));
-	do_div(tmp, frame.h);
+	if(frame.h)
+		do_div(tmp, frame.h);
+	else
+		tmp = 0;
 	ypara->vstep= (unsigned int)(tmp>>VSU_FB_FRAC_BITWIDTH);
 
 	ypara->hphase = ((crop.x & 0xffffffff)>>(32-VSU_PHASE_FRAC_BITWIDTH));
@@ -668,3 +679,212 @@ int de_vsu_recalc_scale_para(int coarse_status, unsigned int vsu_outw, unsigned 
 	return 0;
 }
 
+//*********************************************************************************************************************
+// function       : de_recalc_ovl_bld_for_scale((unsigned int scaler_en, unsigned char *lay_en, int laynum, scaler_para *step,
+//												 de_rect *layer, de_rect *bld_rect, unsigned int *ovlw, unsigned int *ovlh,
+//												 unsigned int gsu_sel, unsigned int scn_w, unsigned scn_h)
+// description    : recalculate overlay and blending parameters for scaler size limitation
+//
+//*********************************************************************************************************************
+int de_recalc_ovl_bld_for_scale(unsigned int scaler_en, unsigned char *lay_en, int laynum, scaler_para *step,
+						 de_rect *layer, de_rect *bld_rect, unsigned int *ovlw, unsigned int *ovlh,
+						 unsigned int gsu_sel, unsigned int scn_w, unsigned scn_h)
+{
+	unsigned int shift, i;
+	unsigned int org_bld_w, org_bld_h;
+
+	if(scaler_en==0)
+		return 0;
+
+	if(*ovlw != 0 && *ovlh != 0 && bld_rect->w != 0 && bld_rect->h != 0 && step->hstep != 0 && step->vstep != 0)
+	{
+		//horizon
+		if(*ovlw < SC_MIN_WIDTH || bld_rect->w < SC_MIN_WIDTH)
+		{
+			shift = (gsu_sel==0)?VSU_PHASE_FRAC_BITWIDTH : GSU_PHASE_FRAC_BITWIDTH;
+			org_bld_w = bld_rect->w;
+			if(step->hstep > (1<<shift)) //scale down
+			{
+				bld_rect->w = SC_MIN_WIDTH;
+				*ovlw = (step->hstep*SC_MIN_WIDTH)>>shift;
+			}
+			else	//scale up
+			{
+				*ovlw = SC_MIN_WIDTH;
+				bld_rect->w = SC_MIN_WIDTH*(1<<shift)/step->hstep;
+			}
+
+			if(bld_rect->w + bld_rect->x > scn_w)
+			{
+				bld_rect->x -= (bld_rect->w - org_bld_w);
+
+				for(i=0;i<laynum;i++)
+				{
+					if(lay_en[i])
+					{
+						layer[i].x += ((step->hstep*(bld_rect->w - org_bld_w))>>shift);
+					}
+				}
+			}
+		}
+
+		//vertical
+		if(*ovlh < SC_MIN_HEIGHT || bld_rect->h< SC_MIN_HEIGHT)
+		{
+			shift = (gsu_sel==0)?VSU_PHASE_FRAC_BITWIDTH : GSU_PHASE_FRAC_BITWIDTH;
+			org_bld_h = bld_rect->h;
+			if(step->vstep > (1<<shift)) //scale down
+			{
+				bld_rect->h = SC_MIN_HEIGHT;
+				*ovlh = (step->vstep*SC_MIN_HEIGHT)>>shift;
+			}
+			else	//scale up
+			{
+				*ovlh = SC_MIN_HEIGHT;
+				bld_rect->h = SC_MIN_HEIGHT*(1<<shift)/step->vstep;
+			}
+
+			if(bld_rect->h + bld_rect->y > scn_h)
+			{
+				bld_rect->y -= (bld_rect->h - org_bld_h);
+
+				for(i=0;i<laynum;i++)
+				{
+					if(lay_en[i])
+					{
+						layer[i].y += ((step->vstep*(bld_rect->h - org_bld_h))>>shift);
+					}
+				}
+			}
+		}
+
+	}
+
+	return 0 ;
+}
+
+
+//screen limit
+#define P2P_4K_LCD_WIDTH  3840
+#define P2P_4K_LCD_HEIGHT 2160
+
+//fb limit
+#define P2P_4K_FB_MIN_WIDTH  3800 //TBD
+#define P2P_4K_FB_MAX_WIDTH  4096 //TBD
+#define P2P_4K_FB_MIN_HEIGHT 1580 //TBD
+#define P2P_4K_FB_MAX_HEIGHT 2304 //TBD
+
+//frame limit
+#define P2P_4K_FRAME_MIN_WIDTH  3000 //TBD
+#define P2P_4K_FRAME_MAX_WIDTH  3840 //TBD
+#define P2P_4K_FRAME_MIN_HEIGHT 1250 //TBD
+#define P2P_4K_FRAME_MAX_HEIGHT 2160 //TBD
+
+int de_get_4k_flag(unsigned int layer_en, unsigned char fmt, de_rect64 crop, de_rect frame,
+                   unsigned int lcd_width, unsigned int lcd_height)
+{
+	unsigned char yv12_4k_en;
+
+	yv12_4k_en = 0;
+
+	if(!layer_en)
+		return yv12_4k_en;
+
+	if((lcd_width < P2P_4K_LCD_WIDTH) || (lcd_height < P2P_4K_LCD_HEIGHT)){
+		return yv12_4k_en;
+	}
+
+	if((frame.w < P2P_4K_FRAME_MIN_WIDTH) || (frame.w > P2P_4K_FRAME_MAX_WIDTH)
+	  || (frame.h < P2P_4K_FRAME_MIN_HEIGHT) || (frame.h > P2P_4K_FRAME_MAX_HEIGHT)){
+		return yv12_4k_en;
+	}
+
+
+	if(((crop.w>>32) < P2P_4K_FB_MIN_WIDTH) || ((crop.w>>32) > P2P_4K_FB_MAX_WIDTH)
+	  || ((crop.h>>32) < P2P_4K_FB_MIN_HEIGHT) || ((crop.h>>32) > P2P_4K_FB_MAX_HEIGHT)){
+	  return yv12_4k_en;
+	}
+
+	switch(fmt)
+	{
+		case DE_FORMAT_YUV420_P:
+		case DE_FORMAT_YUV420_SP_UVUV:
+		case DE_FORMAT_YUV420_SP_VUVU:
+			yv12_4k_en = 1;break;
+		default:
+			yv12_4k_en = 0;break;
+	}
+
+	return yv12_4k_en;
+}
+
+void de_4k_p2p_recalc(unsigned char yv12_4k_en, unsigned int lcd_width, unsigned int lcd_height,
+                      de_rect64 *crop64_1, de_rect *frame_1, scaler_para *p2p_para_1,
+                      de_rect64 *crop64_2, de_rect *frame_2, scaler_para *p2p_para_2)
+{
+	de_rect crop;
+	de_rect frame;
+
+	if(!yv12_4k_en)
+		return;
+
+	crop.w = (unsigned int)(crop64_1->w>>VSU_FB_FRAC_BITWIDTH);
+	crop.h = (unsigned int)(crop64_1->h>>VSU_FB_FRAC_BITWIDTH);
+	crop.x = (int)(crop64_1->x>>VSU_FB_FRAC_BITWIDTH);
+	crop.y = (int)(crop64_1->y>>VSU_FB_FRAC_BITWIDTH);
+
+	frame.x = 0;
+	frame.y = 0;
+
+	//source larger than screen, crop the source
+	if(crop.w > lcd_width)
+	{
+		crop.x = ((((crop.w - lcd_width)>>1)<<1)>>1);
+		crop.w = lcd_width;
+		frame.x = 0;
+	}
+
+	//source larger than screen, crop the source
+	if(crop.h > lcd_height)
+	{
+		crop.y = ((((crop.h - lcd_height)>>1)<<1)>>1);
+		crop.h = lcd_height;
+		frame.y = 0;
+	}
+	//source smaller than screen, make frame para center in the screen
+	if(crop.w < lcd_width)
+	{
+		crop.x = 0;
+		frame.x = ((((lcd_width-crop.w)>>1)<<1)>>1);
+	}
+
+	//source smaller than screen, make frame para center in the screen
+	if(crop.h < lcd_height)
+	{
+		crop.y = 0;
+		//crop_h will divid by 2 cause yv12_4k, and will divid by 2 cause yuv420, so make it aligned in 4 pixel
+		crop.h = (crop.h>>2)<<2;
+		frame.y = ((((lcd_height-crop.h)>>1)<<1)>>1);
+	}
+
+	frame.w = crop.w;
+	frame.h = crop.h;
+
+	crop64_1->w = crop64_2->w = (((unsigned long long)crop.w)<<VSU_FB_FRAC_BITWIDTH);
+	crop64_1->h = crop64_2->h = (((unsigned long long)crop.h)<<(VSU_FB_FRAC_BITWIDTH-1));
+	crop64_1->x = crop64_2->x = (((long long)crop.x)<<VSU_FB_FRAC_BITWIDTH);
+	crop64_1->y = crop64_2->y = (((long long)crop.y)<<(VSU_FB_FRAC_BITWIDTH-1));
+
+	frame_1->w = frame_2->w = frame.w>>1;
+	frame_1->h = frame_2->h = frame.h;
+	frame_1->x = frame.x;
+	frame_2->x = frame.x + frame_1->w;
+	frame_1->y = frame_2->y = frame.y;
+
+	p2p_para_1->hphase = p2p_para_2->hphase = 0;
+	p2p_para_1->vphase = p2p_para_2->vphase = 0;
+	p2p_para_1->hstep = p2p_para_2->hstep = 1<<(VSU_PHASE_FRAC_BITWIDTH+1);
+	p2p_para_1->vstep = p2p_para_2->vstep = 1<<(VSU_PHASE_FRAC_BITWIDTH-1);
+
+	return;
+}

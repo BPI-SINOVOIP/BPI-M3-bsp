@@ -99,6 +99,14 @@ typedef struct _normal_gpio_cfg
 }
 normal_gpio_cfg;
 
+typedef struct _special_gpio_cfg
+{
+	unsigned char		port;				//端口号
+	unsigned char		port_num;			//端口内编号
+	char				mul_sel;			//功能编号
+	char				data;				//输出电平
+}special_gpio_cfg;
+
 //SD卡相关数据结构
 typedef struct sdcard_spare_info_t
 {

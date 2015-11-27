@@ -79,12 +79,12 @@ int sunxi_keydata_burn_by_usb(void)
 
 		return 0;
 	}
-	if(gd->power_step_level == BATTERY_RATIO_TOO_LOW_WITH_DCIN)
-	{
-		puts("out of usb burn from boot: not enough energy\n");
+//	if(gd->power_step_level == BATTERY_RATIO_TOO_LOW_WITH_DCIN)
+//	{
+//		puts("out of usb burn from boot: not enough energy\n");
 
-		return 0;
-	}
+//		return 0;
+//	}
 	memset(buffer, 0, 512);
 #ifdef CONFIG_SUNXI_SECURE_STORAGE
 	if(sunxi_secure_storage_init())

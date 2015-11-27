@@ -354,7 +354,7 @@ int disp_sys_pwm_set_polarity(int p_handler, int polarity)
 	return ret;
 }
 
-static char *init_clks[] = {"pll_de", "pll_video1"};
+static char *init_clks[] = {"pll_de", "pll_video1", "pll_video"};
 
 int disp_sys_clk_init(void)
 {
@@ -415,7 +415,23 @@ int disp_sys_clk_set_rate(const char *id, unsigned long rate)
 			reg_val |= (factor_n << 8);
 			writel(reg_val, 0x01c2004c);
 		}
+	} else if(!strcmp(id, "pll_video")) {
+		/* fix m(8): rate = 24 * n / m */
+		unsigned int factor_n = rate / 3000000;
+		unsigned int div_m = 8;
+		unsigned int reg_val = 0x03000000;
+
+		if(297000000 == rate)
+			writel(0x02006200, 0x01c20010);
+		else if(270000000 == rate)
+			writel(0x00006207, 0x01c20010);
+		else {
+			factor_n &= 0xff;
+			reg_val |= ((factor_n -1) << 8) | (div_m-1);
+			writel(reg_val, 0x01c20010);
+		}
 	} else if(!strcmp(id, "pll_de")) {
+#if defined(CONFIG_ARCH_SUN8IW6)
 		/* fix div2(1), div1(0): rate = 24 * n / (div2+1) / (div1+1) */
 		unsigned int factor_n = rate / 12000000;
 		unsigned int reg_val = 0x00040000;
@@ -424,6 +440,25 @@ int disp_sys_clk_set_rate(const char *id, unsigned long rate)
 		reg_val |= (factor_n << 8);
 
 		writel(reg_val, 0x01c20048);
+#elif defined(CONFIG_ARCH_SUN8IW7)
+		/* fix m(1): rate = 24 * n / m */
+		unsigned int factor_n = rate / 24000000;
+		unsigned int div_m = 1;
+		unsigned int reg_val = 0x01000000;
+
+		factor_n &= 0xff;
+		reg_val |= ((factor_n-1) << 8) | (div_m-1);
+
+		writel(reg_val, 0x01c20048);
+#endif
+	} else if(!strcmp(id, "tcon0")) {
+		unsigned int div = 297000000 / rate;
+		unsigned int reg_val = readl(0x01c20118);
+
+		reg_val &= ~0xf;
+		reg_val |= (div-1);
+
+		writel(reg_val, 0x01c20118);
 	} else if(!strcmp(id, "lcd1")) {
 		unsigned int div = 297000000 / rate;
 		unsigned int reg_val = readl(0x01c2011c);
@@ -440,6 +475,10 @@ int disp_sys_clk_set_rate(const char *id, unsigned long rate)
 		reg_val |= (div-1);
 
 		writel(reg_val, 0x01c20150);
+	}else if(!strcmp(id, "tve")) {
+		unsigned int reg_val = readl(0x01c20120);
+		reg_val |= 0x00000003;
+		writel(reg_val, 0x01c20120);
 	}
 
 	return ret;
@@ -532,6 +571,36 @@ int disp_sys_clk_enable(const char *id)
 		reg_val = readl(0x01c20118);
 		reg_val |= 0x80000000;
 		writel(reg_val, 0x01c20118);
+	} else if(!strcmp(id, "tcon0")) {
+		/* pll_vide */
+		reg_val = readl(0x01c20010);
+
+		reg_val |= 0x80000000;
+		writel(reg_val, 0x01c20010);
+		/* wait for pll stable */
+		__usdelay(100);
+
+		/* reset */
+		reg_val = readl(0x01c202c4);
+		reg_val |= 0x8;
+		writel(reg_val, 0x01c202c4);
+		/* bus gating */
+		reg_val = readl(0x01c20064);
+		reg_val |= 0x8;
+		writel(reg_val, 0x01c20064);
+		/* module gating */
+		reg_val = readl(0x01c20118);
+		reg_val |= 0x80000000;
+		writel(reg_val, 0x01c20118);
+	} else if(!strcmp(id, "tcon1")) {
+		/* reset */
+		reg_val = readl(0x01c202c4);
+		reg_val |= 0x10;
+		writel(reg_val, 0x01c202c4);
+		/* bus gating */
+		reg_val = readl(0x01c20064);
+		reg_val |= 0x10;
+		writel(reg_val, 0x01c20064);
 	} else if(!strcmp(id, "lvds")) {
 		writel(1, 0x01c202c8);
 	} else if(!strcmp(id, "de")) {
@@ -551,6 +620,11 @@ int disp_sys_clk_enable(const char *id)
 		reg_val = readl(0x01c20064);
 		reg_val |= 0x1000;
 		writel(reg_val, 0x01c20064);
+#if defined(CONFIG_ARCH_SUN8IW7)
+		/* module gating */
+		reg_val = 0x81000001;
+		writel(reg_val, 0x01c20104);
+#endif
 	} else if(!strcmp(id, "mipi_dsi0")) {
 		/* pll_video0 */
 		reg_val = readl(0x01c20010);
@@ -602,11 +676,15 @@ int disp_sys_clk_enable(const char *id)
 		reg_val |= 0x80000000;
 		writel(reg_val, 0x01c2011c);
 	}  else if(!strcmp(id, "hdmi")) {
-		/* pll_video1 */
-		reg_val = readl(0x01c2004c);
+#if defined(CONFIG_ARCH_SUN8IW6)
+		u32 reg_addr = 0x01c2004c;//pll_video1
+#else
+		u32 reg_addr = 0x01c20010;//pll_video0
+#endif
+		reg_val = readl(reg_addr);
 
 		reg_val |= 0x80000000;
-		writel(reg_val, 0x01c2004c);
+		writel(reg_val, reg_addr);
 		/* wait for pll stable */
 		__usdelay(100);
 
@@ -628,6 +706,28 @@ int disp_sys_clk_enable(const char *id)
 		reg_val = readl(0x01c20154);
 		reg_val |= 0x80000000;
 		writel(reg_val, 0x01c20154);
+	} else if(!strcmp(id, "tve")) {
+		/* pll_de */
+		reg_val = readl(0x01c20048);
+
+		reg_val |= 0x80000000;
+		writel(reg_val, 0x01c20048);
+		/* wait for pll stable */
+		__usdelay(100);
+
+		/* reset */
+		reg_val = readl(0x01c202c4);
+		reg_val |= 0x200;
+		writel(reg_val, 0x01c202c4);
+		/* bus gating */
+		reg_val = readl(0x01c20064);
+		reg_val |= 0x200;
+		writel(reg_val, 0x01c20064);
+
+		/* module gating */
+		reg_val = readl(0x01c20120);
+		reg_val |= 0x80000000;
+		writel(reg_val, 0x01c20120);
 	}
 
 	return ret;

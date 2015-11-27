@@ -48,7 +48,9 @@
 static int sbromsw_toc1_traverse(void);
 static int sbromsw_probe_fel_flag(void);
 static int sbromsw_clear_env(void);
-
+#ifdef SUNXI_OTA_TEST
+static int sbromsw_print_ota_test(void);
+#endif
 sbrom_toc0_config_t *toc0_config = (sbrom_toc0_config_t *)CONFIG_TOC0_CONFIG_ADDR;
 
 void sbromsw_entry(void)
@@ -61,6 +63,9 @@ void sbromsw_entry(void)
 	set_pll();
 	sunxi_serial_init(toc0_config->uart_port, toc0_config->uart_ctrl, 2);
 	printf("try to probe rtc region\n");
+#ifdef SUNXI_OTA_TEST
+	sbromsw_print_ota_test();
+#endif
 	flag = rtc_region_probe_fel_flag();
 	printf("flag=0x%x\n", flag);
 	if(flag == SUNXI_RUN_EFEX_FLAG)
@@ -97,7 +102,7 @@ void sbromsw_entry(void)
 		if(toc0_config->boot_cpu == 0x00)
 			toc0_config->boot_cpu = 0x101;   //a15启动，需要保存标志位
 
-		switch_to_a15(toc0_config->pwr_en);
+		switch_to_a15(toc0_config->a15_power_gpio);
 	}
 	else if(flag == BOOT_A7_FLAG)
 	{
@@ -109,7 +114,7 @@ void sbromsw_entry(void)
 	{
 		if(toc0_config->boot_cpu == 0x100)
 		{
-			switch_to_a15(toc0_config->pwr_en);                //a15启动，不需要保存标志位
+			switch_to_a15(toc0_config->a15_power_gpio);                //a15启动，不需要保存标志位
 		}
 		else
 		{
@@ -135,6 +140,8 @@ void sbromsw_entry(void)
 
 		goto __sbromsw_entry_err;
 	}
+	printf("mmu resetup\n");
+	mmu_resetup(dram_size, toc0_config->secure_dram_mbytes);
 	printf("init heap\n");
 	create_heap(CONFIG_HEAP_BASE, CONFIG_HEAP_SIZE);
 	printf("init gic\n");
@@ -339,6 +346,7 @@ static int sbromsw_toc1_traverse(void)
 			{
 				out_to_ns = 1;
 			}
+			toc0_config->next_exe_pa   = va2pa(item_group.binfile->run_addr);
 			go_exec(item_group.binfile->run_addr, CONFIG_TOC0_CONFIG_ADDR, out_to_ns);
 		}
 	}
@@ -357,6 +365,21 @@ static int sbromsw_probe_fel_flag(void)
 	return flag;
 }
 
+#ifdef SUNXI_OTA_TEST
+static int sbromsw_print_ota_test(void)
+{
+	printf("*********************************************\n");
+	printf("*********************************************\n");
+	printf("*********************************************\n");
+	printf("*********************************************\n");
+	printf("********[OTA TEST]:update toc0 sucess********\n");
+	printf("*********************************************\n");
+	printf("*********************************************\n");
+	printf("*********************************************\n");
+	printf("*********************************************\n");
+	return 0;
+}
+#endif
 
 static int sbromsw_clear_env(void)
 {

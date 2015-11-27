@@ -47,5 +47,7 @@ extern int sunxi_partition_refresh(void *buf, uint bytes);
 
 extern int sunxi_partition_init(void);
 
+extern int sunxi_partition_get_partno_byname(const char *part_name);
+
 
 #endif //__SYS_PARTITION_H

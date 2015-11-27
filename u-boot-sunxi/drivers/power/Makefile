@@ -48,12 +48,6 @@ COBJS-$(CONFIG_SUNXI_AXP806)    += axp806_supply.o
 COBJS-$(CONFIG_SUNXI_AXP81X)    += axp81X.o
 COBJS-$(CONFIG_SUNXI_AXP81X)    += axp81X_supply.o
 
-COBJS-$(CONFIG_SUNXI_POWERRICH) += richtek_rt9406.o
-COBJS-$(CONFIG_SUNXI_POWEROZ) += oz80120.o
-
-COBJS-$(CONFIG_SUNXI_AXP808)    += axp808.o
-COBJS-$(CONFIG_SUNXI_AXP808)    += axp808_supply.o
-
 COBJS-y                         += axp_null.o
 COBJS-y                         += axp_supply_null.o
 

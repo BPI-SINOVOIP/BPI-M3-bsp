@@ -177,7 +177,7 @@ int disp_al_lcd_cfg(u32 screen_id, disp_panel_para * panel, panel_extend_para *e
 	struct lcd_clk_info info;
 
 	al_priv.output_type[screen_id] = (u32)DISP_OUTPUT_TYPE_LCD;
-	al_priv.output_type[screen_id] = (u32)panel->lcd_if;
+	al_priv.output_mode[screen_id] = (u32)panel->lcd_if;
 
 	tcon_init(screen_id);
 	disp_al_lcd_get_clk_info(screen_id, &info, panel);
@@ -323,12 +323,14 @@ int disp_al_hdmi_disable(u32 screen_id)
 int disp_al_hdmi_cfg(u32 screen_id, disp_video_timings *video_info)
 {
 	al_priv.output_type[screen_id] = (u32)DISP_OUTPUT_TYPE_HDMI;
-	al_priv.output_type[screen_id] = (u32)video_info->vic;
+	al_priv.output_mode[screen_id] = (u32)video_info->vic;
 
 	tcon_init(screen_id);
 	tcon1_set_timming(screen_id, video_info);
 	if(al_priv.output_cs[screen_id] != 0)//YUV output
-		tcon1_hdmi_color_remap(screen_id);
+		tcon1_hdmi_color_remap(screen_id,1);
+	else
+		tcon1_hdmi_color_remap(screen_id,0);
 
 	return 0;
 }

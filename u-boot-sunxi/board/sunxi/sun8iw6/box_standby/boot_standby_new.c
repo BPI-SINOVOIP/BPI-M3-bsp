@@ -72,9 +72,10 @@ extern int disable_interrupts(void);
 static int read_start_mode(void)
 {
 	int mode = 0;
-
+   
 //	*(volatile unsigned int *)(SUNXI_RPRCM_BASE + 0x1f0) = (0x3 << 16);
 //	mode = (*(volatile unsigned int *)(SUNXI_RPRCM_BASE + 0x1f0)) & 0xff;
+
 	smc_writel((0x3 << 16), SUNXI_RPRCM_BASE + 0x1f0);
 	mode = smc_readl(SUNXI_RPRCM_BASE + 0x1f0);
 	mode &= 0xff;

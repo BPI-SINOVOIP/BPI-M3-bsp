@@ -1473,6 +1473,85 @@ error:
     return -1;
 }
 
+__s32  burn_boot0_1k_fullpage_mode(__u32 read_retry_type, __u32 Boot0_buf )
+{
+    __u32 i,k,j;
+    __u8  oob_buf[64];
+    __u32 page_size;
+	__u32 pages_per_block;
+    struct boot_physical_param  para;
+	struct boot_ndfc_cfg cfg;
+
+    printf("burn boot0 1k fullpage mode!\n");
+
+    for(i=0;i<64;i++)
+        oob_buf[i] = 0xff;
+
+	/* get nand driver version */
+    NAND_GetVersion(oob_buf);
+	if((oob_buf[0]!=0xff)||(oob_buf[1]!= 0x00))
+	{
+		printf("get flash driver version error!");
+		goto error;
+	}
+
+	/* ¼ì²é page count */
+	pages_per_block = NAND_GetPageCntPerBlk();
+
+	page_size = NAND_GetPageSize();
+	{
+		if(page_size %1024)
+		{
+			printf("get flash page size error!");
+			goto error;
+		}
+	}
+
+	/* burn boot0 */
+    for( i = NAND_BOOT0_BLK_START;  i < (NAND_BOOT0_BLK_START + NAND_BOOT0_BLK_CNT);  i++ )
+    {
+        printf("down boot0 %x \n", i);
+
+		/* ²Á³ý¿é */
+		para.chip  = 0;
+		para.block = i;
+		if( PHY_SimpleErase( &para ) <0 )
+		{
+		    printf("Fail in erasing block %d.\n", i );
+    		continue;
+    	}
+
+		oob_buf[0] = 0xff;
+		oob_buf[1] = 0x00;
+		oob_buf[2] = 0x03;
+		oob_buf[3] = 0x01;
+		for( j = 0;  j < (pages_per_block/NAND_BOOT0_PAGE_CNT_PER_COPY);  j++ )
+       	{
+			for( k = 0;  k < NAND_BOOT0_PAGE_CNT_PER_COPY;  k++ )
+			{				
+				para.chip  = 0;
+				para.block = i;
+				para.page = j * NAND_BOOT0_PAGE_CNT_PER_COPY + k;
+				para.oobbuf = oob_buf;				
+				
+				cfg.ecc_mode = 8;
+				cfg.page_size_kb = (page_size/1024)-1;
+				cfg.sequence_mode = 1;
+				para.mainbuf = (void *) (Boot0_buf + k * 1024);
+				if( PHY_SimpleWrite_CFG( &para , &cfg) <0)
+				{
+					printf("Warning. Fail in writing page %d in block %d.\n", para.page, i );
+       			}
+       		}
+       	} 
+    }
+
+	return 0;
+
+error:
+    return -1;
+}
+
 
 int NAND_BurnBoot0(uint length, void *buffer)
 {
@@ -1499,7 +1578,7 @@ int NAND_BurnBoot0(uint length, void *buffer)
 	}
 	else
 	{
-	    if( burn_boot0_1k_mode(read_retry_type, (__u32)buffer) )
+	    if( burn_boot0_1k_fullpage_mode(read_retry_type, (__u32)buffer) )
 	        goto error;
 	}
 

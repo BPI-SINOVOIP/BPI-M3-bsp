@@ -36,29 +36,7 @@ DECLARE_GLOBAL_DATA_PTR;
 #ifdef CONFIG_SUNXI_DISPLAY
 static __u32 screen_id = 0;
 static __u32 disp_para = 0;
-
-int get_display_resolution(int display_type);
-
-#if (defined CONFIG_VIDEO_SUNXI_V1)
 extern __s32 disp_delay_ms(__u32 ms);
-#define DELAY_MS(x) disp_delay_ms(x)
-#define MY_GET_HDMI_HPD_STATUS DISP_CMD_HDMI_GET_HPD_STATUS
-#define MY_GET_CVBS_HPD_STATUS 0
-
-#elif (defined CONFIG_VIDEO_SUNXI_V2)
-extern __s32 bsp_disp_delay_ms(u32 ms);
-#define DELAY_MS(x) bsp_disp_delay_ms(x)
-#define MY_GET_HDMI_HPD_STATUS DISP_CMD_HDMI_GET_HPD_STATUS
-#define MY_GET_CVBS_HPD_STATUS 0
-
-#else //(defined CONFIG_VIDEO_SUNXI_V3)
-extern s32 disp_delay_ms(u32 ms);
-#define DELAY_MS(x) disp_delay_ms(x)
-#define MY_GET_HDMI_HPD_STATUS DISP_HDMI_GET_HPD_STATUS
-#define MY_GET_CVBS_HPD_STATUS 0
-
-#endif
-
 int board_display_layer_request(void)
 {
 #if defined(CONFIG_VIDEO_SUNXI_V1)
@@ -455,128 +433,6 @@ int board_display_show(int display_source)
 	return 0;
 
 }
-
-#if ((defined CONFIG_ARCH_HOMELET) && (defined CONFIG_ARCH_SUN9IW1P1))
-#define LOGOSIZE_WIDTH_DEFAULT 1280
-#define LOGOSIZE_HEIGHT_DEFAULT 720
-/*
-************************************************************************************************************
-*
-*											  function
-*
-*	 name		   : board_display_get_virtual_logosize
-*
-*	 parmeters	   : __disp_rectsz_t *
-*
-*	 return 	   : int
-*
-*	 note		   :
-*
-*
-************************************************************************************************************
-*/
-int board_display_get_virtual_logosize(disp_size *logosize)
-{
-	int value = 0;
-
-	if((script_parser_fetch("boot_disp", "virtual_logo_width", &value, 1) == 0) && (value > 0))
-	{
-		logosize->width = value;
-	}
-	else
-	{
-		tick_printf("fetch script data boot_disp.virtual_logo_width fail or vale=%d\n", value);
-		goto out;
-
-	}
-	value = 0;
-	if((script_parser_fetch("boot_disp", "virtual_logo_height", &value, 1) == 0) && (value > 0))
-	{
-		logosize->height = value;
-	}
-	else
-	{
-		tick_printf("fetch script data boot_disp.virtual_logo_height fail or vale=%d\n", value);
-		goto out;
-
-	}
-
-	return 0;
-
-out:
-	logosize->width = LOGOSIZE_WIDTH_DEFAULT;
-	logosize->height = LOGOSIZE_HEIGHT_DEFAULT;
-
-	return 0;
-}
-#undef LOGOSIZE_WIDTH_DEFAULT
-#undef LOGOSIZE_HEIGHT_DEFAULT
-
-/*
-************************************************************************************************************
-*
-*											  function
-*
-*	 name		   : board_display_reset_scn_win
-*
-*	 parmeters	   : __disp_rect_t const *: the real bootlogo size;
-                       uint const width, uint const height: the width and height of screen;
-                       __disp_rect_t *scn_win: the result of reseting scn_win
-*
-*	 return 	   :
-*
-*	 note		   :
-*
-*
-************************************************************************************************************
-*/
-int board_display_reset_scn_win(disp_window const *src_win,uint const width, uint const height, disp_window *scn_win)
-{
-	disp_size logosize;
-	uint w,h;
-
-	board_display_get_virtual_logosize(&logosize);
-	if((src_win->width <= logosize.width) && (src_win->height <= logosize.height))
-	{
-		scn_win->x = (logosize.width - src_win->width) >> 1;
-		scn_win->y = (logosize.height - src_win->height) >> 1;
-		scn_win->width = src_win->width;
-		scn_win->height = src_win->height;
-	}
-	else
-	{
-		w = src_win->width * logosize.height;
-		h = src_win->height * logosize.width;
-		if(w > h)
-		{
-			scn_win->width = logosize.width;
-			scn_win->height = src_win->height * logosize.width / src_win->width;
-			scn_win->x = 0;
-			scn_win->y = (logosize.height - scn_win->height) >> 1;
-		}
-		else
-		{
-			scn_win->width = src_win->width * logosize.height / src_win->height;
-			scn_win->height = logosize.height;
-			scn_win->x = (logosize.width - scn_win->width) >> 1;
-			scn_win->y = 0;
-		}
-	}
-#if 0
-	printf("scn_win[%d %d %d %d],[%d %d] logo[%d %d]\n",
-	    scn_win->x, scn_win->y,
-	    scn_win->width, scn_win->height,
-	    width, height, logosize.width, logosize.height);
-#endif
-	scn_win->x = scn_win->x * width / logosize.width;
-	scn_win->y = scn_win->y * height / logosize.height;
-	scn_win->width = scn_win->width * width / logosize.width;
-	scn_win->height = scn_win->height * height / logosize.height;
-
-	return 0;
-}
-#endif
-
 /*
 ************************************************************************************************************
 *
@@ -695,21 +551,10 @@ int board_display_framebuffer_set(int width, int height, int bitcount, void *buf
 	layer_para->alpha_mode 		= 1;
 	layer_para->alpha_value		= 0xff;
 	layer_para->pipe 			= 0;
-#if ((defined CONFIG_ARCH_HOMELET) && (defined CONFIG_ARCH_SUN9IW1P1))
- //re-calculate screen_window to show the same size on different disp_mode
-	layer_para->fb.src_win.x = 0;
-	layer_para->fb.src_win.y = 0;
-	layer_para->fb.src_win.width  = width;
-	layer_para->fb.src_win.height = height;
-	board_display_reset_scn_win(&(layer_para->fb.src_win),screen_width,
-	    screen_height, &(layer_para->screen_win));
-	layer_para->mode            = DISP_LAYER_WORK_MODE_SCALER;
-#else
 	layer_para->screen_win.x		= (screen_width - width) / 2;
 	layer_para->screen_win.y		= (screen_height - height) / 2;
 	layer_para->screen_win.width	= width;
 	layer_para->screen_win.height	= height;
-#endif
 	layer_para->b_trd_out		= 0;
 	layer_para->out_trd_mode 	= 0;
 #else
@@ -827,199 +672,6 @@ int board_display_framebuffer_change(void *buffer)
 	return 0;
 #endif
 }
-
-#if ((defined CONFIG_ARCH_HOMELET) && ((defined CONFIG_ARCH_SUN9IW1P1) || (defined CONFIG_ARCH_SUN8IW6P1)))
-int board_display_device_open(void)
-{
-	int  value;
-	int  ret = 0;
-	int output_type = 0;
-	int output_mode = 0;
-	int cvbs_used;
-	int hdmi_channel;
-	int cvbs_channel;
-	int hdmi_connect = 0;
-	int cvbs_connect = 0;
-	unsigned long arg[4] = {0};
-	int i;
-
-	if(script_parser_fetch("boot_disp", "auto_hpd", &value, 1) < 0)
-	{
-		tick_printf("###fetch script data boot_disp.auto_hpd fail! This must be configed!###\n");
-		return -1;
-	}
-	if(script_parser_fetch("boot_disp", "hdmi_channel", &hdmi_channel, 1) < 0){
-		printf("###fetch script data boot_disp.hdmi_channel fail! it must be conifged in homlet###\n");
-		return -1;
-	}
-	if(script_parser_fetch("boot_disp", "cvbs_channel", &cvbs_channel, 1) < 0){
-		cvbs_used = 0;
-	}
-	else
-	{
-		cvbs_used = 1;
-	}
-	printf("boot_disp.auto_hpd=%d\n", value);
-	if(1 == value)
-	{
-		// 1. auto_hpd for homlet
-		arg[0] = hdmi_channel;
-		arg[1] = 0;
-		hdmi_connect = disp_ioctl(NULL, MY_GET_HDMI_HPD_STATUS, (void*)arg);
-		for(i=0; (i<100)&&(hdmi_connect==0) && ((0==cvbs_used)||(i<50)||(cvbs_connect==0)); i++)
-		{
-			DELAY_MS(10);
-			arg[0] = hdmi_channel;
-			hdmi_connect = disp_ioctl(NULL, MY_GET_HDMI_HPD_STATUS, (void*)arg);
-		    if(cvbs_connect == 0)
-		    {
-				arg[0] = cvbs_channel;
-				cvbs_connect = disp_ioctl(NULL, MY_GET_CVBS_HPD_STATUS, (void*)arg);
-		    }
-		}
-		printf("auto hpd check has %d times!\n",i);
-		// 2. get output_type and the screen_id
-		if(hdmi_connect != 0)
-		{
-			output_type = DISP_OUTPUT_TYPE_HDMI;
-		}
-		else if(cvbs_connect != 0)
-		{
-			output_type = DISP_OUTPUT_TYPE_TV;
-		}
-		else
-		{// i donot want to output none
-			if(script_parser_fetch("boot_disp", "output_type", &output_type, 1) < 0){
-				printf("###fetch script data boot_disp.output_type fail! This must be configed!###\n");
-				return -1;
-			}
-		    printf("auto check no any connected, the output_type is %d\n", output_type);
-		}
-    }
-    else if(0 == value) // not auto_hpd for homlet
-    {
-		if(script_parser_fetch("boot_disp", "output_type", &output_type, 1) < 0){
-			printf("###output_type must be configed as auto_hpd=0!###\n");
-			return -1;
-		}
-		printf("not auto hotplud for homlet, the default output_type is %d\n", output_type);
-    }
-    else
-    {
-		printf("check me: exception!!!\n");
-    }
-    switch(output_type)
-    {
-    case DISP_OUTPUT_TYPE_HDMI:
-        screen_id = hdmi_channel;
-        break;
-    case DISP_OUTPUT_TYPE_TV:
-        screen_id = cvbs_channel;
-        break;
-    default:
-        break;
-    }
-
-	// 3. get output_mode
-	if(0 == (output_mode = get_display_resolution(output_type)))
-	{
-		if(DISP_OUTPUT_TYPE_HDMI == output_type)
-		{
-			if(script_parser_fetch("boot_disp", "hdmi_mode", &output_mode, 1) < 0){
-				printf("###fetch script data boot_disp.hdmi_mode fail! This must be configed!###\n");
-				return -1;
-			}
-		}
-		else if(DISP_OUTPUT_TYPE_TV == output_type)
-		{
-			if(script_parser_fetch("boot_disp", "cvbs_mode", &output_mode, 1) < 0){
-				printf("###fetch script data boot_disp.cvbs_mode fail! This must be configed!###\n");
-				return -1;
-			}
-		}
-		else if(DISP_OUTPUT_TYPE_LCD == output_type)
-		{
-			//do not do anything
-		}
-		else
-		{
-			printf("check what the output_type=%d\n", output_type);
-			return -1;
-		}
-	}
-	else
-	{
-		printf("get the output mode from android(saved by type[%d]) is %d\n",output_type, output_mode);
-	}
-	// 4. open device
-#if (defined CONFIG_VIDEO_SUNXI_V3)
-	/* CONFIG_VIDEO_SUNXI_V3 */
-		arg[0] = screen_id;
-		arg[1] = output_type;
-		arg[2] = output_mode;
-		disp_ioctl(NULL, DISP_DEVICE_SWITCH, (void *)arg);
-#else
-	if(output_type == DISP_OUTPUT_TYPE_LCD)
-	{
-		printf("lcd open\n");
-		arg[0] = screen_id;
-		arg[1] = 0;
-		arg[2] = 0;
-#if (defined CONFIG_VIDEO_SUNXI_V1)
-		ret = disp_ioctl(NULL, DISP_CMD_LCD_ON, (void*)arg);
-#else
-		ret = disp_ioctl(NULL, DISP_CMD_LCD_ENABLE, (void*)arg);
-#endif
-		debug("lcd open,ret=%d\n",ret);
-	}
-	else if(output_type == DISP_OUTPUT_TYPE_HDMI)
-	{
-		printf("hdmi open\n");
-		arg[0] = screen_id;
-		arg[1] = output_mode;
-		arg[2] = 0;
-		disp_ioctl(NULL, DISP_CMD_HDMI_SET_MODE, (void *)arg);
-#if !(defined CONFIG_VIDEO_SUNXI_V2)
-		ret = disp_ioctl(NULL, DISP_CMD_HDMI_ON, (void *)arg);
-#else
-		ret = disp_ioctl(NULL, DISP_CMD_HDMI_ENABLE, (void *)arg);
-#endif
-	}
-	else if(output_type == DISP_OUTPUT_TYPE_TV)
-	{
-		printf("tv open\n");
-		arg[0] = screen_id;
-		arg[1] = output_mode;
-		arg[2] = 0;
-		disp_ioctl(NULL, DISP_CMD_TV_SET_MODE, (void *)arg);
-		ret = disp_ioctl(NULL, DISP_CMD_TV_ON, (void *)arg);
-	}
-	else if(output_type == DISP_OUTPUT_TYPE_VGA)
-	{
-		printf("vga open\n");
-		arg[0] = screen_id;
-		arg[1] = output_mode;
-		arg[2] = 0;
-	}
-	else
-	{
-		printf("open device err, output_type=%d\n", output_type);
-	}
-#endif
-	// 5. save display para as disp_para
-#if (defined CONFIG_ARCH_SUN9IW1P1)
-	disp_para = ((output_type & 0xff) << 16) | ((output_mode & 0xff) << 8) | ((screen_id & 0xff) << 0);
-	disp_para = (0 == ret) ? disp_para : (disp_para | 0xFF000000);
-#else
-    disp_para = ((output_type << 8) | (output_mode)) << (screen_id*16);
-#endif
-	tick_printf("finally, output_type=0x%x, output_mode=0x%x, screen_id=0x%x, disp_para=0x%x\n",
-		output_type, output_mode, screen_id, disp_para);
-
-	return ret;
-}
-
-#else
 
 int board_display_device_open(void)
 {
@@ -1234,11 +886,6 @@ int board_display_device_open(void)
                 }
 		}
 	}
-	if(0 != (value = get_display_resolution(output_type)))
-	{
-		output_mode = value;
-		printf("Get android config:output:type=%d,mode=%d\n", output_type, output_mode);
-	}
 
 #if !defined(CONFIG_VIDEO_SUNXI_V3)
 	if(output_type == DISP_OUTPUT_TYPE_LCD)
@@ -1247,7 +894,7 @@ int board_display_device_open(void)
 		arg[0] = screen_id;
 		arg[1] = 0;
 		arg[2] = 0;
-#if !(defined CONFIG_ARCH_SUN9IW1P1) && !(defined CONFIG_ARCH_SUN8IW8P1)&& !(defined CONFIG_ARCH_SUN8IW7P1)
+#if !(defined CONFIG_ARCH_SUN9IW1P1) && !(defined CONFIG_ARCH_SUN8IW8P1)&& !(defined CONFIG_ARCH_SUN8IW7P1) 
 		ret = disp_ioctl(NULL, DISP_CMD_LCD_ON, (void*)arg);
 #else
 		ret = disp_ioctl(NULL, DISP_CMD_LCD_ENABLE, (void*)arg);
@@ -1260,7 +907,7 @@ int board_display_device_open(void)
 		arg[0] = screen_id;
 		arg[1] = output_mode;
 		arg[2] = 0;
-#if !(defined CONFIG_ARCH_SUN9IW1P1) && !(defined CONFIG_ARCH_SUN8IW8P1)&& !(defined CONFIG_ARCH_SUN8IW7P1)
+#if !(defined CONFIG_ARCH_SUN9IW1P1) && !(defined CONFIG_ARCH_SUN8IW8P1)&& !(defined CONFIG_ARCH_SUN8IW7P1) 
 		disp_ioctl(NULL, DISP_CMD_HDMI_SET_MODE, (void *)arg);
 		ret = disp_ioctl(NULL, DISP_CMD_HDMI_ON, (void *)arg);
 #else
@@ -1292,6 +939,7 @@ int board_display_device_open(void)
 #endif // !(defined CONFIG_ARCH_SUN9IW1P1)
 
 #else
+	printf("disp%d device type(%d) enable\n", screen_id, output_type);
 /* CONFIG_VIDEO_SUNXI_V3 */
 	arg[0] = screen_id;
 	arg[1] = output_type;
@@ -1303,19 +951,13 @@ int board_display_device_open(void)
 	disp_para = ((output_type << 8) | (output_mode)) << (screen_id*16);
 	return ret;
 }
-#endif //((defined CONFIG_ARCH_HOMELET) && (defined CONFIG_ARCH_SUN9IW1P1))
 
 void board_display_setenv(char *data)	
 {
 	if (!data)
 		return;
 
-#if ((defined CONFIG_ARCH_HOMELET) && (defined CONFIG_ARCH_SUN9IW1P1))
-	sprintf(data, " disp_rsl=%x", disp_para);
-#else
-	sprintf(data, " disp_para=%x", disp_para);
-#endif
-	printf("board_display_setenv: %s\n", data);
+	sprintf(data, "%x", disp_para);
 }
 
 int borad_display_get_screen_width(void)
@@ -1344,41 +986,6 @@ int borad_display_get_screen_height(void)
 #else
 	return disp_ioctl(NULL, DISP_CMD_SCN_GET_HEIGHT, (void*)arg);
 #endif
-}
-
-int get_display_resolution(int display_type)
-{
-  char disp_set_buf[512] = {0};
-  int read_bytes = 0;
-  int temp_value = 0;
-  char *p_buf = disp_set_buf;
-  char str[10] = {0};
-  int i = 0;
-
-    read_bytes = aw_fat_fsload("bootloader", "config.fex", disp_set_buf, 512);
-
-	while (read_bytes > 0)
-	{
-		if (*p_buf == '\n')
-		{
-			//printf("str = %s\n", str);
-			temp_value = (ulong)simple_strtoul(str, NULL, 16);
-			if ((temp_value >> 8 & 0xff) == display_type)
-			{
-				printf("[get_display_setting] = %x\n", temp_value);
-				return (temp_value & 0xff);
-			}
-			i = 0;
-		}
-		else
-		{
-			str[i++] = *p_buf;
-		}
-		p_buf++;
-		str[i] = '\0';
-		read_bytes--;
-	}
-  return 0;
 }
 
 #else

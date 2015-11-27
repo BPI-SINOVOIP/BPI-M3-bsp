@@ -46,9 +46,6 @@
 #define CONFIG_A39
 #undef  CONFIG_A39_FPGA
 #define CONFIG_ARCH_SUN9IW1P1
-
-#define CONFIG_ARCH_HOMELET
-
 #define CONFIG_BOOT_A15
 #define CONFIG_NO_BOOT_STANDBY
 #define CONFIG_VECTOR_BY_CP15
@@ -58,6 +55,7 @@
 #undef FORCE_BOOT_STANDBY
 #define CONFIG_SYS_SDRAM_BASE		     (0x20000000)
 #define CONFIG_SYS_TEXT_BASE		     (0x2A000000)
+#define CONFIG_SYS_OBLIGATE_BASE         (0xF0000000)
 // the sram base address, and the stack address in stage1
 #define CONFIG_SYS_INIT_RAM_ADDR	     0x10000
 #define CONFIG_SYS_INIT_RAM_SIZE	     0x00009ff0
@@ -134,6 +132,9 @@
 #define BOOT_PUB_HEAD_VERSION           "1100"
 #define EGON_VERSION                    "1100"
 
+#define CONFIG_STORAGE_MEDIA_NAND
+#define CONFIG_STORAGE_MEDIA_MMC
+
 #define SUNXI_DRAM_PARA_MAX              32
 
 #define CONFIG_BOOT0_STACK_BOTTOM        (0x19000)
@@ -186,24 +187,8 @@
 #define SUNXI_DMA_LINK_NULL       (0x1ffff800)
 
 #define CONFIG_SUNXI_AXP
-
 #if defined(CONFIG_ARCH_HOMELET)
-	#define CONFIG_SUNXI_AXP808
-	#define CONFIG_SUNXI_POWEROZ
-	#define CONFIG_SUNXI_POWERRICH
-
-	#define CONFIG_SUNXI_I2C			//power rich used and cvbs used
-	#define CONFIG_SYS_I2C_SPEED 400000
-	#define CONFIG_SYS_I2C_SLAVE 0x68
-
-	#define CONFIG_CPUS_STANDBY		//cpus standby for box
-
-	#define USE_AW_FAT
-	#define CONFIG_SUNXI_ADVERT
-	#define CONFIG_ARCH_TV
 #endif
-
-#define POWER_CONFIG_SUNXI_RSB	//axp communication bus
 #define CONFIG_SUNXI_AXP809
 #define CONFIG_SUNXI_AXP806
 #define CONFIG_SUNXI_AXP_MAIN        PMU_TYPE_809

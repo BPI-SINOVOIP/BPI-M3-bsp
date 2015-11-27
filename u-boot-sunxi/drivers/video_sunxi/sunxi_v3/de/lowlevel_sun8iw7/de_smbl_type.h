@@ -70,7 +70,7 @@ typedef union
 		__u32	adjust_en		:1;	//bit1
 		__u32	r0				:6;	//bit2~7
 		__u32	lgc_abslumperval:8;	//bit8~15
-		__u32	r1				:15;//bit16~31
+		__u32	r1				:16;//bit16~31
 	}bits;
 }__imgehc_drc_set_reg_t;		//0x18
 

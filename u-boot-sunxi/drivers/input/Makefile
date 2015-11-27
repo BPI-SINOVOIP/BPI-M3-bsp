@@ -32,8 +32,6 @@ COBJS-y += keyboard.o pc_keyb.o
 COBJS-$(CONFIG_PS2MULT) += ps2mult.o ps2ser.o
 endif
 
-COBJS-$(CONFIG_USE_CIR) += sunxi_ir.o
-
 COBJS	:= $(COBJS-y)
 SRCS	:= $(COBJS:.o=.c)
 OBJS	:= $(addprefix $(obj),$(COBJS))

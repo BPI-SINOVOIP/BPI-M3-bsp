@@ -161,8 +161,19 @@ int  unsparse_direct_write(void *pbuf, uint length)
 						//这里不处理数据部分，转到下一个状态
 						sparse_format_type = SPARSE_FORMAT_TYPE_CHUNK_DATA;
 
-						break;
+		                            break;
 
+                                        case CHUNK_TYPE_FILL:
+                                            if(chunk->total_sz != sizeof(chunk_header_t) + sizeof(u32))
+                                            {
+                                                printf("spase : bad chunk size for chunk ,type FILL \n");
+                                                return -1;
+                                            }
+                                            this_rest_size -= sizeof(u32);
+                                            tmp_buf += sizeof(u32);
+                                            flash_start += (chunk_length>>9);
+                                            sparse_format_type = SPARSE_FORMAT_TYPE_CHUNK_HEAD;
+                                            break;
 					case CHUNK_TYPE_DONT_CARE:
 						if (chunk->total_sz != sizeof(chunk_header_t))
 						{

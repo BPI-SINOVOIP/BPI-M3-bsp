@@ -1,4 +1,9 @@
 #include "hdmi_hal.h"
+#include "../disp_sys_intf.h"
+
+#define HDMI_IO_NUM 5
+static bool hdmi_io_used[HDMI_IO_NUM]={0};
+static disp_gpio_set_t hdmi_io[HDMI_IO_NUM];
 
 static bool hdmi_used;
 static bool bopen;
@@ -27,6 +32,44 @@ void hdmi_delay_us(unsigned long us)
     __usdelay(us);
 #endif
 	return ;
+}
+
+static int hdmi_parse_io_config(void)
+{
+	disp_gpio_set_t  *gpio_info;
+	int i, ret;
+	char io_name[32];
+
+	for(i=0; i<HDMI_IO_NUM; i++) {
+		gpio_info = &(hdmi_io[i]);
+		sprintf(io_name, "hdmi_io_%d", i);
+		ret = disp_sys_script_get_item("hdmi_para", io_name, (int *)gpio_info, sizeof(disp_gpio_set_t)/sizeof(int));
+		if(ret == 3)
+		  hdmi_io_used[i]= 1;
+		else
+			hdmi_io_used[i] = 0;
+	}
+
+  return 0;
+}
+
+static int hdmi_io_config(u32 bon)
+{
+	int hdl,i;
+
+	for(i=0; i<HDMI_IO_NUM; i++)	{
+		if(hdmi_io_used[i]) {
+			disp_gpio_set_t  gpio_info[1];
+
+			memcpy(gpio_info, &(hdmi_io[i]), sizeof(disp_gpio_set_t));
+			if(!bon) {
+				gpio_info->mul_sel = 7;
+			}
+			hdl = disp_sys_gpio_request(gpio_info, 1);
+			disp_sys_gpio_release(hdl, 2);
+		}
+	}
+	return 0;
 }
 
 static void hdmi_clk_config(u32 vic)
@@ -246,6 +289,9 @@ __s32 Hdmi_init(void)
 
 			Hdmi_set_reg_base(HDMI_BASE);
 			Hdmi_hal_init();
+			hdmi_parse_io_config();
+			hdmi_io_config(1);
+
 			disp_func.hdmi_open = Hdmi_open;
 			disp_func.hdmi_close = Hdmi_close;
 			disp_func.hdmi_set_mode = Hdmi_set_display_mode;

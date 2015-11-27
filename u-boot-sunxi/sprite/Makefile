@@ -43,6 +43,8 @@ COBJS-y += sprite_recovery.o
 COBJS-y += sprite_led.o
 
 COBJS-$(CONFIG_SUNXI_SECURE_STORAGE) += sprite_secstorage.o
+COBJS-$(CONFIG_SUNXI_SECURE_STORAGE) += sprite_secure_object.o
+COBJS-$(CONFIG_SUNXI_SECURE_SYSTEM) += sprite_storage_crypt.o
 
 endif
 COBJS	:= $(COBJS-y)

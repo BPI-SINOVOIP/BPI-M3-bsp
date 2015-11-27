@@ -82,7 +82,7 @@
 extern void jump_to_resume(void);
 extern void save_runtime_context(u32* addr);
 extern int  get_cpu_id(void);
-extern void switch_to_a15(int pwr_en);
+extern void switch_to_a15(special_gpio_cfg a15_power_gpio);
 
 extern int get_cluster_id(void);
 

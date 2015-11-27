@@ -1718,6 +1718,185 @@ static int axp81X_probe_eldo3(void)
 *
 ************************************************************************************************************
 */
+static int axp81X_set_fldo1(int set_vol, int onoff)
+{
+	u8 reg_value;
+
+	if(set_vol > 0)
+	{
+		if(set_vol < 700)
+		{
+			set_vol = 700;
+		}
+		else if(set_vol > 1450)
+		{
+			set_vol = 1450;
+		}
+		if(axp_i2c_read(AXP81X_ADDR, BOOT_POWER81X_FLDO1_VOL, &reg_value))
+	    {
+	        return -1;
+	    }
+	    reg_value &= 0xF0;
+		reg_value |= ((set_vol - 700)/50);
+	    if(axp_i2c_write(AXP81X_ADDR, BOOT_POWER81X_FLDO1_VOL, reg_value))
+	    {
+	    	printf("sunxi pmu error : unable to set fldo1\n");
+
+	        return -1;
+	    }
+	}
+
+	if(onoff < 0)
+	{
+		return 0;
+	}
+	if(axp_i2c_read(AXP81X_ADDR, BOOT_POWER81X_ALDO_CTL, &reg_value))
+    {
+		return -1;
+    }
+	if(onoff == 0)
+	{
+		reg_value &= ~(1 << 2);
+	}
+	else
+	{
+		reg_value |=  (1 << 2);
+	}
+    if(axp_i2c_write(AXP81X_ADDR, BOOT_POWER81X_ALDO_CTL, reg_value))
+	{
+		printf("sunxi pmu error : unable to onoff fldo1\n");
+
+		return -1;
+	}
+
+	return 0;
+}
+static int axp81X_probe_fldo1(void)
+{
+    u8  reg_value;
+	if(axp_i2c_read(AXP81X_ADDR, BOOT_POWER81X_ALDO_CTL, &reg_value))
+    {
+		return -1;
+    }
+    if(!(reg_value & (0x01 << 2)))
+    {
+		return 0;
+	}
+
+	if(axp_i2c_read(AXP81X_ADDR, BOOT_POWER81X_FLDO1_VOL, &reg_value))
+    {
+		return -1;
+    }
+    reg_value &= 0x0f;
+
+    return 700 + 50 * reg_value;
+}
+/*
+************************************************************************************************************
+*
+*                                             function
+*
+*    函数名称：
+*
+*    参数列表：
+*
+*    返回值  ：
+*
+*    说明    ：
+*
+*
+************************************************************************************************************
+*/
+static int axp81X_set_fldo2(int set_vol, int onoff)
+{
+	u8 reg_value;
+
+	if(set_vol > 0)
+	{
+		if(set_vol < 700)
+		{
+			set_vol = 700;
+		}
+		else if(set_vol > 1450)
+		{
+			set_vol = 1450;
+		}
+		if(axp_i2c_read(AXP81X_ADDR, BOOT_POWER81X_FLDO2_VOL, &reg_value))
+	    {
+	        return -1;
+	    }
+	    reg_value &= 0xF0;
+		reg_value |= ((set_vol - 700)/50);
+	    if(axp_i2c_write(AXP81X_ADDR, BOOT_POWER81X_FLDO2_VOL, reg_value))
+	    {
+	    	printf("sunxi pmu error : unable to set fldo2\n");
+
+	        return -1;
+	    }
+	}
+
+	if(onoff < 0)
+	{
+		return 0;
+	}
+	if(axp_i2c_read(AXP81X_ADDR, BOOT_POWER81X_ALDO_CTL, &reg_value))
+    {
+		return -1;
+    }
+	if(onoff == 0)
+	{
+		reg_value &= ~(1 << 3);
+	}
+	else
+	{
+		reg_value |=  (1 << 3);
+	}
+    if(axp_i2c_write(AXP81X_ADDR, BOOT_POWER81X_ALDO_CTL, reg_value))
+	{
+		printf("sunxi pmu error : unable to onoff fldo2\n");
+
+		return -1;
+	}
+
+	return 0;
+}
+static int axp81X_probe_fldo2(void)
+{
+    u8  reg_value;
+	if(axp_i2c_read(AXP81X_ADDR, BOOT_POWER81X_ALDO_CTL, &reg_value))
+    {
+		return -1;
+    }
+    if(!(reg_value & (0x01 << 3)))
+    {
+		return 0;
+	}
+
+	if(axp_i2c_read(AXP81X_ADDR, BOOT_POWER81X_FLDO2_VOL, &reg_value))
+    {
+		return -1;
+    }
+    reg_value &= 0x0f;
+
+    return 700 + 50 * reg_value;
+}
+
+/*
+************************************************************************************************************
+*
+*                                             function
+*
+*    函数名称：
+*
+*    参数列表：
+*
+*    返回值  ：
+*
+*    说明    ：
+*
+*
+************************************************************************************************************
+*/
 static int axp81X_set_gpio0ldo(int set_vol, int onoff)
 {
 	u8 reg_value;
@@ -2145,6 +2324,19 @@ static int axp81X_set_eldo_output(int sppply_index, int vol_value, int onoff)
 	return -1;
 }
 
+static int axp81X_set_fldo_output(int sppply_index, int vol_value, int onoff)
+{
+	switch(sppply_index)
+	{
+		case 1:
+			return axp81X_set_fldo1(vol_value, onoff);
+		case 2:
+			return axp81X_set_fldo2(vol_value, onoff);
+	}
+
+	return -1;
+}
+
 static int axp81X_set_gpioldo_output(int sppply_index, int vol_value, int onoff)
 {
 	switch(sppply_index)
@@ -2242,6 +2434,13 @@ int axp81_set_supply_status_byname(char *vol_name, int vol_value, int onoff)
 
 		return axp81X_set_eldo_output(sppply_index, vol_value, onoff);
 	}
+	else if(!strncmp(vol_name, "fldo", 4))
+	{
+		sppply_index = simple_strtoul(vol_name + 4, NULL, 10);
+
+		return axp81X_set_fldo_output(sppply_index, vol_value, onoff);
+	}
+
 	else if(!strncmp(vol_name, "dldo", 4))
 	{
 		sppply_index = simple_strtoul(vol_name + 4, NULL, 10);
@@ -2355,6 +2554,18 @@ static int axp81X_probe_eldo_output(int sppply_index)
 
 	return -1;
 }
+static int axp81X_probe_fldo_output(int sppply_index)
+{
+	switch(sppply_index)
+	{
+		case 1:
+			return axp81X_probe_fldo1();
+		case 2:
+			return axp81X_probe_fldo2();
+	}
+
+	return -1;
+}
 
 
 static int axp81X_probe_gpioldo_output(int sppply_index)
@@ -2411,6 +2622,11 @@ int axp81_probe_supply_status_byname(char *vol_name)
 	{
 		return axp81X_probe_eldo_output(sppply_index);
 	}
+	else if(!strncmp(vol_name, "fldo", 4))
+	{
+		return axp81X_probe_fldo_output(sppply_index);
+	}
+
 	//add by ljq 20140224
 	else if(!strncmp(vol_name, "gpio", 4))
 	{

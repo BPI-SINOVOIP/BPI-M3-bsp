@@ -77,7 +77,12 @@
 #define CCM_DDR_CFG_CTRL	    (CCM_BASE+0x0f8) //--new
 #define CCM_MBUS_RESET_CTRL     (CCM_BASE+0x0fC ) //--new
 
-
+#define CCM_AHB1_RESET_CTRL     (CCM_BASE + 0x02c0)
+#define CCMU_BUS_SOFT_RST_REG0              (CCM_BASE + 0x2C0)
+#define CCMU_BUS_SOFT_RST_REG1              (CCM_BASE + 0x2C4)
+#define CCMU_BUS_SOFT_RST_REG2              (CCM_BASE + 0x2C8)
+#define CCMU_BUS_SOFT_RST_REG3              (CCM_BASE + 0x2D0)
+#define CCMU_BUS_SOFT_RST_REG4              (CCM_BASE + 0x2D8)
 
 #define CCM_DRAMCLK_GATE_CTRL	(CCM_BASE+0x0100)
 #define CCM_BE0_SCLK_CTRL		(CCM_BASE+0x0104)
@@ -155,6 +160,8 @@
 
 #define CCM_APB1_RST_REG		(CCM_BASE+0x02D0)
 #define CCM_APB2_RST_REG		(CCM_BASE+0x02D8)
+
+#define CCM_SECURITY_REG        (CCM_BASE+0x02F0)
 
 #define CCM_CLK_OUTA_REG		(CCM_BASE+0x0300)
 #define CCM_CLK_OUTB_REG		(CCM_BASE+0x0304)

@@ -110,7 +110,6 @@ extern int axp_set_vbus_cur_limit(int current);
 extern int axp_set_vbus_vol_limit(int vol);
 
 extern int axp_probe_key(void);
-extern int axp_probe_power_id(char *name);
 
 extern int axp_get_power_vol_level(void);
 extern int axp_power_get_dcin_battery_exist(int *dcin_exist, int *battery_exist);
@@ -131,18 +130,4 @@ extern int axp_set_supply_status_byregulator(const char* id, int onoff);
 
 extern int axp_probe_supply_pmu_name(char *axpname);
 extern int axp_probe_vbus_cur_limit(void);
-
-#if defined(CONFIG_SUNXI_POWEROZ)
-extern int power_oz_set_dcdc(int set_vol, int onoff);
-extern int power_oz_set_power_output(void);
-#endif
-
-#if defined(CONFIG_SUNXI_POWERRICH)
-extern int power_rich_probe_rate(void);
-extern int power_rich_probe_dcdc(void);
-extern int power_rich_set_dcdc(int set_vol, int onoff);
-extern int power_rich_set_power_output(void);
-#endif
-
-
 #endif	/* _PMU_H_ */

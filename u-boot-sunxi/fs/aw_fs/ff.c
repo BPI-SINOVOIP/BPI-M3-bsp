@@ -2857,7 +2857,7 @@ FRESULT f_read (
 #endif
 				rcnt = SS(fp->fs) * cc;			/* Number of bytes transferred */
 				btr -= rcnt;
-				if (!btr && will_read && read_write_data){
+				if (!btr && will_read){
 					printf("%s btr over hd%d\n",__func__,__LINE__);
 					if (disk_read_fs(fp->fs->drv, mybuff, will_read_start, read_write_data) != RES_OK){
 						printf("read error!\n");
@@ -3019,7 +3019,7 @@ FRESULT f_write (
 #endif
 				wcnt = SS(fp->fs) * cc;		/* Number of bytes transferred */
 				btw -= wcnt;
-				if (!btw && will_write && read_write_data){
+				if (!btw && will_write){
 //					printf("%s write over !%d",__func__,__LINE__);
 					if (disk_write(fp->fs->drv, mybuff, will_write_start, read_write_data) != RES_OK){
 						ABORT(fp->fs, FR_DISK_ERR);

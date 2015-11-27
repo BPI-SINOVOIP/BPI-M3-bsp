@@ -6,6 +6,11 @@
 #include "hdmi/hdmi_hal.h"
 #endif
 
+#if defined(SUPPORT_TV)
+#include "tv/drv_tv_i.h"
+#endif
+
+
 // 1M + 64M(ve) + 16M(fb)
 #define FB_RESERVED_MEM
 #define FB_MAX 8
@@ -131,8 +136,8 @@ extern s32 fb_exit(void);
 #endif
 extern int lcd_init(void);
 extern int Hdmi_init(void);
-extern int  gm7121_module_init(void);
-extern void  gm7121_module_exit(void);
+//extern int  gm7121_module_init(void);
+//extern void  gm7121_module_exit(void);
 
 s32 disp_set_hdmi_func(disp_hdmi_func * func);
 #if defined(__LINUX_PLAT__)

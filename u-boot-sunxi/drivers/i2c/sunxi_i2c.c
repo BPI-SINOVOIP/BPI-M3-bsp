@@ -32,8 +32,8 @@
 #include <asm/arch/twi.h>
 #include <sys_config.h>
 #include <asm/arch/timer.h>
-#include <asm/arch/ccmu.h>
 #include <asm/io.h>
+#include <asm/arch/platform.h>
 
 #define	I2C_WRITE		0
 #define I2C_READ		1
@@ -85,7 +85,17 @@
 * D8h    Second Address byte + Write bit transmitted, ACK not received
 * F8h    No relevant status information or no interrupt
 *-----------------------------------------------------------------------------*/
-
+//static  struct sunxi_twi_reg *i2c[SUNXI_I2C_CONTROLLER] =
+//{
+//    (struct sunxi_twi_reg *)(SUNXI_TWI0_BASE),
+//	(struct sunxi_twi_reg *)(SUNXI_TWI1_BASE),
+//	(struct sunxi_twi_reg *)(SUNXI_TWI2_BASE)
+//};
+#ifndef CONFIG_CPUS_I2C
+static  struct sunxi_twi_reg *i2c=(struct sunxi_twi_reg *)SUNXI_TWI0_BASE;
+#else
+static  struct sunxi_twi_reg *i2c=(struct sunxi_twi_reg *)SUNXI_CPUS_TWI_BASE;
+#endif
 /*
 **********************************************************************************************************************
 *                                               sw_iic_exit
@@ -100,12 +110,11 @@
 *
 **********************************************************************************************************************
 */
-static __s32 i2c_sendstart(uint twi_host)
+static __s32 i2c_sendstart(void)
 {
     __s32  time = 0xfffff;
     __u32  tmp_val;
 
-	struct sunxi_twi_reg *i2c = (struct sunxi_twi_reg *)twi_host;
     i2c->eft  = 0;
     i2c->srst = 1;
     i2c->ctl |= 0x20;
@@ -138,18 +147,17 @@ static __s32 i2c_sendstart(uint twi_host)
 *
 **********************************************************************************************************************
 */
-static __s32 i2c_sendRestart(uint twi_host)
+static __s32 i2c_sendRestart(void)
 {
     __s32  time = 0xffff;
     __u32  tmp_val;
 
-	struct sunxi_twi_reg *i2c = (struct sunxi_twi_reg *)twi_host;
 #if defined(CONFIG_ARCH_SUN7I) | defined(CONFIG_ARCH_SUN5I)
 	tmp_val = i2c->ctl & 0xC0;
 #else
 	tmp_val = i2c->ctl;
 #endif
-	tmp_val |= 0x20;
+        tmp_val |= 0x20;
 	i2c->ctl = tmp_val;
 
     while( (time--) && (!(i2c->ctl & 0x08)) );
@@ -180,19 +188,18 @@ static __s32 i2c_sendRestart(uint twi_host)
 *
 **********************************************************************************************************************
 */
-static __s32 i2c_sendslaveaddr(uint twi_host, __u32 saddr,  __u32 rw)
+static __s32 i2c_sendslaveaddr(__u32 saddr,  __u32 rw)
 {
     __s32  time = 0xffff;
     __u32  tmp_val;
-	struct sunxi_twi_reg *i2c = (struct sunxi_twi_reg *)twi_host;
+
 	rw &= 1;
 	i2c->data = ((saddr & 0xff) << 1)| rw;
 #if defined(CONFIG_ARCH_SUN5I) || defined(CONFIG_ARCH_SUN7I)
-    i2c->ctl &=  0xF7; //write 0 to clean int flag
+        i2c->ctl &=  0xF7; //write 0 to clean int flag
 #else
-    i2c->ctl  |= (0x01<<3);//write 1 to clean int flag
+        i2c->ctl  |= (0x01<<3);//write 1 to clean int flag
 #endif
-
 	while(( time-- ) && (!( i2c->ctl & 0x08 )));
 	if(time <= 0)
 	{
@@ -207,6 +214,7 @@ static __s32 i2c_sendslaveaddr(uint twi_host, __u32 saddr,  __u32 rw)
 			return -I2C_ADDRWRITE_ACK;
 		}
 	}
+
 	else//+read
 	{
 		if(tmp_val != I2C_ADDRREAD_ACK)
@@ -231,20 +239,18 @@ static __s32 i2c_sendslaveaddr(uint twi_host, __u32 saddr,  __u32 rw)
 *
 **********************************************************************************************************************
 */
-static __s32 i2c_sendbyteaddr(uint twi_host, __u32 byteaddr)
+static __s32 i2c_sendbyteaddr(__u32 byteaddr)
 {
     __s32  time = 0xffff;
     __u32  tmp_val;
 
-	struct sunxi_twi_reg *i2c = (struct sunxi_twi_reg *)twi_host;
 	i2c->data = byteaddr & 0xff;
 #if defined(CONFIG_ARCH_SUN5I)||defined(CONFIG_ARCH_SUN7I)
-	i2c->ctl &= 0xF7;   //write 0 to clean int flag
+	i2c->ctl &= 0xF7;   //write 0 to clean int flag 
 #else
-    i2c->ctl |= (0x01<<3);//write 1 to clean int flag
+        i2c->ctl |= (0x01<<3);//write 1 to clean int flag
 #endif
-    while( (time--) && (!(i2c->ctl & 0x08)) );
-
+        while( (time--) && (!(i2c->ctl & 0x08)) );
 	if(time <= 0)
 	{
 		return -I2C_NOK_TOUT;
@@ -272,34 +278,31 @@ static __s32 i2c_sendbyteaddr(uint twi_host, __u32 byteaddr)
 *
 **********************************************************************************************************************
 */
-static __s32 i2c_getdata(uint twi_host, __u8 *data_addr, __u32 data_count)
+static __s32 i2c_getdata(__u8 *data_addr, __u32 data_count)
 {
     __s32  time = 0xffff;
     __u32  tmp_val;
     __u32  i;
-    struct sunxi_twi_reg *i2c = (struct sunxi_twi_reg *)twi_host;
-
-	if(data_count == 1)
+    if(data_count == 1)
     {
 #if defined(CONFIG_ARCH_SUN5I)||defined(CONFIG_ARCH_SUN7I)
-		i2c->ctl &= 0xF7;
+	i2c->ctl &= 0xF7;
 #else
-		i2c->ctl |= (0x01<<3);
+        i2c->ctl |= (0x01<<3);
 #endif
-	    while( (time--) && (!(i2c->ctl & 0x08)) );
+        while( (time--) && (!(i2c->ctl & 0x08)) );
+	if(time <= 0)
+	{
+            return -I2C_NOK_TOUT;
+	}
+	for(time=0;time<100;time++);
+	*data_addr = i2c->data;
 
-		if(time <= 0)
-		{
-	            return -I2C_NOK_TOUT;
-		}
-		for(time=0;time<100;time++);
-		*data_addr = i2c->data;
-
-		tmp_val = i2c->status;
-		if(tmp_val != I2C_DATAREAD_NACK)
-		{
-			return -I2C_DATAREAD_NACK;
-		}
+	tmp_val = i2c->status;
+	if(tmp_val != I2C_DATAREAD_NACK)
+	{
+            return -I2C_DATAREAD_NACK;
+	}
 	}
 	else
 	{
@@ -308,12 +311,12 @@ static __s32 i2c_getdata(uint twi_host, __u8 *data_addr, __u32 data_count)
 			time = 0xffff;
 			tmp_val = i2c->ctl | (0x01<<2);//传送多笔数据的时候，每次传一笔数据，主机就要给一次ack
 #if defined(CONFIG_ARCH_SUN5I)||defined(CONFIG_ARCH_SUN7I)
-			tmp_val = i2c->ctl & (0xf7);
+                        tmp_val = i2c->ctl & (0xf7);
 #else
-			tmp_val = i2c->ctl | (0x01<<3);
+                        tmp_val = i2c->ctl | (0x01<<3);
 #endif
-			tmp_val |= 0x04;
-            i2c->ctl = tmp_val;
+		        tmp_val |= 0x04;
+                        i2c->ctl = tmp_val;
 		 	//i2c->ctl |=(0x01<<3);
 
 			while( (time--) && (!(i2c->ctl & 0x08)) );
@@ -324,34 +327,31 @@ static __s32 i2c_getdata(uint twi_host, __u8 *data_addr, __u32 data_count)
 			for(time=0;time<100;time++);
 			time = 0xffff;
 			data_addr[i] = i2c->data;
-
-			while( (time--) && (i2c->status != I2C_DATAREAD_ACK) );
-
+		    while( (time--) && (i2c->status != I2C_DATAREAD_ACK) );
 			if(time <= 0)
 			{
-				return -I2C_NOK_TOUT;
+                            return -I2C_NOK_TOUT;
 			}
 		}
 
         time = 0xffff;
-        i2c->ctl &= 0xFb;  //当最后一笔数据的时候，就将该位清零，即不给从机ack，默认传输结束
+                i2c->ctl &= 0xFb;  //当最后一笔数据的时候，就将该位清零，即不给从机ack，默认传输结束
 #if defined(CONFIG_ARCH_SUN5I)||defined(CONFIG_ARCH_SUN7I)
-        i2c->ctl &= 0xf7;
+                i2c->ctl &= 0xf7;
 #else
-        i2c->ctl |= (0x01<<3);
+                i2c->ctl |= (0x01<<3);
 #endif
 		while( (time--) && (!(i2c->ctl & 0x08)) );
-
 		if(time <= 0)
 		{
-			return -I2C_NOK_TOUT;
+                    return -I2C_NOK_TOUT;
 		}
 		for(time=0;time<100;time++);
 		data_addr[data_count - 1] = i2c->data;
 	    while( (time--) && (i2c->status != I2C_DATAREAD_NACK) );
 		if(time <= 0)
 		{
-			return -I2C_NOK_TOUT;
+                    return -I2C_NOK_TOUT;
 		}
 	}
 
@@ -371,31 +371,30 @@ static __s32 i2c_getdata(uint twi_host, __u8 *data_addr, __u32 data_count)
 *
 **********************************************************************************************************************
 */
-static __s32 i2c_senddata(uint twi_host, __u8  *data_addr, __u32 data_count)
+static __s32 i2c_senddata(__u8  *data_addr, __u32 data_count)
 {
     __s32  time = 0xffff;
     __u32  i;
 
-	struct sunxi_twi_reg *i2c = (struct sunxi_twi_reg *)twi_host;
 	for(i=0; i< data_count; i++)
 	{
 		time = 0xffff;
-	    i2c->data = data_addr[i];
+	        i2c->data = data_addr[i];
 #if defined(CONFIG_ARCH_SUN5I)|defined(CONFIG_ARCH_SUN7I)
 		i2c->ctl &= 0xF7;
 #else
-        i2c->ctl |= (0x01<<3);
+                i2c->ctl |= (0x01<<3);
 #endif
-        while( (time--) && (!(i2c->ctl & 0x08)) );
+                while( (time--) && (!(i2c->ctl & 0x08)) );
 		if(time <= 0)
 		{
-			return -I2C_NOK_TOUT;
+                    return -I2C_NOK_TOUT;
 		}
 		time = 0xffff;
 		while( (time--) && (i2c->status != I2C_DATAWRITE_ACK) );
-        if(time <= 0)
+                if(time <= 0)
 		{
-			return -I2C_NOK_TOUT;
+                    return -I2C_NOK_TOUT;
 		}
 	}
 
@@ -415,21 +414,20 @@ static __s32 i2c_senddata(uint twi_host, __u8  *data_addr, __u32 data_count)
 *
 **********************************************************************************************************************
 */
-static __s32 i2c_stop(uint twi_host)
+static __s32 i2c_stop(void)
 {
     __s32  time = 0xffff;
     __u32  tmp_val;
 
-	struct sunxi_twi_reg *i2c = (struct sunxi_twi_reg *)twi_host;
-
+//	tmp_val = (i2c->ctl & 0xC0) | 0x10;
+//	i2c->ctl = tmp_val;
 	i2c->ctl |= (0x01 << 4);
 #if defined(CONFIG_ARCH_SUN5I)|defined(CONFIG_ARCH_SUN7I)
-    i2c->ctl &= 0xf7;
+        i2c->ctl &= 0xf7;
 #else
-    i2c->ctl |= (0x01 << 3);
+        i2c->ctl |= (0x01 << 3);
 #endif
-    while( (time--) && (i2c->ctl & 0x10) );
-
+        while( (time--) && (i2c->ctl & 0x10) );
 	if(time <= 0)
 	{
 		return -I2C_NOK_TOUT;
@@ -444,8 +442,39 @@ static __s32 i2c_stop(uint twi_host)
 
 	return I2C_OK;
 }
+#ifndef CONFIG_CPUS_I2C
+void set_i2c_clock(void)
+{
+	struct sunxi_ccm_reg *ccm_reg = (struct sunxi_ccm_reg *)SUNXI_CCM_BASE;
+    int reg_value = 0;
 
+#if !defined(CONFIG_ARCH_SUN5I)||!defined(CONFIG_ARCH_SUN7I)	
+    /* reset i2c clock    */
+    /* reset apb2 twi0*/
+   reg_value = *((unsigned int *)0x01c202d8);
+   reg_value |= 0x01;
+    *((unsigned int *)0x01c202d8) = reg_value;
+	__msdelay(1);
+#endif
+	ccm_reg->apb1_gate &= ~1;
+	__msdelay(1);
+	ccm_reg->apb1_gate |=  1;
 
+}
+#else
+void set_cpus_i2c_clock(void)
+{
+    int reg_value = 0;
+    reg_value = *((unsigned int *)(R_PRCE_APB0_RESET));
+    reg_value |= 0x01 << 6;
+    *((unsigned int *)(R_PRCE_APB0_RESET)) = reg_value;
+	__msdelay(1);
+	reg_value = *((unsigned int *)(R_PRCM_APB0_GATING));
+    reg_value |= 0x01 << 6;
+    *((unsigned int *)(R_PRCM_APB0_GATING)) = reg_value;
+	__msdelay(1);
+}
+#endif
 /*
 **********************************************************************************************************************
 *                                               i2c_init
@@ -460,66 +489,18 @@ static __s32 i2c_stop(uint twi_host)
 *
 **********************************************************************************************************************
 */
-void i2c_init(int bus_id, int speed, int slaveaddr)
+void i2c_init(int speed, int slaveaddr)
 {
 	int i, clk_n, clk_m;
-    int reg_value = 0;
-	char twi_para[16] = {0};
-	uint twi_host = 0;
-    struct sunxi_twi_reg *i2c = NULL;
-
-	if(bus_id < SUNXI_TWI_COUNT)
-	{
-		twi_host = SUNXI_TWI0_BASE + SUNXI_TWI_OFFSET * bus_id;
-	}
-	else
-	{
-		printf("i2c bus id %d is error\n", bus_id);
-		return ;
-	}
-
-    i2c = (struct sunxi_twi_reg *)twi_host;
-	sprintf(twi_para, "twi%d", bus_id);
-
-#if defined(CONFIG_ARCH_SUN9IW1P1)
-    //reset apb1 twi[bus_id]
-    reg_value = *((unsigned int *)CCM_APB1_RST_REG0);
-    reg_value |= (0x01 << bus_id);
-    *((unsigned int *)CCM_APB1_RST_REG0) = reg_value;
-	__msdelay(1);
-
-	//set apb1 twi[bus_id] gating
-	reg_value = *((unsigned int *)CCM_APB1_GATE0_CTRL);
-    reg_value |= (0x01 << bus_id);
-    *((unsigned int *)CCM_APB1_GATE0_CTRL) = reg_value;
+	
+	/*set gpio and clock*/
+#ifndef CONFIG_CPUS_I2C
+	set_i2c_clock();
+	gpio_request_simple("twi_para",NULL);
 #else
-#if defined(CONFIG_ARCH_SUN8IW6P1)
-    reg_value = *((unsigned int *)CCMU_BUS_SOFT_RST_REG4);
-    reg_value |= (0x01 << bus_id);
-    *((unsigned int *)CCMU_BUS_SOFT_RST_REG4) = reg_value;
-	__msdelay(1);
-
-	reg_value = *((unsigned int *)CCMU_BUS_CLK_GATING_REG3);
-	reg_value |= (0x01 << bus_id);
-	*((unsigned int *)CCMU_BUS_CLK_GATING_REG3) = reg_value ;
-#else
-	struct sunxi_ccm_reg *ccm_reg = (struct sunxi_ccm_reg *)SUNXI_CCM_BASE;
-#if !defined(CONFIG_ARCH_SUN5I)||!defined(CONFIG_ARCH_SUN7I)
-        /* reset i2c clock    */
-        /* reset apb2 twi0*/
-        reg_value = *((unsigned int *)0x01c202d8);
-        reg_value |= 0x01;
-       *((unsigned int *)0x01c202d8) = reg_value;
-	__msdelay(1);
+	set_cpus_i2c_clock();
+	gpio_request_simple("s_rsb0",NULL);
 #endif
-	ccm_reg->apb1_gate &= ~1;
-	__msdelay(1);
-	ccm_reg->apb1_gate |=  1;
-#endif
-#endif
-	/* set i2c gpio */
-    //gpio_request_early((void *)uboot_spare_head.boot_data.twi_gpio, 2, 1);
-    gpio_request_simple(twi_para, NULL);
 	/* reset i2c control  */
     i = 0xffff;
     i2c->srst = 1;
@@ -575,28 +556,12 @@ void i2c_init(int bus_id, int speed, int slaveaddr)
 *
 **********************************************************************************************************************
 */
-void i2c_exit(uint bus_id)
+void i2c_exit(void)
 {
-	bus_id = bus_id;
-#if defined(CONFIG_ARCH_SUN9IW1P1)
-	uint reg_value = 0;
-	reg_value = *((unsigned int *)CCM_APB1_GATE0_CTRL);
-	reg_value &= ~(0x01 << bus_id);
-	*((unsigned int *)CCM_APB1_GATE0_CTRL) = reg_value ;
-#else
-#if defined(CONFIG_ARCH_SUN8IW6P1)
-	uint reg_value = 0;
-	reg_value = *((unsigned int *)CCMU_BUS_CLK_GATING_REG3);
-	reg_value &= ~(0x01 << bus_id);
-	*((unsigned int *)CCMU_BUS_CLK_GATING_REG3) = reg_value ;
-#else
 	struct sunxi_ccm_reg *ccm_reg = (struct sunxi_ccm_reg *)SUNXI_CCM_BASE;
 	/* close i2c clock    */
 	ccm_reg->apb1_gate &= ~1;
-#endif
 
-#endif
-	__msdelay(1);
 	return ;
 }
 /*
@@ -612,7 +577,6 @@ void i2c_exit(uint bus_id)
 *  Return value:
 *
 *  Read/Write interface:
-*	 bus_id:  the id of the twi bus: 4,3,2,1,0 is to twi4..twi0
 *    chip:    I2C slave chip address, range 0..127
 *    addr:    Memory (register) address within the chip
 *    alen:    Number of bytes to use for addr (
@@ -627,30 +591,19 @@ void i2c_exit(uint bus_id)
 *
 ****************************************************************************************************
 */
-int i2c_read(uint bus_id, uchar chip, uint addr, int alen, uchar *buffer, int len)
+int i2c_read(uchar chip, uint addr, int alen, uchar *buffer, int len)
 {
     int   i, ret, ret0, addrlen;
     char  *slave_reg;
-	uint twi_host = 0;
 
 	ret0 = -1;
-	if(bus_id < SUNXI_TWI_COUNT)
-	{
-		twi_host = SUNXI_TWI0_BASE + SUNXI_TWI_OFFSET * bus_id;
-	}
-	else
-	{
-		printf("i2c bus id %d is error\n", bus_id);
-		return ret0;
-	}
-
-    ret = i2c_sendstart(twi_host);
+    ret = i2c_sendstart();
     if(ret)
 	{
 		goto i2c_read_err_occur;
 	}
 
-    ret = i2c_sendslaveaddr(twi_host, chip, I2C_WRITE);
+    ret = i2c_sendslaveaddr(chip, I2C_WRITE);
     if(ret)
     {
 	    goto i2c_read_err_occur;
@@ -658,38 +611,37 @@ int i2c_read(uint bus_id, uchar chip, uint addr, int alen, uchar *buffer, int le
     //send byte address
     if(alen >= 3)
     {
-		addrlen = 2;
+	addrlen = 2;
     }
     else if(alen <= 1)
     {
-		addrlen = 0;
+	addrlen = 0;
     }
     else
     {
-		addrlen = 1;
+	addrlen = 1;
     }
     slave_reg = (char *)&addr;
-
-	for (i = addrlen; i>=0; i--)
+    for (i = addrlen; i>=0; i--)
     {
-		ret = i2c_sendbyteaddr(twi_host, slave_reg[i] & 0xff);
+    	ret = i2c_sendbyteaddr(slave_reg[i] & 0xff);
     	if(ret)
     	{
     		goto i2c_read_err_occur;
     	}
     }
-    ret = i2c_sendRestart(twi_host);
+    ret = i2c_sendRestart();
     if(ret)
 	{
 		goto i2c_read_err_occur;
 	}
-    ret = i2c_sendslaveaddr(twi_host, chip, I2C_READ);
+    ret = i2c_sendslaveaddr(chip, I2C_READ);
     if(ret)
     {
         goto i2c_read_err_occur;
 	}
     //get data
-	ret = i2c_getdata(twi_host, buffer, len);
+	ret = i2c_getdata(buffer, len);
 	if(ret)
 	{
 		goto i2c_read_err_occur;
@@ -697,7 +649,7 @@ int i2c_read(uint bus_id, uchar chip, uint addr, int alen, uchar *buffer, int le
     ret0 = 0;
 
 i2c_read_err_occur:
-	i2c_stop(twi_host);
+	i2c_stop();
 
 	return ret0;
 }
@@ -716,29 +668,19 @@ i2c_read_err_occur:
 *       EPDK_FAIL
 ****************************************************************************************************
 */
-int i2c_write(uint bus_id, uchar chip, uint addr, int alen, uchar *buffer, int len)
+int i2c_write(uchar chip, uint addr, int alen, uchar *buffer, int len)
 {
     int   i, ret, ret0, addrlen;
     char  *slave_reg;
-    uint twi_host = 0;
 
     ret0 = -1;
-	if(bus_id < SUNXI_TWI_COUNT)
-	{
-		twi_host = SUNXI_TWI0_BASE + SUNXI_TWI_OFFSET * bus_id;
-	}
-	else
-	{
-		printf("i2c bus id %d is error\n", bus_id);
-		return ret0;
-	}
-    ret = i2c_sendstart(twi_host);
+    ret = i2c_sendstart();
     if(ret)
 	{
 		goto i2c_write_err_occur;
 	}
 
-    ret = i2c_sendslaveaddr(twi_host, chip, I2C_WRITE);
+    ret = i2c_sendslaveaddr(chip, I2C_WRITE);
     if(ret)
     {
 	    goto i2c_write_err_occur;
@@ -754,20 +696,19 @@ int i2c_write(uint bus_id, uchar chip, uint addr, int alen, uchar *buffer, int l
     }
     else
     {
-		addrlen = 1;
+	addrlen = 1;
     }
-
-	slave_reg = (char *)&addr;
+    slave_reg = (char *)&addr;
     for (i = addrlen; i>=0; i--)
     {
-		ret = i2c_sendbyteaddr(twi_host, slave_reg[i] & 0xff);
+    	ret = i2c_sendbyteaddr(slave_reg[i] & 0xff);
     	if(ret)
     	{
     		goto i2c_write_err_occur;
     	}
     }
 
-	ret = i2c_senddata(twi_host, buffer, len);
+	ret = i2c_senddata(buffer, len);
 	if(ret)
 	{
 		goto i2c_write_err_occur;
@@ -775,7 +716,7 @@ int i2c_write(uint bus_id, uchar chip, uint addr, int alen, uchar *buffer, int l
     ret0 = 0;
 
 i2c_write_err_occur:
-	i2c_stop(twi_host);
+	i2c_stop();
 
 	return ret0;
 }

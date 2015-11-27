@@ -129,7 +129,7 @@ int irq_disable(int irq_no)
 
 	offset   = irq_no >> 5; // ³ý32
 	reg_val  = (1 << (irq_no & 0x1f));
-	writel(reg_val, GIC_SET_EN(offset));
+	writel(reg_val, GIC_CLR_EN(offset));
 
 	return 0;
 }

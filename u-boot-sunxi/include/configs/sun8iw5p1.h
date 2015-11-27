@@ -102,7 +102,7 @@
 #define SUNXI_DISPLAY_FRAME_BUFFER_ADDR  (CONFIG_SYS_SDRAM_BASE + 0x06400000)
 #define SUNXI_DISPLAY_FRAME_BUFFER_SIZE  0x01000000
 
-#define FEL_BASE                         0xFFFF4020
+#define FEL_BASE                         0xFFFF0020
 /*
 * define const value
 */
@@ -120,6 +120,39 @@
 
 #define MEMCPY_TEST_DST                  (CONFIG_SYS_SDRAM_BASE)
 #define MEMCPY_TEST_SRC                  (CONFIG_SYS_SDRAM_BASE + 0x06000000)
+
+/****************************************************************************************/
+/*																						*/
+/*      the fowllowing defines are used in sbrom                                        */
+/*																						*/
+/****************************************************************************************/
+#define BOOT_PUB_HEAD_VERSION           "1100"
+#define EGON_VERSION                    "1100"
+
+#define CONFIG_STORAGE_MEDIA_NAND
+#define CONFIG_STORAGE_MEDIA_MMC
+
+#define SUNXI_DRAM_PARA_MAX              32
+
+#define CONFIG_BOOT0_STACK_BOTTOM        (0x53ff0)
+
+#define CONFIG_SYS_SRAM_BASE             (0x0000)
+#define CONFIG_SYS_SRAMA2_BASE           (0x44000)
+#define CONFIG_SYS_SRAMA2_SIZE           (0x10000)
+#define CONFIG_SBROMSW_BASE              (CONFIG_SYS_SRAMA2_BASE)
+#define CONFIG_STACK_BASE                (CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_RAM_SIZE - 0x10)
+
+#define CONFIG_HEAP_BASE                 (CONFIG_SYS_SDRAM_BASE + 0x800000)
+#define CONFIG_HEAP_SIZE                 (16 * 1024 * 1024)
+
+#define CONFIG_BOOT0_RET_ADDR            (CONFIG_SYS_SRAM_BASE)
+#define CONFIG_BOOT0_RUN_ADDR            (0x0000)
+
+#define CONFIG_FES1_RET_ADDR             (CONFIG_SYS_SRAM_BASE + 0x7210)
+#define CONFIG_FES1_RUN_ADDR             (0x2000)
+
+#define PAGE_BUF_FOR_BOOT0               (CONFIG_SYS_SDRAM_BASE + 16 * 1024 * 1024)
+
 /***************************************************************
 *
 * all the config command
@@ -136,7 +169,6 @@
 #define CONFIG_SUNXI_DISPLAY
 
 #define CONFIG_SUNXI_AXP
-#define POWER_CONFIG_SUNXI_RSB	//axp communication bus
 #define CONFIG_SUNXI_AXP22
 #define CONFIG_SUNXI_AXP_MAIN        PMU_TYPE_22X
 #define PMU_SCRIPT_NAME                 "pmu1_para"
@@ -192,6 +224,7 @@
 #define CONFIG_STORAGE_EMMC
 #define CONFIG_MMC_LOGICAL_OFFSET   (20 * 1024 * 1024/512)
 #define USE_EMMC_BOOT_PART
+#define USE_EMMC_USER_WHEN_USE_BOOT_PART //use eMMC boot and user part at the same time,if you want to use it,use USE_EMMC_BOOT_PART at the same time
 
 #define CONFIG_DOS_PARTITION
 /*

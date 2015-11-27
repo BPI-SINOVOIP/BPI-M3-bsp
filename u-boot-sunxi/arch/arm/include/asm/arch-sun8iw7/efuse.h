@@ -57,5 +57,6 @@
 
 
 extern void sid_set_security_mode(void);
+extern void sid_read(void);
 
 #endif    /*  #ifndef __EFUSE_H__  */

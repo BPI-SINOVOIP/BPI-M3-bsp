@@ -48,6 +48,7 @@ static __inline void smc_writel_secos(uint value, uint addr);
 #define TEE_SMC_NS_IRQ_DONE		0x0FFFFFF7
 #define TEE_SMC_NS_KERNEL_CALL		0x0FFFFFF8
 
+#define TEE_SMC_PLATFORM_REGRW      0x0FFFFFFC
 
 /* platform smc command define */
 #define TEE_SMC_READ_REG            (0xFFFF0000)
@@ -57,9 +58,10 @@ static __inline void smc_writel_secos(uint value, uint addr);
 #define TEE_SMC_CLUSTER_POWERUP     (0xFFFF0004)
 #define TEE_SMC_CLUSTER_POWERDOWN   (0xFFFF0005)
 
-#define TEE_SMC_EFUSE_WRITE_REG			(0xFFFF0008)
-#define TEE_SMC_EFUSE_READ_REG			(0xFFFF0009)
-
+#define TEE_SMC_EFUSE_WRITE_REG			(0xFFFF000A)
+#define TEE_SMC_EFUSE_READ_REG			(0xFFFF000B)
+#define TEE_SMC_AES_BSSK_EN_TO_DRAM		(0xFFFF000C)
+#define TEE_SMC_AES_BSSK_DE_TO_KEYSRAM	(0xFFFF000D)
 /*
 ************************************************************************************************************
 *
@@ -126,7 +128,7 @@ static int tee_main_entry(void)
 */
 static __inline uint smc_readl_secos(uint addr)
 {
-	return do_smc(TEE_SMC_PLAFORM_OPERATION, TEE_SMC_READ_REG, addr, 0);
+	return do_smc(TEE_SMC_PLATFORM_REGRW, TEE_SMC_READ_REG, addr, 0);
 }
 /*
 ************************************************************************************************************
@@ -146,7 +148,7 @@ static __inline uint smc_readl_secos(uint addr)
 */
 static __inline void smc_writel_secos(uint value, uint addr)
 {
-	do_smc(TEE_SMC_PLAFORM_OPERATION, TEE_SMC_WRITE_REG, addr, value);
+	do_smc(TEE_SMC_PLATFORM_REGRW, TEE_SMC_WRITE_REG, addr, value);
 }
 /*
 ************************************************************************************************************
@@ -263,6 +265,49 @@ int smc_efuse_writel(void *key_buf)
 int smc_efuse_readl(void *key_buf, void *read_buf)
 {
 	return do_smc(TEE_SMC_PLAFORM_OPERATION, TEE_SMC_EFUSE_READ_REG, (uint)key_buf, (uint)read_buf);
+}
+
+/*
+************************************************************************************************************
+*
+*                                             function
+*
+*    name          :
+*
+*    parmeters     :
+*
+*    return        :
+*
+*    note          :
+*
+*
+************************************************************************************************************
+*/
+typedef struct
+{
+	uint srcbuf;
+	uint srclen;
+	uint dstbuf;
+	uint dstlen;
+}
+smc_ss_en_de_config;
+
+
+int smc_aes_bssk_encrypt_to_dram(void *srcdata, int srclen, void *dstbuffer, int *dst_len)
+{
+	smc_ss_en_de_config  ss_en_config;
+
+	ss_en_config.srcbuf = (uint)srcdata;
+	ss_en_config.srclen = (uint)srclen;
+	ss_en_config.dstbuf = (uint)dstbuffer;
+	ss_en_config.dstlen = (uint)dst_len;
+
+	return do_smc(TEE_SMC_PLAFORM_OPERATION, TEE_SMC_AES_BSSK_EN_TO_DRAM, (uint)&ss_en_config, 0);
+}
+
+int smc_aes_bssk_decrypt_to_keysram(void *srcdata, int srclen)
+{
+	return do_smc(TEE_SMC_PLAFORM_OPERATION, TEE_SMC_AES_BSSK_DE_TO_KEYSRAM, (uint)srcdata, srclen);
 }
 /*
 ************************************************************************************************************

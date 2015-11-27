@@ -295,7 +295,6 @@ s32 disp_hdmi_set_func(struct disp_hdmi*  hdmi, disp_hdmi_func * func)
 	hdmip->hdmi_func.hdmi_close= func->hdmi_close;
 	hdmip->hdmi_func.hdmi_set_mode= func->hdmi_set_mode;
 	hdmip->hdmi_func.hdmi_mode_support= func->hdmi_mode_support;
-	hdmip->hdmi_func.hdmi_get_HPD_status = func->hdmi_get_HPD_status;
 	hdmip->hdmi_func.hdmi_get_input_csc= func->hdmi_get_input_csc;
 	hdmip->hdmi_func.hdmi_set_pll = func->hdmi_set_pll;
 	hdmip->hdmi_func.hdmi_get_video_timing_info = func->hdmi_get_video_timing_info;
@@ -350,7 +349,7 @@ s32 disp_hdmi_exit(struct disp_hdmi* hdmi)
 
 s32 disp_hdmi_enable(struct disp_hdmi* hdmi)
 {
-	s32 index, ret;
+	s32 index;
 	struct disp_hdmi_private_data *hdmip = disp_hdmi_get_priv(hdmi);
 	if((NULL == hdmi) || (NULL == hdmip)) {
 		DE_WRN("hdmi set func null  hdl!\n");
@@ -391,7 +390,7 @@ s32 disp_hdmi_enable(struct disp_hdmi* hdmi)
 	if(hdmip->hdmi_func.hdmi_open == NULL)
 	    return -1;
 
-	ret = hdmip->hdmi_func.hdmi_open();
+	hdmip->hdmi_func.hdmi_open();
 
 #if defined(__LINUX_PLAT__)
 	{
@@ -404,7 +403,7 @@ s32 disp_hdmi_enable(struct disp_hdmi* hdmi)
 	}
 #endif
 
-	return ret;
+	return 0;
 }
 
 s32 disp_hdmi_disable(struct disp_hdmi* hdmi)
@@ -487,18 +486,6 @@ s32 disp_hdmi_get_mode(struct disp_hdmi* hdmi)
 	}
 
 	return hdmip->mode;
-}
-
-s32 disp_hdmi_get_HPD_status(struct disp_hdmi* hdmi)
-{
-	struct disp_hdmi_private_data *hdmip = disp_hdmi_get_priv(hdmi);
-	if((NULL == hdmi) || (NULL == hdmip)) {
-		DE_WRN("hdmi set func null  hdl!\n");
-		return DIS_FAIL;
-	}
-	if (hdmip->hdmi_func.hdmi_get_HPD_status)
-		return hdmip->hdmi_func.hdmi_get_HPD_status();
-	return DIS_FAIL;
 }
 
 s32 disp_hdmi_check_support_mode(struct disp_hdmi* hdmi, u8 mode)
@@ -619,7 +606,6 @@ s32 disp_init_hdmi(__disp_bsp_init_para * para)
 				hdmi->get_mode = disp_hdmi_get_mode;
 				hdmi->check_support_mode = disp_hdmi_check_support_mode;
 				hdmi->get_input_csc = disp_hdmi_get_input_csc;
-				hdmi->hdmi_get_HPD_status = disp_hdmi_get_HPD_status;
 
 				hdmi->init(hdmi);
 		}

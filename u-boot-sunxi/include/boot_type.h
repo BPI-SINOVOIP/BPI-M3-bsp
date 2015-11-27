@@ -62,6 +62,9 @@ extern uint sprite_cartoon_create(void);
 extern int  sprite_cartoon_upgrade(int rate);
 extern int  sprite_cartoon_destroy(void);
 
+extern int sunxi_sprite_mmc_phywrite(unsigned int start_block, unsigned int nblock, void *buffer);
+extern int sunxi_sprite_mmc_phyerase(unsigned int start_block, unsigned int nblock, void *skip);
+extern int sunxi_sprite_mmc_phywipe(unsigned int start_block, unsigned int nblock, void *skip);
 extern int card_erase(int erase, void *mbr_buffer);
 
 #ifdef CONFIG_SUNXI_SPINOR

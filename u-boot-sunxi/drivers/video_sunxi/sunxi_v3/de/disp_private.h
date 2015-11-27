@@ -122,7 +122,7 @@ struct disp_device {
 	s32 (*get_mode)(struct disp_device *dispdev);
 	s32 (*check_support_mode)(struct disp_device* dispdev, u32 mode);
 	s32 (*set_func)(struct disp_device*  dispdev, disp_hdmi_func * func);
-	//s32 (*set_tv_func)(struct disp_device*  dispdev, disp_tv_func * func);
+	s32 (*set_tv_func)(struct disp_device*  dispdev, disp_tv_func * func);
 
 	/* LCD */
 	s32 (*set_bright)(struct disp_device *dispdev, u32 bright);

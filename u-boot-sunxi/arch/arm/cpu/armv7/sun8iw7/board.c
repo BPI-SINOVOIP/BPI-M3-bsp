@@ -142,6 +142,8 @@ int script_init(void)
 	return 0;
 }
 
+void sunxi_set_cpux_voltage(void);
+
 int power_source_init(void)
 {
 	int pll1;
@@ -174,6 +176,8 @@ int power_source_init(void)
 	else
 	{
 		printf("axp_probe error\n");
+        sunxi_set_cpux_voltage();
+		sunxi_clock_set_corepll(uboot_spare_head.boot_data.run_clock, 0);
 	}
 
 	pll1 = sunxi_clock_get_corepll();
@@ -181,7 +185,7 @@ int power_source_init(void)
 	tick_printf("PMU: pll1 %d Mhz,PLL6=%d Mhz\n", pll1,sunxi_clock_get_pll6());
     printf("AXI=%d Mhz,AHB=%d Mhz, APB1=%d Mhz \n", sunxi_clock_get_axi(),sunxi_clock_get_ahb(),sunxi_clock_get_apb1());
 
-
+#ifdef CONFIG_SUNXI_AXP_MAIN
     axp_set_charge_vol_limit();
     axp_set_all_limit();
     axp_set_hardware_poweron_vol();
@@ -189,7 +193,53 @@ int power_source_init(void)
 	axp_set_power_supply_output();
 
 	power_limit_init();
+#endif
+//read chipid and thermal sensor
+    sid_read();
+
     return 0;
+}
+/*
+************************************************************************************************************
+*
+*                                             function
+*
+*    name          : power_off
+*
+*    parmeters     :
+*
+*    return        :
+*
+*    note          : power off system
+*
+*
+************************************************************************************************************
+*/
+int power_off(void)
+{
+	volatile unsigned int reg_val;
+	//set PL05 musel output
+	reg_val = readl(R_PIO_BASE + 0x00);
+	reg_val &= ~(0xF << 20);
+	reg_val |= (0x1 << 20);
+	writel(reg_val, R_PIO_BASE + 0x00);
+
+	//set PL05 low to set vcc-io power off
+	reg_val = readl(R_PIO_BASE + 0x10);
+	reg_val |= (0x1 << 5);
+	writel(reg_val, R_PIO_BASE + 0x10);
+
+	//set PL08,PL09 musel output
+	reg_val = readl(R_PIO_BASE + 0x04);
+	reg_val &= ~(0xFF);
+	reg_val |= 0x11;
+	writel(reg_val, R_PIO_BASE + 0x04);
+
+	//set PL08,PL09 low to set  power off
+	reg_val = readl(R_PIO_BASE + 0x10);
+	reg_val &= ~(0x3 << 8);
+	writel(reg_val, R_PIO_BASE + 0x10);
+	return 0;
 }
 /*
 ************************************************************************************************************
@@ -209,7 +259,7 @@ int power_source_init(void)
 */
 void sunxi_set_fel_flag(void)
 {
-	writel(SUNXI_RUN_EFEX_FLAG, RTC_GENERAL_PURPOSE_REG(0));
+	writel(SUNXI_RUN_EFEX_FLAG, RTC_GENERAL_PURPOSE_REG(2));
 }
 /*
 ************************************************************************************************************
@@ -303,4 +353,125 @@ int sunxi_set_secure_mode(void)
 
 	return 0;
 }
+int sunxi_get_securemode(void)
+{
+	return gd->securemode;
+}
 #endif
+
+#define VOL2REG(v) (u8)(((v - 680) / 10) | 0x80)
+#define PMU_ADDR 		0x65
+#define VOL_REG_ADDR	0x01
+extern int i2c_write(uchar chip, uint addr, int alen, uchar *buffer, int len);
+void sunxi_set_cpux_voltage_by_i2c(uint volt)
+{
+	u8 change = VOL2REG(volt);
+	debug("=== volt %d = %x ===\n",volt,change);
+	if(i2c_write(PMU_ADDR, VOL_REG_ADDR, 1, (uchar *)&change, 1))
+	{
+		printf("sunxi_set_cpux_voltage_by_i2c error \n");
+	}
+	return ;
+}
+/*
+************************************************************************************************************
+*
+*                                             function
+*
+*    name          :sunxi_set_cpux_voltage
+*
+*    parmeters     :void
+*
+*    return        :void
+*
+*    note          :
+*
+*
+************************************************************************************************************
+*/
+void sunxi_set_cpux_voltage(void)
+{
+	uint max_freq = 0;
+	uint min_freq = 0;
+	uint lel_num = 0;
+	uint volt = 0;
+    char freq_lel[16];
+    char volt_lel[16];
+	uint pmuic_type = 0;
+	uint freq = 0;
+	uint i = 0;
+	uint set_clock = uboot_spare_head.boot_data.run_clock * 1000000;
+
+    memset(freq_lel, 0x00,16);
+    memset(volt_lel , 0x00,16);
+
+//get max_freq
+	if(script_parser_fetch("dvfs_table", "max_freq", (int*)&max_freq, 1))
+	{
+		printf("sunxi_set_cpux_voltage error : can not find max_freq from dvfs_table  \n");
+		return ;
+	}
+	debug("max_freq is %d \n",max_freq);
+	if(script_parser_fetch("dvfs_table", "min_freq", (int*)&min_freq, 1))
+	{
+		printf("sunxi_set_cpux_voltage error : can not find min_freq from dvfs_table  \n");
+		return ;
+	}
+	debug("min_freq is %d \n",min_freq);
+	
+	if(max_freq < set_clock)
+		set_clock = max_freq;
+	if(min_freq > set_clock)
+		set_clock = min_freq;
+
+	uboot_spare_head.boot_data.run_clock  = set_clock / 1000000;
+//compare sys_config bootclock
+   if(script_parser_fetch("dvfs_table","LV_count",(int*)&lel_num,sizeof(int)/4))
+   {
+           printf("can not find LV_count from script \n");
+           return ;
+   }
+   debug("lel_num is %d\n",lel_num);
+   for(i = lel_num; i >= 0;i--)
+   {
+        sprintf(freq_lel,"%s%d%s","LV",i,"_freq");
+        if(script_parser_fetch("dvfs_table",freq_lel,(int*)&freq,sizeof(int)/4)) 
+        {
+                printf("can not find B_LV_count from script \n");
+                return ;
+        }
+        debug("==== %s = %d ====\n",freq_lel,freq);
+
+        if(set_clock <= freq)
+        {
+             sprintf(volt_lel,"%s%d%s","LV",i,"_volt");
+             if(script_parser_fetch("dvfs_table",volt_lel,(int*)&volt,sizeof(int)/4))
+             {
+                     printf("can not find volt_lel from script \n");
+                     return ;
+             }
+             debug("find volt_lel = %d \n",volt);
+			 break;
+        }
+   }
+
+//get pmu_type
+   if(script_parser_fetch("dvfs_table","pmuic_type",(int*)&pmuic_type,sizeof(int)/4))
+   {
+		printf("can not find pmuic_type form script  \n");
+		return ;
+   }
+
+//type 8016 i2c or gpio or none
+	if(pmuic_type == 2)
+	{
+		debug("I2C type \n");
+		sunxi_set_cpux_voltage_by_i2c(volt);	
+	}
+	else if(pmuic_type == 1)
+	{
+		debug("gpio type \n");
+		gpio_request_simple("dvfs_table",NULL);
+	}
+	return ;
+}

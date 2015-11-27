@@ -15,7 +15,7 @@
 #include <asm/arch/cpu.h>
 #include <asm/arch/ccmu.h>
 
-#define MAX_MMC_NUM			4
+#define MAX_MMC_NUM		3
 #define MMC_TRANS_BY_DMA
 //#define MMC_DEBUG
 
@@ -29,8 +29,8 @@
 
 
 //#define CCMU_PLL5_CLK_BASE 	0x01c20020
-//#define __be32_to_cpu(x)	((0x000000ff&((x)>>24)) | (0x0000ff00&((x)>>8)) |
-//							 (0x00ff0000&((x)<< 8)) | (0xff000000&((x)<<24)))
+#define __mmc_be32_to_cpu(x)	((0x000000ff&((x)>>24)) | (0x0000ff00&((x)>>8)) | 			\
+							 (0x00ff0000&((x)<< 8)) | (0xff000000&((x)<<24)))
 
 #ifndef NULL
 #define NULL (void*)0
@@ -59,6 +59,6 @@
 #define DRAM_START_ADDR				(0x40000000)
 
 
-#define DRIVER_VER  "2014-8-11 15:06:39"
+#define DRIVER_VER  "2014-12-10 21:20:39"
 
 #endif /* _MMC_H_ */

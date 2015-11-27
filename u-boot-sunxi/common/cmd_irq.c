@@ -27,6 +27,7 @@
 #include <sys_config.h>
 #include <asm/arch/intc.h>
 #include <asm/arch/timer.h>
+#include <smc.h>
 
 struct timer_list timer0_t;
 struct timer_list timer1_t;
@@ -182,7 +183,7 @@ int do_sprite_test(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		sprite_led_init();
 		ret = sprite_form_sysrecovery();
 		sprite_led_exit(ret);
-		return ret;	
+		return ret;
 	}
 	else
 	{
@@ -439,3 +440,39 @@ U_BOOT_CMD(
 );
 #endif
 
+#ifdef CONFIG_SUNXI_SECURE_SYSTEM
+int do_efuse_read(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+{
+	char *efuse_name;
+	char buffer[32];
+	int  ret;
+
+	if(argc != 2)
+	{
+		printf("the efuse item name is empty\n");
+
+		return -1;
+	}
+	efuse_name = argv[1];
+	printf("try to read %s\n", efuse_name);
+	memset(buffer, 0, 32);
+	ret = smc_efuse_readl(efuse_name, buffer);
+	if(ret)
+	{
+		printf("read efuse key [%s] failed\n", efuse_name);
+	}
+	else
+	{
+		printf("read efuse key [%s] successed\n", efuse_name);
+		sunxi_dump(buffer, 32);
+	}
+
+	return 0;
+}
+
+U_BOOT_CMD(
+	efuse_read, 3, 0, do_efuse_read,
+	"read efuse key",
+	"usage: efuse_read efusename"
+);
+#endif

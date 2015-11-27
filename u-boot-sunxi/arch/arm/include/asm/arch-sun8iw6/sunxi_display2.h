@@ -147,14 +147,6 @@ typedef enum
 
 typedef enum
 {
-	DISP_TRANSFORM_ROT_0   = 0,
-	DISP_TRANSFORM_ROT_90  = 1,
-	DISP_TRANSFORM_ROT_180 = 2,
-	DISP_TRANSFORM_ROT_270 = 3,
-}disp_transform_type;
-
-typedef enum
-{
 	DISP_BF_NORMAL        = 0,//non-stereo
 	DISP_BF_STEREO_TB     = 1 << 0,//stereo top-bottom
 	DISP_BF_STEREO_FP     = 1 << 1,//stereo frame packing
@@ -259,13 +251,6 @@ typedef struct
 	                          //capture the whole screen if window eq ZERO
 	disp_s_frame out_frame;
 }disp_capture_info;
-
-typedef struct
-{
-	disp_s_frame s_frame;
-	disp_s_frame d_frame;
-	disp_transform_type tr;
-}disp_transform_info;
 
 typedef struct
 {

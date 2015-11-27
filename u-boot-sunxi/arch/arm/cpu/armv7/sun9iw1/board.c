@@ -355,35 +355,7 @@ int power_source_init(void)
 				else            /*set core frequency and vol*/
 			    {
 			    	//set cpuB vol
-					if(gd->power_slave_id == axp_probe_power_id("poweroz"))		//调整对应c1的设定电压
-					{
-#if defined(CONFIG_SUNXI_POWEROZ)
-						if(!power_oz_set_dcdc(core_vol, 1))
-						{
-							core_vol += 1000000;
-							script_parser_patch("slave_power_sply","dcdc_vol",&core_vol,1);
-
-							sunxi_clock_set_C1corepll(uboot_spare_head.boot_data.run_clock, core_vol);
-						}
-#else
-						printf("err: not compile the oz power driver\n");
-#endif
-					}
-					else if(gd->power_slave_id == axp_probe_power_id("powerrich"))		//调整对应c1的设定电压
-					{
-#if defined(CONFIG_SUNXI_POWERRICH)
-						if(!power_rich_set_dcdc(core_vol, 1))
-						{
-							core_vol += 1000000;
-							script_parser_patch("slave_power_sply","dcdc_vol",&core_vol,1);
-
-							sunxi_clock_set_C1corepll(uboot_spare_head.boot_data.run_clock, core_vol);
-						}
-#else
-						printf("err: not compile the rich power driver\n");
-#endif
-					}
-					else if(!axp_set_supply_status_byname("axp806","dcdca_vol",core_vol,1))		//调整对应c1的设定电压
+				    if(!axp_set_supply_status_byname("axp806","dcdca_vol",core_vol,1))		//调整对应c1的设定电压
 				    {
 				    	tick_printf("PMU: axp806 dcdca %d\n", core_vol);
 				    	core_vol += 1000000;
@@ -422,26 +394,7 @@ int power_source_init(void)
 	__disable_unused_mode();
 
 	axp_set_power_supply_output();
-	if(gd->power_slave_id == axp_probe_power_id("poweroz"))
-	{
-#if defined(CONFIG_SUNXI_POWEROZ)
-		power_oz_set_power_output();
-#else
-		printf("err: not compile the oz power driver\n");
-#endif
-	}
-	else if(gd->power_slave_id == axp_probe_power_id("powerrich"))
-	{
-#if defined(CONFIG_SUNXI_POWERRICH)
-		power_rich_set_power_output();
-#else
-		printf("err: not compile the rich power driver\n");
-#endif
-	}
-	else
-	{
-		axp_slave_set_power_supply_output();
-	}
+	axp_slave_set_power_supply_output();
 
 	power_config_gpio_bias();
     power_limit_init();

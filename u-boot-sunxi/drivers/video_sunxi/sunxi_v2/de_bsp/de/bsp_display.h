@@ -129,7 +129,6 @@ extern s32 bsp_disp_vsync_event_enable(u32 screen_id, bool enable);
 extern s32 bsp_disp_get_lcd_registered(u32 screen_id);
 extern s32 bsp_disp_get_hdmi_registered(void);
 extern s32 bsp_disp_get_output_type(u32 screen_id);
-extern s32 bsp_disp_get_lcd_output_type(u32 screen_id);
 extern s32 bsp_disp_get_screen_width(u32 screen_id);
 extern s32 bsp_disp_get_screen_height(u32 screen_id);
 extern s32 bsp_disp_get_screen_physical_width(u32 screen_id);
@@ -149,7 +148,6 @@ extern s32 bsp_disp_hdmi_get_mode(u32 screen_id);
 extern s32 bsp_disp_hdmi_check_support_mode(u32 screen_id,  u8 mode);
 extern s32 bsp_disp_hdmi_get_input_csc(u32 screen_id);
 extern s32 bsp_disp_set_hdmi_func(u32 screen_id, disp_hdmi_func * func);
-extern s32 bsp_disp_hdmi_get_hpd_status(u32 screen_id);
 
 extern s32 bsp_disp_lcd_pre_enable(u32 sel);
 extern s32 bsp_disp_lcd_post_enable(u32 sel);
@@ -176,8 +174,6 @@ extern s32 bsp_disp_lcd_set_panel_funs(char *name, disp_lcd_panel_fun * lcd_cfg)
 extern s32 bsp_disp_lcd_pin_cfg(u32 screen_id, u32 bon);
 extern s32 bsp_disp_lcd_gpio_set_value(u32 screen_id, u32 io_index, u32 value);
 extern s32 bsp_disp_lcd_gpio_set_direction(u32 screen_id, u32 io_index, u32 direction);
-extern s32 bsp_disp_lcd_get_tv_mode(u32 screen_id);
-extern s32 bsp_disp_lcd_set_tv_mode(u32 screen_id,disp_tv_mode tv_mode);
 
 extern s32 bsp_disp_layer_set_info(u32 screen_id, u32 layer_id,disp_layer_info *player);
 extern s32 bsp_disp_layer_get_info(u32 screen_id, u32 layer_id,disp_layer_info *player);
@@ -217,8 +213,6 @@ extern s32 bsp_disp_cursor_set_pos(u32 screen_id, disp_position *pos);
 extern s32 bsp_disp_cursor_get_pos(u32 screen_id, disp_position *pos);
 extern s32 bsp_disp_cursor_set_fb(u32 screen_id, disp_cursor_fb *fb);
 extern s32 bsp_disp_cursor_set_palette(u32 screen_id, void *palette, u32 offset, u32 palette_size);
-
-extern s32 gm7121_module_init(void);
 
 int bsp_disp_feat_get_num_screens(void);
 int bsp_disp_feat_get_num_layers(u32 screen_id);

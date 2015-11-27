@@ -8,53 +8,12 @@
  */
 #include "common.h"
 #include "mmc_def.h"
+#include "mmc_bsp.h"
 #include "mmc.h"
 #include <asm/arch/gpio.h>
 #include <private_boot0.h>
 #include <private_toc.h>
 
-/* winner's mmc controller definition */
-struct sunxi_mmc {
-	u32 gctrl;         /* (0x00) SMC Global Control Register */
-	u32 clkcr;         /* (0x04) SMC Clock Control Register */
-	u32 timeout;       /* (0x08) SMC Time Out Register */
-	u32 width;         /* (0x0C) SMC Bus Width Register */
-	u32 blksz;         /* (0x10) SMC Block Size Register */
-	u32 bytecnt;       /* (0x14) SMC Byte Count Register */
-	u32 cmd;           /* (0x18) SMC Command Register */
-	u32 arg;           /* (0x1C) SMC Argument Register */
-	u32 resp0;         /* (0x20) SMC Response Register 0 */
-	u32 resp1;         /* (0x24) SMC Response Register 1 */
-	u32 resp2;         /* (0x28) SMC Response Register 2 */
-	u32 resp3;         /* (0x2C) SMC Response Register 3 */
-	u32 imask;         /* (0x30) SMC Interrupt Mask Register */
-	u32 mint;          /* (0x34) SMC Masked Interrupt Status Register */
-	u32 rint;          /* (0x38) SMC Raw Interrupt Status Register */
-	u32 status;        /* (0x3C) SMC Status Register */
-	u32 ftrglevel;     /* (0x40) SMC FIFO Threshold Watermark Register */
-	u32 funcsel;       /* (0x44) SMC Function Select Register */
-	u32 cbcr;          /* (0x48) SMC CIU Byte Count Register */
-	u32 bbcr;          /* (0x4C) SMC BIU Byte Count Register */
-	u32 dbgc;          /* (0x50) SMC Debug Enable Register */
-	u32 res;           /* (0x54)*/
-	u32 a12a;          /* (0x58)Auto command 12 argument*/
-	u32 ntsr;          /* (0x5c)SMC2 Newtiming Set Register */
-	u32 res0[6];       /* (0x5d~0x74) */
-	u32 hwrst;         /* (0x78) SMC eMMC Hardware Reset Register */
-	u32 res1;          /* (0x7c) */
-	u32 dmac;          /* (0x80) SMC IDMAC Control Register */
-	u32 dlba;          /* (0x84) SMC IDMAC Descriptor List Base Address Register */
-	u32 idst;          /* (0x88) SMC IDMAC Status Register */
-	u32 idie;          /* (0x8C) SMC IDMAC Interrupt Enable Register */
-	u32 chda;          /* (0x90) */
-	u32 cbda;          /* (0x94) */
-	u32 res2[26];      /* (0x98~0xff) */
-	u32 thldc;		 /* (0x100) Card Threshold Control Register */
-	u32 res3[2];		 /* (0x104~0x10b) */
-	u32 dsbd;		 /* (0x10c) eMMC4.5 DDR Start Bit Detection Control */
-	u32 res4[60];		/* (0x110~0x1ff) */
-	u32 fifo;          /* (0x200) SMC FIFO Access Address */
-};
 
 #ifdef SUNXI_MMCDBG
 //#define MMCDBG(fmt...)	printf("[mmc]: "fmt)
@@ -104,49 +63,24 @@ static void dumpmmcreg(struct sunxi_mmc *reg)
 #define  dumphex32(fmt...)
 #endif /* SUNXI_MMCDBG */
 
-struct sunxi_mmc_des {
-	u32             :1,
-		dic         :1, /* disable interrupt on completion */
-		last_des    :1, /* 1-this data buffer is the last buffer */
-		first_des   :1, /* 1-data buffer is the first buffer,
-						   0-data buffer contained in the next descriptor is 1st buffer */
-		des_chain   :1, /* 1-the 2nd address in the descriptor is the next descriptor address */
-		end_of_ring :1, /* 1-last descriptor flag when using dual data buffer in descriptor */
-					:24,
-		card_err_sum:1, /* transfer error flag */
-		own			:1; /* des owner:1-idma owns it, 0-host owns it */
-#if defined MMC_SUN4I
-#define SDXC_DES_NUM_SHIFT 12
-#define SDXC_DES_BUFFER_MAX_LEN	(1 << SDXC_DES_NUM_SHIFT)
-	u32	data_buf1_sz:13,
-	    data_buf2_sz:13,
-    				:6;
-#else
-#define SDXC_DES_NUM_SHIFT 15
-#define SDXC_DES_BUFFER_MAX_LEN	(1 << SDXC_DES_NUM_SHIFT)
-	u32 data_buf1_sz:16,
-	    data_buf2_sz:16;
-#endif
-	u32	buf_addr_ptr1;
-	u32	buf_addr_ptr2;
-};
-
-struct sunxi_mmc_host {
-	struct sunxi_mmc *reg;
-	u32  mmc_no;
-	u32  mclk;
-	u32  hclkrst;
-	u32  hclkbase;
-	u32  mclkbase;
-	u32  database;
-	u32	 commreg;
-	u32  fatal_err;
-	struct sunxi_mmc_des *pdes;
-};
+extern int mmc_register(int dev_num, struct mmc *mmc);
+extern int mmc_unregister(int dev_num);
 
 /* support 4 mmc hosts */
 struct mmc mmc_dev[MAX_MMC_NUM];
 struct sunxi_mmc_host mmc_host[MAX_MMC_NUM];
+
+void set_mmc_para(int smc_no,void *sdly_addr )
+{
+	struct spare_boot_head_t  *uboot_buf = (struct spare_boot_head_t *)CONFIG_SYS_TEXT_BASE;
+	struct tuning_sdly *p = NULL;
+
+	memcpy((void *)uboot_buf->boot_data.sdcard_spare_data, sdly_addr, sizeof(struct tuning_sdly));
+	p = (struct tuning_sdly *)(uboot_buf->boot_data.sdcard_spare_data);
+	printf("%s,sdly 50M %d\n", __func__, p->sdly_50M);
+	printf("%s,sdly 25M %d\n", __func__, p->sdly_25M);
+	return;
+}
 
 static int mmc_resource_init(int sdc_no)
 {
@@ -173,7 +107,7 @@ static int mmc_resource_init(int sdc_no)
 	return 0;
 }
 
-static int mmc_clk_io_onoff(int sdc_no, int onoff, normal_gpio_cfg *gpio_info, int offset)
+static int mmc_clk_io_onoff(int sdc_no, int onoff, const normal_gpio_cfg *gpio_info, int offset)
 {
 	unsigned int rval;
 	struct sunxi_mmc_host* mmchost = &mmc_host[sdc_no];
@@ -417,6 +351,8 @@ static int mmc_trans_data_by_dma(struct mmc *mmc, struct mmc_data *data)
 			(u32)((u32*)&pdes[des_idx])[2], (u32)((u32*)&pdes[des_idx])[3]);
 	}
 	//OSAL_CacheRangeFlush(pdes, sizeof(struct sunxi_mmc_des) * (des_idx+1), CACHE_CLEAN_FLUSH_D_CACHE_REGION);
+	__asm("DSB");
+	__asm("ISB");
 
 	/*
 	 * GCTRLREG
@@ -574,6 +510,26 @@ static int mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd,
 			else
 				done = status & (1 << 3);
 		} while (!done);
+
+		if ((data->flags & MMC_DATA_READ)&& usedma) {
+			timeout = 0xffffff;
+			done = 0;
+			status = 0;
+			mmcdbg("mmc %d cacl rd dma timeout %x\n", mmchost->mmc_no, timeout);
+			do {
+					status = readl(&mmchost->reg->idst);
+					if (!timeout-- || (status & 0x234)) {
+						error = status & 0x1E34;
+						if(!error)
+							error = 0xffffffff; //represet software timeout
+						mmcinfo("mmc %d wait dma over err %x\n", mmchost->mmc_no, error);
+						goto out;
+					}
+					done = status & (1 << 1);
+					//usdelay(1);
+			} while (!done);
+			mmcdbg("idst *****0x%d******\n",readl(&mmchost->reg->idst));
+		}
 	}
 
 	if (cmd->resp_type & MMC_RSP_BUSY) {
@@ -632,7 +588,7 @@ out:
 		return 0;
 }
 
-int sunxi_mmc_init(int sdc_no, unsigned bus_width, normal_gpio_cfg *gpio_info, int offset)
+int sunxi_mmc_init(int sdc_no, unsigned bus_width, const normal_gpio_cfg *gpio_info, int offset ,void *extra_data)
 {
 	struct mmc *mmc;
 	int ret;
@@ -676,7 +632,7 @@ int sunxi_mmc_init(int sdc_no, unsigned bus_width, normal_gpio_cfg *gpio_info, i
 	return mmc->lba;
 }
 
-int sunxi_mmc_exit(int sdc_no, normal_gpio_cfg *gpio_info, int offset)
+int sunxi_mmc_exit(int sdc_no, const normal_gpio_cfg *gpio_info, int offset)
 {
 	mmc_clk_io_onoff(sdc_no, 0, gpio_info, offset);
 	mmc_unregister(sdc_no);

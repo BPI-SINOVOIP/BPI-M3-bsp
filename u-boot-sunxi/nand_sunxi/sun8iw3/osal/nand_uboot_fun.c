@@ -1128,7 +1128,6 @@ int NAND_Uboot_Force_Erase(void)
 	return 0;
 }
 
-
 __s32  burn_boot0_1k_mode( __u32 read_retry_type, __u32 Boot0_buf )
 {
     __u32 i, j, k;
@@ -1576,7 +1575,7 @@ int NAND_BurnBoot0(uint length, void *buffer)
 	}
 	else
 	{
-	    if( burn_boot0_1k_mode(read_retry_type, (__u32)buffer) )
+	    if( burn_boot0_1k_mode_F16(read_retry_type, (__u32)buffer) )
 	        goto error;
 	}
 

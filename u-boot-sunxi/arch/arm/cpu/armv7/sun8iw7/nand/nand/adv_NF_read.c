@@ -107,7 +107,14 @@ __s32 load_in_many_blks( __u32 start_blk, __u32 last_blk_num, void *buf,
     __u32 cur_blk_base;
     __u32 rest_size;
     __u32 blk_num;
+	__u32 blk_size_load;
+	__u32 lsb_page_type;
 
+	lsb_page_type = NAND_Getlsbpage_type();
+	if(lsb_page_type!=0)
+		blk_size_load = NAND_GetLsbblksize();
+	else
+		blk_size_load = blk_size;
 
 	for( blk_num = start_blk, buf_base = (__u32)buf, buf_off = 0;
          blk_num <= last_blk_num && buf_off < size;
@@ -119,7 +126,7 @@ __s32 load_in_many_blks( __u32 start_blk, __u32 last_blk_num, void *buf,
 
     	cur_blk_base = blk_num * blk_size;
     	rest_size = size - buf_off ;                        // 未载入部分的尺寸
-    	size_loaded = ( rest_size < blk_size ) ?  rest_size : blk_size ;  // 确定此次待载入的尺寸
+    	size_loaded = ( rest_size < blk_size_load ) ?  rest_size : blk_size_load ;  // 确定此次待载入的尺寸
 
     	if( NF_read( cur_blk_base >> NF_SCT_SZ_WIDTH, (void *)buf_base, size_loaded >> NF_SCT_SZ_WIDTH )
     		== NF_OVERTIME_ERR )

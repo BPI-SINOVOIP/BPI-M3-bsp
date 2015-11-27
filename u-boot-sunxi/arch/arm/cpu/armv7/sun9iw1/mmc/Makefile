@@ -11,7 +11,7 @@ LIB	:= $(obj)libmmc.o
 
 COBJS-y += mmc_bsp.o
 COBJS-y += mmc.o
-COBJS-y += mmc_op.o
+##COBJS-y += mmc_op.o
 
 COBJS	:= $(COBJS-y)
 SRCS	:= $(COBJS:.o=.c)

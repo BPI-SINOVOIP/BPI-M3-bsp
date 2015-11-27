@@ -26,11 +26,11 @@
 
 #include <common.h>
 
-#if defined(POWER_CONFIG_SUNXI_I2C)
+#if defined(CONFIG_SUNXI_I2C)
 	#include <i2c.h>
-#elif defined(POWER_CONFIG_SUNXI_P2WI)
+#elif defined(CONFIG_SUNXI_P2WI)
 	#include <p2wi.h>
-#elif defined(POWER_CONFIG_SUNXI_RSB)
+#elif defined(CONFIG_SUNXI_RSB)
 	#include <rsb.h>
 #endif
 
@@ -41,7 +41,6 @@
 
 #define  SUNXI_AXP_DEV_MAX               (8)
 
-#define AXP_TWI_HOST_ID					(0)
 
 #define  SUNXI_AXP_NULL                  null
 #define  SUNXI_AXP_20X                   20
@@ -50,7 +49,6 @@
 #define  SUNXI_AXP_809                   809
 #define  SUNXI_AXP_806                   806
 #define  SUNXI_AXP_81X                   81
-#define  SUNXI_AXP_808					 808
 
 #define  PMU_TYPE_NULL                   0
 #define  PMU_TYPE_22X                    1
@@ -59,15 +57,11 @@
 #define  PMU_TYPE_809                    4
 #define  PMU_TYPE_806                    5
 #define  PMU_TYPE_81X                    6
-#define  PMU_TYPE_808					 7
-#define  POWER_TYPE_OZ					 8
-#define  POWER_TYPE_RICH				 9
 
 #define  RSB_SADDR_AXP22X	         	(0x3A3)
 #define  RSB_SADDR_AXP809		        (0x3A3)
 #define  RSB_SADDR_AXP806		        (0x745)
 #define  RSB_SADDR_AXP81X		        (0x3A3)
-#define  RSB_SADDR_AXP808		        (0x745)
 
 
 typedef struct
@@ -98,7 +92,7 @@ typedef struct
 	int (* set_charge_control)(void);
 	int (* set_vbus_cur_limit)(int current);
     int (* probe_vbus_cur_limit)(void);
-	int (* set_vbus_vol_limit)(int vol_value);
+    int (* set_vbus_vol_limit)(int vol_value);
 	int (* set_charge_current)(int current);
 	int (* probe_charge_current)(void);
 
@@ -137,7 +131,7 @@ sunxi_axp_dev_t;
 				axp##name##_set_charge_control,				\
 				axp##name##_set_vbus_cur_limit,				\
 				axp##name##_probe_vbus_cur_limit,           \
-				axp##name##_set_vbus_vol_limit,				\
+                axp##name##_set_vbus_vol_limit,				\
 				axp##name##_set_charge_current,				\
 				axp##name##_probe_charge_current,			\
 															\
@@ -182,17 +176,13 @@ sunxi_axp_module_ext(SUNXI_AXP_NULL);
 	sunxi_axp_module_ext(SUNXI_AXP_81X);
 #endif
 
-#if defined(CONFIG_SUNXI_AXP808)
-	sunxi_axp_module_ext(SUNXI_AXP_808);
-#endif
-
 static inline int axp_i2c_read(unsigned char chip, unsigned char addr, unsigned char *buffer)
 {
-#if defined(POWER_CONFIG_SUNXI_I2C)
-	return i2c_read(AXP_TWI_HOST_ID, chip, addr, 1, buffer, 1);
-#elif defined(POWER_CONFIG_SUNXI_P2WI)
+#if defined(CONFIG_SUNXI_I2C)
+	return i2c_read(chip, addr, 1, buffer, 1);
+#elif defined(CONFIG_SUNXI_P2WI)
 	return p2wi_read(&addr, buffer, 1);
-#elif defined(POWER_CONFIG_SUNXI_RSB)
+#elif defined(CONFIG_SUNXI_RSB)
 	return sunxi_rsb_read(chip, addr, buffer, 1);
 #else
 	return -1;
@@ -201,11 +191,11 @@ static inline int axp_i2c_read(unsigned char chip, unsigned char addr, unsigned 
 
 static inline int axp_i2c_write(unsigned char chip, unsigned char addr, unsigned char data)
 {
-#if defined(POWER_CONFIG_SUNXI_I2C)
-	return i2c_write(AXP_TWI_HOST_ID, chip, addr, 1, &data, 1);
-#elif defined(POWER_CONFIG_SUNXI_P2WI)
+#if defined(CONFIG_SUNXI_I2C)
+	return i2c_write(chip, addr, 1, &data, 1);
+#elif defined(CONFIG_SUNXI_P2WI)
 	return p2wi_write(&addr, &data, 1);
-#elif defined(POWER_CONFIG_SUNXI_RSB)
+#elif defined(CONFIG_SUNXI_RSB)
 	return sunxi_rsb_write(chip, addr, &data, 1);
 #else
 	return -1;
@@ -214,7 +204,7 @@ static inline int axp_i2c_write(unsigned char chip, unsigned char addr, unsigned
 
 static inline int axp_i2c_config(unsigned int chip, unsigned char slave_id)
 {
-#if defined(POWER_CONFIG_SUNXI_RSB)
+#if defined(CONFIG_SUNXI_RSB)
 #if defined(CONFIG_SUNXI_AXP22)
     if(chip == SUNXI_AXP_22X)
     {
@@ -233,21 +223,12 @@ static inline int axp_i2c_config(unsigned int chip, unsigned char slave_id)
         sunxi_rsb_config(slave_id, RSB_SADDR_AXP809);
     }
 #endif
-
-#if defined(CONFIG_SUNXI_AXP81X)
+    #if defined(CONFIG_SUNXI_AXP81X)
     if(chip == SUNXI_AXP_81X)
     {
         sunxi_rsb_config(slave_id, RSB_SADDR_AXP81X);
     }
 #endif
-
-#if defined(CONFIG_SUNXI_AXP808)
-	if(chip == SUNXI_AXP_808)
-	{
-		sunxi_rsb_config(slave_id, RSB_SADDR_AXP808);
-	}
-#endif
-
 #endif
     return 0;
 }

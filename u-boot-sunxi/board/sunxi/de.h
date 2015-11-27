@@ -46,6 +46,4 @@ extern int borad_display_get_screen_width(void);
 
 extern int borad_display_get_screen_height(void);
 
-extern void getenv_display(char * data);
-
 #endif   //__SUNXI_DE_H__

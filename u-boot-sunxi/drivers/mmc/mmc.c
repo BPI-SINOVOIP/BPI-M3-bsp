@@ -45,9 +45,22 @@ DECLARE_GLOBAL_DATA_PTR;
 //static struct list_head mmc_devices;
 //static int cur_dev_num = -1;
 static ulong mmc_bread(int dev_num, ulong start, lbaint_t blkcnt, void *dst);
+static ulong mmc_bwrite(int dev_num, ulong start, lbaint_t blkcnt, const void*src);
+
+int mmc_send_ext_csd(struct mmc *mmc, char *ext_csd);
+static int mmc_decode_ext_csd(struct mmc *mmc,struct mmc_ext_csd *dec_ext_csd, u8 *ext_csd);
+int mmc_do_switch(struct mmc *mmc, u8 set, u8 index, u8 value, u32 timeout);
 
 LIST_HEAD(mmc_devices);
 
+static const unsigned int tacc_exp[] = {
+	1,	10,	100,	1000,	10000,	100000,	1000000, 10000000,
+};
+
+static const unsigned int tacc_mant[] = {
+	0,	10,	12,	13,	15,	20,	25,	30,
+	35,	40,	45,	50,	55,	60,	70,	80,
+};
 
 int __board_mmc_getcd(u8 *cd, struct mmc *mmc) {
 	return -1;
@@ -55,6 +68,11 @@ int __board_mmc_getcd(u8 *cd, struct mmc *mmc) {
 
 int board_mmc_getcd(u8 *cd, struct mmc *mmc)__attribute__((weak,
 	alias("__board_mmc_getcd")));
+
+int mmc_update_phase(struct mmc *mmc)
+{
+	return mmc->update_phase(mmc);
+}
 
 int mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 {
@@ -178,6 +196,932 @@ int mmc_set_blocklen(struct mmc *mmc, int len)
 	return mmc_send_cmd(mmc, &cmd, NULL);
 }
 
+int mmc_set_erase_start_addr(struct mmc *mmc, unsigned int address)
+{
+	struct mmc_cmd cmd;
+
+	cmd.cmdidx = MMC_CMD_ERASE_GROUP_START;
+	cmd.resp_type = MMC_RSP_R1;
+	cmd.flags = 0;
+
+	if (mmc->high_capacity)
+		cmd.cmdarg = address;
+	else
+		cmd.cmdarg = address * mmc->write_bl_len;
+
+	return mmc_send_cmd(mmc, &cmd, NULL);
+}
+
+int mmc_set_erase_end_addr(struct mmc *mmc, unsigned int address)
+{
+	struct mmc_cmd cmd;
+
+	cmd.cmdidx = MMC_CMD_ERASE_GROUP_END;
+	cmd.resp_type = MMC_RSP_R1;
+	cmd.flags = 0;
+
+	if (mmc->high_capacity)
+		cmd.cmdarg = address;
+	else
+		cmd.cmdarg = address * mmc->write_bl_len;
+
+	return mmc_send_cmd(mmc, &cmd, NULL);
+}
+
+int mmc_launch_erase(struct mmc *mmc, unsigned int erase_arg)
+{
+	struct mmc_cmd cmd;
+
+	cmd.cmdidx = MMC_CMD_ERASE;
+	cmd.resp_type = MMC_RSP_R1b;
+	cmd.cmdarg = erase_arg;
+	cmd.flags = 0;
+
+	return mmc_send_cmd(mmc, &cmd, NULL);
+}
+
+unsigned int mmc_sd_erase_timeout(struct mmc *mmc, unsigned int erase_arg,
+	unsigned int qty)
+{
+	return 0xffffff;
+}
+
+/* calculate erase timeout based on CSD and current card clock frequency */
+unsigned int mmc_mmc_def_erase_timeout(struct mmc *mmc)
+{
+	unsigned int erase_timeout = 0;
+	unsigned int r2w_factor = (mmc->csd[3]>>26)&0x7;      //28:26
+	unsigned int tacc_clks = ((mmc->csd[0]>>8)&0xFF)*100; //111:104
+	unsigned int e = (mmc->csd[3]>>16)&0x7;
+	unsigned int m = (mmc->csd[3]>>19)&0xF;
+	unsigned int tacc_ns = (tacc_exp[e] * tacc_mant[m] + 9) / 10;
+	unsigned int mult = 10 << r2w_factor;
+
+	unsigned int timeout_clks = tacc_clks * mult;
+	unsigned int timeout_us;
+
+
+	/* Avoid overflow: e.g. tacc_ns=80000000 mult=1280 */
+	if (tacc_ns < 1000000)
+		timeout_us = (tacc_ns * mult) / 1000;
+	else
+		timeout_us = (tacc_ns / 1000) * mult;
+
+	/*
+	 * ios.clock is only a target.  The real clock rate might be
+	 * less but not that much less, so fudge it by multiplying by 2.
+	 */
+	timeout_clks <<= 1;
+	timeout_us += (timeout_clks * 1000) / (mmc->clock / 1000);
+
+	erase_timeout = timeout_us / 1000;
+
+	/*
+	 * Theoretically, the calculation could underflow so round up
+	 * to 1ms in that case.
+	 */
+	if (!erase_timeout)
+		erase_timeout = 1;
+
+	return erase_timeout;
+}
+
+unsigned int mmc_mmc_update_timeout(struct mmc *mmc)
+{
+	int ret = 0;
+	char ext_csd[512];
+	struct mmc_ext_csd mmc_ext_csd;
+
+	MMCDBG("+++%s\n", __FUNCTION__);
+
+	ret = mmc_send_ext_csd(mmc, ext_csd);
+	if (ret) {
+		MMCINFO("send ext_csd failed\n");
+		goto ERR_RET;
+	}
+
+	ret = mmc_decode_ext_csd(mmc, &mmc_ext_csd, (unsigned char *)ext_csd);
+	if (ret) {
+		MMCINFO("decode ext_csd failed\n");
+		goto ERR_RET;
+	}
+
+	if (mmc_ext_csd.rev >= 4)
+	{
+		if (mmc_ext_csd.erase_group_def && mmc_ext_csd.hc_erase_timeout)
+			mmc->erase_timeout = mmc_ext_csd.hc_erase_timeout;
+		else
+			mmc->erase_timeout = mmc_mmc_def_erase_timeout(mmc);
+
+		mmc->trim_discard_timeout = mmc_ext_csd.trim_timeout;
+		mmc->secure_erase_timeout = mmc->erase_timeout * mmc_ext_csd.sec_erase_mult;
+		mmc->secure_trim_timeout  = mmc->erase_timeout * mmc_ext_csd.sec_trim_mult;
+	}
+
+ERR_RET:
+	MMCDBG("---%s %d\n", __FUNCTION__, ret);
+	return ret;
+}
+
+unsigned int mmc_mmc_erase_timeout(struct mmc *mmc, unsigned int arg,
+	unsigned int qty)
+{
+	unsigned int erase_timeout = 0;
+
+	if (arg == MMC_DISCARD_ARG || arg == MMC_TRIM_ARG)
+		erase_timeout = mmc->trim_discard_timeout;
+	else if (arg == MMC_ERASE_ARG)
+		erase_timeout = mmc->erase_timeout;
+	else if (arg == MMC_SECURE_ERASE_ARG)
+		erase_timeout = mmc->secure_erase_timeout;
+	else if (arg == MMC_SECURE_TRIM1_ARG || arg == MMC_SECURE_TRIM2_ARG)
+		erase_timeout = mmc->secure_trim_timeout;
+	else {
+		MMCINFO("Unknown erase argument 0x%x\n", arg);
+		goto ERR_RET;
+	}
+
+	erase_timeout *= qty;
+
+	return erase_timeout;
+
+ERR_RET:
+	return 0;
+}
+
+unsigned int mmc_erase_timeout(struct mmc *mmc, unsigned int erase_arg,
+	unsigned int qty)
+{
+	if (IS_SD(mmc))
+		return mmc_sd_erase_timeout(mmc, erase_arg, qty);
+	else {
+		return mmc_mmc_erase_timeout(mmc, erase_arg, qty);
+	}
+}
+
+int mmc_do_erase(struct mmc *mmc, unsigned int from,
+	unsigned int to, unsigned int erase_arg)
+{
+	int err = 0;
+	unsigned int timeout = 0;
+	unsigned int qty = 0;
+
+	MMCDBG("+++%s\n", __FUNCTION__);
+
+	mmc_mmc_update_timeout(mmc);
+
+	err = mmc_set_erase_start_addr(mmc, from);
+	if (err) {
+		MMCINFO("set erase start addr failed\n");
+		goto ERR_RET;
+	}
+
+	err = mmc_set_erase_end_addr(mmc, to);
+	if (err) {
+		MMCINFO("set erase end addr failed\n");
+		goto ERR_RET;
+	}
+
+	err = mmc_launch_erase(mmc, erase_arg);
+	if (err) {
+		MMCINFO("launch erase failed\n");
+		goto ERR_RET;
+	}
+
+	if (IS_SD(mmc)) {
+		qty = to - from + 1;
+	} else {
+		qty = (to - from)/mmc->erase_grp_size + 1;
+	}
+	timeout = mmc_erase_timeout(mmc, erase_arg, qty);
+	if (!timeout) {
+		MMCINFO("calculate timeout failed\n");
+		err = -1;
+		goto ERR_RET;
+	}
+
+	err = mmc_send_status(mmc, timeout); //ms
+
+ERR_RET:
+
+	MMCDBG("---%s %d\n", __FUNCTION__, err);
+	return err;
+}
+
+int mmc_erase_group_aligned(struct mmc *mmc, unsigned int from,
+	unsigned int nr)
+{
+	if (!mmc->erase_grp_size)
+		return 0;
+	if (from % mmc->erase_grp_size || nr % mmc->erase_grp_size)
+		return 0;
+	return 1;
+}
+
+void mmc_align_erase_group(struct mmc *mmc, unsigned int from,
+	unsigned int nr, unsigned int *align_from, unsigned int *align_nr)
+{
+	unsigned int rem, start, cnt;
+
+	MMCDBG("---start erase addr adjust... \n");
+	MMCDBG("--1-- from: %d, nr: %d, erase_group: %d\n", from, nr, mmc->erase_grp_size);
+	start = from;
+	cnt = nr;
+
+	rem = start % mmc->erase_grp_size;
+	if (rem) {
+		rem = mmc->erase_grp_size - rem;
+		start += rem;
+		if (cnt > rem)
+			cnt -= rem;
+		else {
+			MMCINFO("after adjust start addr, no more space need to erase!!\n");
+			goto RET;
+		}
+	}
+	rem = cnt % mmc->erase_grp_size;
+	if (rem)
+		cnt -= rem;
+
+	if (cnt == 0) {
+		MMCINFO("after adjust nr, no more space need to erase!!\n");
+	}
+
+RET:
+	MMCDBG("--2-- from: %d, nr: %d, erase_group: %d\n", start, cnt, mmc->erase_grp_size);
+	*align_from = start;
+	*align_nr = cnt;
+	return ;
+}
+
+int mmc_erase(struct mmc *mmc, unsigned int from,
+	unsigned int nr, unsigned int erase_arg)
+{
+	int ret;
+
+	MMCDBG("+++%s\n", __FUNCTION__);
+
+	if (nr == 0) {
+		ret = 0;
+		MMCINFO("No space need to be erased !\n");
+		goto ERR_RET;
+	}
+
+	if (!IS_SD(mmc))
+	{
+		if ((erase_arg != MMC_ERASE_ARG)
+			&& (erase_arg != MMC_SECURE_ERASE_ARG)
+			&& (erase_arg != MMC_TRIM_ARG)
+			&& (erase_arg != MMC_DISCARD_ARG)
+ 			&& (erase_arg != MMC_SECURE_TRIM1_ARG)) {
+			ret = -1;
+			MMCINFO("Unknown erase type!\n");
+			goto ERR_RET;
+		}
+
+		if ((erase_arg == MMC_ERASE_ARG)
+			||(erase_arg == MMC_SECURE_ERASE_ARG)) {
+			ret = mmc_erase_group_aligned(mmc, from, nr);
+			if (!ret) {
+				ret = -1;
+				MMCINFO("Erase addr is not erase group alignment!\n");
+				goto ERR_RET;
+			}
+		}
+
+		MMCINFO("erase from: %d, to: %d, cnt: %d, erase_group: %d\n",
+			from, from+nr-1, nr, mmc->erase_grp_size);
+		ret = mmc_do_erase(mmc, from, from+nr-1, erase_arg);
+		if (ret) {
+			ret = -1;
+			MMCINFO("Do erase failed!\n");
+			goto ERR_RET;
+		}
+
+		if (erase_arg == MMC_SECURE_TRIM1_ARG)
+		{
+			ret = mmc_do_erase(mmc, from, from+nr-1, MMC_SECURE_TRIM2_ARG);
+			if (ret) {
+				ret = -1;
+				MMCINFO("Do secure trim step 2 failed!\n");
+				goto ERR_RET;
+			}
+		}
+	}
+	else
+	{
+		MMCINFO("Don't support to erase SD card\n");
+		ret = -1;
+	}
+
+ERR_RET:
+
+	MMCDBG("--%s  ret%d\n", __FUNCTION__, ret);
+	return ret;
+}
+
+#define MMC_SANITIZE_REQ_TIMEOUT 240000
+int mmc_do_sanitize(struct mmc *mmc)
+{
+	int ret;
+
+	MMCINFO("%s: start emmc sanitize...\n", __FUNCTION__);
+	ret = mmc_do_switch(mmc, EXT_CSD_CMD_SET_NORMAL,
+					EXT_CSD_SANITIZE_START, 1,
+					MMC_SANITIZE_REQ_TIMEOUT);
+	MMCINFO("%s end emmc sanitzie, ret %d\n", __FUNCTION__, ret);
+	return ret;
+}
+
+void mmc_add_skip_space(unsigned int *skip_space, int index,
+	unsigned int from, unsigned int nr)
+{
+	MMCDBG("%s: %d from %d  nr %d\n", __FUNCTION__, index, from, nr);
+	skip_space[0] |= 0x1<<index;
+	skip_space[index*2 + 1] = from;
+	skip_space[index*2 + 2] = nr;
+}
+
+int mmc_insecure_secure_erase(struct mmc *mmc, unsigned int from,
+	unsigned int nr, unsigned int *skip_space, int secure)
+{
+	int ret = 0;
+	unsigned int align_from = from, align_nr = nr;
+	int skip;
+	unsigned int last_skip_len;
+	unsigned arg;
+
+	skip = 0;
+	last_skip_len = 0;
+	skip_space[0] = 0x0;
+
+	MMCDBG("%d %s: start erase, seucre %d...\n", __LINE__, __FUNCTION__, secure);
+	ret = mmc_erase_group_aligned(mmc, from, nr);
+	if (!ret) {
+		mmc_align_erase_group(mmc, from, nr, &align_from, &align_nr);
+	}
+
+	if (align_nr == 0)
+	{
+		MMCINFO("after align erase group, no space need to erase, erase failed\n");
+		mmc_add_skip_space(skip_space, skip, from, nr);
+		ret = -1;
+	}
+	else
+	{
+		if (secure)
+			arg = MMC_SECURE_ERASE_ARG;
+		else
+			arg = MMC_ERASE_ARG;
+
+		ret = mmc_erase(mmc, align_from, align_nr, arg);
+		if (ret) {
+			MMCINFO("erase failed, range %d - %d \n",
+				align_from, (align_from+align_nr));
+			mmc_add_skip_space(skip_space, skip, from, nr);
+		} else {
+			if (align_from - from)
+				mmc_add_skip_space(skip_space, skip++, from, (align_from-from));
+
+			if (skip)
+				last_skip_len = skip_space[2];
+			else
+				last_skip_len = 0;
+			if (nr - align_nr - last_skip_len)
+				mmc_add_skip_space(skip_space, skip++, (align_from+align_nr), (nr-align_nr-last_skip_len));
+		}
+	}
+
+	return ret;
+}
+
+int mmc_do_secure_wipe(struct mmc *mmc, unsigned int from, unsigned int nr,
+	unsigned int *skip_space)
+{
+	int ret = 0;
+	int skip, not_support_wipe = 0;
+
+
+	MMCINFO("+++%s\n", __FUNCTION__);
+
+	if (nr == 0) {
+		MMCINFO("%s: on space need to erase, nr %d\n", __FUNCTION__, nr);
+		return 0;
+	}
+
+	if (IS_SD(mmc)) {
+		MMCINFO("%s: no mmc, do nothing\n", __FUNCTION__);
+		ret = -2;
+		goto ERR_RET;
+	}
+
+	skip = 0;
+	skip_space[0] = 0x0;
+
+	if (mmc->version <= MMC_VERSION_4_41) //ver 4.41 or older
+	{
+		if (mmc->secure_feature & EXT_CSD_SEC_ER_EN)
+		{
+			//support secure purge operation
+			if (mmc->secure_feature & EXT_CSD_SEC_GB_CL_EN) {
+				//support trim
+				MMCDBG("%d %s: start secure trim...\n", __LINE__, __FUNCTION__);
+				ret = mmc_erase(mmc, from, nr, MMC_SECURE_TRIM1_ARG);
+				if (ret) {
+					MMCINFO("secure trim failed, range %d - %d \n",
+						from, (from+nr));
+					mmc_add_skip_space(skip_space, skip, from, nr);
+				}
+			} else {
+				ret = mmc_insecure_secure_erase(mmc, from, nr, skip_space, 1);
+			}
+		}
+		else if (mmc->secure_feature & EXT_CSD_SEC_GB_CL_EN)
+		{
+			//support insecure trim operation
+			MMCDBG("%d %s: start trim...\n", __LINE__, __FUNCTION__);
+			ret = mmc_erase(mmc, from, nr, MMC_TRIM_ARG);
+			if (ret) {
+				MMCINFO("trim failed, range %d - %d \n", from, (from+nr));
+				mmc_add_skip_space(skip_space, skip, from, nr);
+			}
+		}
+		else
+		{
+			//is currently not an acceptable solution. writing of zeroes to the user data partition as a third option
+			MMCINFO("no method to wipe data (emmc <= v4.41)!\n ");
+			not_support_wipe = 1;
+			mmc_add_skip_space(skip_space, skip, from, nr);
+		}
+	}
+	else if (mmc->version <= MMC_VERSION_5_0) //v4.5 or newer
+	{
+		if (mmc->secure_feature & EXT_CSD_SEC_SANITIZE)
+		{
+			//support sanitize
+			if (mmc->secure_feature & EXT_CSD_SEC_GB_CL_EN) {
+				//support trim
+				MMCDBG("%d %s: start trim...\n", __LINE__, __FUNCTION__);
+				ret = mmc_erase(mmc, from, nr, MMC_TRIM_ARG);
+				if (ret) {
+					MMCINFO("trim failed, range %d - %d \n", from, (from+nr));
+					mmc_add_skip_space(skip_space, skip, from, nr);
+					goto ERR_RET;
+				}
+			} else {
+				ret = mmc_insecure_secure_erase(mmc, from, nr, skip_space, 0);
+				if (ret) {
+					MMCINFO("erase failed, range %d - %d \n", from, (from+nr));
+					goto ERR_RET;
+				}
+			}
+
+			MMCDBG("%d %s: start sanitize...\n", __LINE__, __FUNCTION__);
+			ret = mmc_do_sanitize(mmc);
+			if (ret) {
+				MMCINFO("do sanitize failed!!\n");
+				skip = 0;
+				skip_space[0] = 0x0;
+				mmc_add_skip_space(skip_space, skip, from, nr);
+			}
+		}
+		else
+		{
+			//If the eMMC 4.5 part does not expose the required command set, there is currently not an acceptable solution to sanitize this part for re-use
+			not_support_wipe = 1;
+			MMCINFO("no method to wipe data for current (emmc >v4.5)!\n ");
+			mmc_add_skip_space(skip_space, skip, from, nr);
+		}
+	}
+	else
+	{
+		MMCINFO("Unknown mmc version 0x%x\n", mmc->version);
+		ret = -3;
+	}
+
+	if (not_support_wipe)
+		ret = -2;
+
+ERR_RET:
+
+	MMCINFO("---%s ret %d\n", __FUNCTION__, ret);
+	return ret;
+}
+
+int mmc_secure_wipe(int dev_num, unsigned int start,
+	unsigned int blkcnt, unsigned int *skip_space)
+{
+	int ret = 0;
+	struct mmc *mmc = find_mmc_device(dev_num);
+
+	MMCINFO("========start %s\n", __FUNCTION__);
+	if (mmc->drv_wipe_feature & DRV_PARA_DISABLE_SECURE_WIPE) {
+		MMCINFO("driver do not support secure wipe operation\n");
+		return -1;
+	}
+
+	ret = mmc_do_secure_wipe(mmc, start, blkcnt, skip_space);
+	if (ret == -1) {
+		MMCINFO("erase failed!!!!!!\n");
+	} else if ((ret == -2) || (ret == -3)) {
+		MMCINFO("do not erase!!!!!!\n");
+		ret = -1;
+	} else if (skip_space[0]){
+		MMCINFO("skip some space when align erase group, need to write zeros.\n");
+		ret = 1;
+	} else {
+		MMCINFO("erase ok\n");
+		ret = 0;
+	}
+
+	MMCINFO("========end %s %d\n", __FUNCTION__, ret);
+	return ret;
+}
+
+int mmc_mmc_erase(int dev_num, unsigned int start,
+	unsigned int blkcnt, unsigned int *skip_space)
+{
+	struct mmc *mmc = find_mmc_device(dev_num);
+	int i, ret1, ret = 0;
+
+	MMCDBG("start %s ...\n", __FUNCTION__);
+	if (IS_SD(mmc)) {
+		MMCINFO("%s: sd card don't support erase\n", __FUNCTION__);
+		ret = -1;
+		goto ERR_RET;
+	}
+
+	if (mmc->drv_erase_feature & DRV_PARA_DISABLE_EMMC_ERASE) {
+		MMCINFO("%s: driver don't support erase\n", __FUNCTION__);
+		ret = -1;
+		goto ERR_RET;
+	}
+
+	if (blkcnt == 0) {
+		MMCINFO("%s: no space need to erase, from:%d nr:%d\n",
+			__FUNCTION__, start, blkcnt);
+		ret = 0;
+		goto ERR_RET;
+	}
+
+	if ((start+blkcnt) > mmc->block_dev.lba) {
+		MMCINFO("%s: input lenght error!!!\n", __FUNCTION__);
+		blkcnt = mmc->block_dev.lba - start;
+		MMCINFO("%s: after clip, from: %d, nr: %d\n",
+			__FUNCTION__, start, blkcnt);
+	}
+
+	ret = mmc_insecure_secure_erase(mmc, start, blkcnt, skip_space, 0);
+	if (ret) {
+		MMCINFO("%s: erase emmc fail!\n", __FUNCTION__);
+	}
+
+	if (skip_space[0]) {
+		ret = 1;
+
+		MMCINFO("%s: some sectors in emmc are ignored!\n", __FUNCTION__);
+		for (i=0; i<2; i++)
+			if (skip_space[0] & (1<<i))
+				MMCINFO("--%d: from%d  nr%d \n", i,
+					(int)skip_space[i*2+1], (int)skip_space[i*2+2]);
+	}
+
+	if ((mmc->drv_erase_feature & DRV_PARA_ENABLE_EMMC_SANITIZE_WHEN_ERASE)
+		&& (mmc->secure_feature & EXT_CSD_SEC_SANITIZE))
+	{
+		ret1 = mmc_do_sanitize(mmc);
+		if (ret1) {
+			MMCINFO("%s: emmc sanitize fail. ignore this error and continue...\n", __FUNCTION__);
+		}
+	}
+
+ERR_RET:
+	MMCDBG("end %s %d\n", __FUNCTION__, ret);
+	return ret;
+}
+
+int mmc_mmc_sanitize(int dev_num)
+{
+	struct mmc *mmc = find_mmc_device(dev_num);
+	int ret = 0;
+
+	MMCDBG("start %s ...\n", __FUNCTION__);
+	if (IS_SD(mmc)) {
+		MMCINFO("%s: sd card don't support erase\n", __FUNCTION__);
+		ret = -1;
+		goto ERR_RET;
+	}
+
+	if (!(mmc->secure_feature & EXT_CSD_SEC_SANITIZE)) {
+		MMCINFO("%s: driver don't support sanitize\n", __FUNCTION__);
+		ret = -1;
+		goto ERR_RET;
+	}
+
+	ret = mmc_do_sanitize(mmc);
+	if (ret) {
+		ret = -1;
+		MMCINFO("%s: sanitize fail!\n", __FUNCTION__);
+	}
+
+ERR_RET:
+	MMCDBG("end %s %d\n", __FUNCTION__, ret);
+	return ret;
+}
+
+int mmc_mmc_trim(int dev_num, unsigned int start, unsigned int blkcnt)
+{
+	struct mmc *mmc = find_mmc_device(dev_num);
+	int ret = 0;
+
+	MMCDBG("start %s ...\n", __FUNCTION__);
+	if (IS_SD(mmc)) {
+		MMCINFO("%s: sd card don't support trim\n", __FUNCTION__);
+		ret = -1;
+		goto ERR_RET;
+	}
+
+	if (blkcnt == 0) {
+		MMCINFO("%s: no space need to erase, from:%d nr:%d\n",
+			__FUNCTION__, start, blkcnt);
+		ret = 0;
+		goto ERR_RET;
+	}
+
+	if ((start+blkcnt) > mmc->block_dev.lba) {
+		MMCINFO("%s: input lenght error!!!\n", __FUNCTION__);
+		blkcnt = mmc->block_dev.lba - start;
+		MMCINFO("%s: after clip, from: %d, nr: %d\n",
+			__FUNCTION__, start, blkcnt);
+	}
+
+	if (mmc->secure_feature & EXT_CSD_SEC_GB_CL_EN)
+	{
+		ret = mmc_erase(mmc, start, blkcnt, MMC_TRIM_ARG);
+		if (ret) {
+			MMCINFO("trim failed, range %d - %d\n",	start, (start+blkcnt));
+		}
+	} else {
+		MMCINFO("%s: don't support trim!\n", __FUNCTION__);
+		ret = -1;
+	}
+
+ERR_RET:
+	MMCDBG("end %s %d\n", __FUNCTION__, ret);
+	return ret;
+}
+
+int mmc_mmc_discard(int dev_num, unsigned int start, unsigned int blkcnt)
+{
+	struct mmc *mmc = find_mmc_device(dev_num);
+	int ret = 0;
+
+	MMCDBG("start %s ...\n", __FUNCTION__);
+	if (IS_SD(mmc)) {
+		MMCINFO("%s: sd card don't support discard\n", __FUNCTION__);
+		ret = -1;
+		goto ERR_RET;
+	}
+
+	if (blkcnt == 0) {
+		MMCINFO("%s: no space need to erase, from:%d nr:%d\n",
+			__FUNCTION__, start, blkcnt);
+		ret = 0;
+		goto ERR_RET;
+	}
+
+	if ((start+blkcnt) > mmc->block_dev.lba) {
+		MMCINFO("%s: input lenght error!!!\n", __FUNCTION__);
+		blkcnt = mmc->block_dev.lba - start;
+		MMCINFO("%s: after clip, from: %d, nr: %d\n",
+			__FUNCTION__, start, blkcnt);
+	}
+
+	/* eMMC v4.5 or later */
+	if (mmc->version >= MMC_VERSION_4_5)
+	{
+		ret = mmc_erase(mmc, start, blkcnt, MMC_DISCARD_ARG);
+		if (ret) {
+			MMCINFO("trim failed, range %d - %d\n",	start, (start+blkcnt));
+		}
+	} else {
+		MMCINFO("%s: don't support discard!\n", __FUNCTION__);
+		ret = -1;
+	}
+
+ERR_RET:
+	MMCDBG("end %s %d\n", __FUNCTION__, ret);
+	return ret;
+}
+
+int mmc_mmc_secure_erase(int dev_num, unsigned int start,
+	unsigned int blkcnt, unsigned int *skip_space)
+{
+	struct mmc *mmc = find_mmc_device(dev_num);
+	int i, ret = 0;
+
+	MMCDBG("start %s ...\n", __FUNCTION__);
+	if (IS_SD(mmc)) {
+		MMCINFO("%s: sd card don't support secure erase!\n", __FUNCTION__);
+		ret = -1;
+		goto ERR_RET;
+	}
+
+	if (blkcnt == 0) {
+		MMCINFO("%s: no space need to erase, from:%d nr:%d\n",
+			__FUNCTION__, start, blkcnt);
+		ret = 0;
+		goto ERR_RET;
+	}
+
+	if ((start+blkcnt) > mmc->block_dev.lba) {
+		MMCINFO("%s: input lenght error!!!\n", __FUNCTION__);
+		blkcnt = mmc->block_dev.lba - start;
+		MMCINFO("%s: after clip, from: %d, nr: %d\n",
+			__FUNCTION__, start, blkcnt);
+	}
+
+	if (!(mmc->secure_feature & EXT_CSD_SEC_ER_EN)) {
+		MMCINFO("%s: don't support secure erase!\n", __FUNCTION__);
+		ret = -1;
+		goto ERR_RET;
+	}
+
+	ret = mmc_insecure_secure_erase(mmc, start, blkcnt, skip_space,1);
+	if (ret) {
+		MMCINFO("%s: erase emmc fail!\n", __FUNCTION__);
+	}
+
+	if (skip_space[0]) {
+		MMCDBG("%s: some sectors in emmc are ignored!\n\n", __FUNCTION__);
+		for (i=0; i<2; i++)
+			if (skip_space[0] & (1<<i))
+				MMCDBG("--%d: from%d  nr%d \n",
+					skip_space[i*2+1], skip_space[i*2+2]);
+	}
+
+ERR_RET:
+	MMCDBG("end %s %d\n", __FUNCTION__, ret);
+	return ret;
+}
+
+int mmc_mmc_secure_trim(int dev_num, unsigned int start, unsigned int blkcnt)
+{
+	struct mmc *mmc = find_mmc_device(dev_num);
+	int ret = 0;
+
+	MMCDBG("start %s ...\n", __FUNCTION__);
+	if (IS_SD(mmc)) {
+		MMCINFO("%s: sd card don't support secure trim!\n", __FUNCTION__);
+		ret = -1;
+		goto ERR_RET;
+	}
+
+	if (blkcnt == 0) {
+		MMCINFO("%s: no space need to erase, from:%d nr:%d\n",
+			__FUNCTION__, start, blkcnt);
+		ret = 0;
+		goto ERR_RET;
+	}
+
+	if ((start+blkcnt) > mmc->block_dev.lba) {
+		MMCINFO("%s: input lenght error!!!\n", __FUNCTION__);
+		blkcnt = mmc->block_dev.lba - start;
+		MMCINFO("%s: after clip, from: %d, nr: %d\n",
+			__FUNCTION__, start, blkcnt);
+	}
+
+	if ((mmc->secure_feature & EXT_CSD_SEC_ER_EN)
+		&& (mmc->secure_feature & EXT_CSD_SEC_GB_CL_EN))
+	{
+		ret = mmc_erase(mmc, start, blkcnt, MMC_SECURE_TRIM1_ARG);
+		if (ret) {
+			MMCINFO("secure trim failed, range %d - %d\n",	start, (start+blkcnt));
+		}
+	} else {
+		MMCINFO("%s: don't support secure trim!\n", __FUNCTION__);
+		ret = -1;
+	}
+
+ERR_RET:
+	MMCDBG("end %s %d\n", __FUNCTION__, ret);
+	return ret;
+}
+
+#if 0
+/* only clear first 128KB of boot part 0 to zeros */
+int mmc_mmc_clear_boot_part1(int dev_num)
+{
+	struct mmc *mmc = find_mmc_device(dev_num);
+	int err = 0;
+	void *src, *dst;
+	unsigned int blkcnt = 128 * 1024 * 2; //128KB
+
+	if (!(mmc->boot_support))
+	{
+		MMCINFO("Card doesn't support boot part\n");
+		return 0;
+	}
+
+	src = malloc(blkcnt * mmc->write_bl_len);
+	if (src == NULL) {
+		MMCINFO("%s: malloc mem failed\n", __FUNCTION__);
+		return -1;
+	}
+	memset(src, 0, blkcnt * mmc->write_bl_len);
+
+	dst = malloc(blkcnt * mmc->write_bl_len);
+	if (dst == NULL){
+		MMCINFO("%s: malloc mem failed\n", __FUNCTION__);
+		goto ERR_RET1;
+	}
+
+	err = mmc_switch_boot_bus_cond(dev_num,
+								MMC_SWITCH_BOOT_SDR_NORMAL,
+								MMC_SWITCH_BOOT_RST_BUS_COND,
+								MMC_SWITCH_BOOT_BUS_SDRx4_DDRx4);
+	if (err) {
+		MMCINFO("mmc switch boot bus condition failed\n");
+		goto ERR_RET;
+	}
+	MMCDBG("mmc switch boot bus condition succeed\n");
+
+	err = mmc_switch_boot_part(dev_num,
+								MMC_SWITCH_PART_BOOT_ACK_ENB,
+								MMC_SWITCH_PART_BOOT_PART_1);
+	if (err) {
+		MMCINFO("mmc switch boot part failed\n");
+		err = -1;
+		goto ERR_RET;
+	}
+	MMCDBG("mmc switch boot part succeed\n");
+
+
+	//switch to boot partition 1
+	if (mmc_switch_part(dev_num, MMC_SWITCH_PART_BOOT_PART_1)) {
+		MMCINFO("switch to boot1 partition failed\n");
+		err = -1;
+		goto ERR_RET;
+	}
+
+	mmc_bwrite(dev_num, 0, blkcnt, src);
+	mmc_bread(dev_num, 0, blkcnt, dst);
+	if (memcmp(src, dst, blkcnt*mmc->write_bl_len))
+		err = -1;
+
+	//switch back to user partiton 1
+	if (mmc_switch_part(dev_num,  0)) {
+		MMCINFO("switch to boot1 partition failed\n");
+		err = -1;
+	}
+
+ERR_RET:
+	free(dst);
+
+ERR_RET1:
+	free(src);
+
+	return err;
+}
+
+static unsigned long
+mmc_berase_mass_pro(int dev_num)
+{
+	int i, ret = 0, boot_ret;
+	struct mmc *mmc = find_mmc_device(dev_num);
+	unsigned long tmp_skip_space[1+2*2] = {0};
+
+	if (!IS_SD(mmc))
+	{
+		//erase boot part
+		boot_ret = mmc_mmc_clear_boot_part1(dev_num);
+		if (boot_ret) {
+			MMCINFO("%s: erase boot part 1 fail\n", __FUNCTION__);
+		}
+
+		//erase user part
+		ret = _mmc_insecure_secure_erase(mmc, 0, mmc->block_dev.lba, tmp_skip_space, 0);
+		if (ret) {
+			MMCINFO("%s: erase emmc user part fail!\n", __FUNCTION__);
+		}
+
+		if (tmp_skip_space[0]) {
+			MMCINFO("%s: some sectors in emmc part are ignored!\n\n", __FUNCTION__);
+			for (i=0; i<2; i++)
+				if (tmp_skip_space[0] & (1<<i))
+					MMCINFO("--%d: from%d  nr%d \n",
+						tmp_skip_space[i*2+1], tmp_skip_space[i*2+2]);
+		}
+	}
+	else
+	{
+		MMCINFO("%s: don't support SD card\n", __FUNCTION__);
+		ret = -1;
+	}
+
+	return (ret | boot_ret);
+}
+#endif
 
 int mmc_send_manual_stop(struct mmc *mmc)
 {
@@ -194,7 +1138,6 @@ int mmc_send_manual_stop(struct mmc *mmc)
 	}
 	return 0;
 }
-
 
 struct mmc *find_mmc_device(int dev_num)
 {
@@ -266,9 +1209,6 @@ struct mmc *find_mmc_device(int dev_num)
 //}
 
 
-static ulong
-mmc_bwrite(int dev_num, ulong start, lbaint_t blkcnt, const void*src);
-
 static unsigned long
 mmc_berase(int dev_num, unsigned long start, lbaint_t blkcnt)
 {
@@ -317,8 +1257,6 @@ mmc_berase(int dev_num, unsigned long start, lbaint_t blkcnt)
 	return blk;
 	*/
 }
-
-
 
 static ulong
 mmc_write_blocks(struct mmc *mmc, ulong start, lbaint_t blkcnt, const void*src)
@@ -627,7 +1565,7 @@ static ulong mmc_bread(int dev_num, ulong start, lbaint_t blkcnt, void *dst)
 			start + blkcnt, mmc->block_dev.lba);
 		return 0;
 	}
-
+	
 
 	if (mmc_set_blocklen(mmc, mmc->read_bl_len)){
 		MMCINFO("Set block len failed\n");
@@ -648,8 +1586,6 @@ static ulong mmc_bread(int dev_num, ulong start, lbaint_t blkcnt, void *dst)
 
 	return blkcnt;
 }
-
-
 
 static ulong mmc_bread_mass_pro(int dev_num, ulong start, lbaint_t blkcnt, void *dst)
 {
@@ -689,8 +1625,6 @@ static ulong mmc_bread_mass_pro(int dev_num, ulong start, lbaint_t blkcnt, void 
 }
 
 #ifdef CONFIG_SUNXI_SECURE_STORAGE
-//#ifdef 1
-
 
 static int check_secure_area(ulong start, lbaint_t blkcnt)
 {
@@ -714,7 +1648,6 @@ static int check_secure_area(ulong start, lbaint_t blkcnt)
 }
 
 
-
 static ulong
 mmc_bwrite_mass_pro_secure(int dev_num, ulong start, lbaint_t blkcnt, const void*src)
 {
@@ -727,8 +1660,6 @@ mmc_bwrite_mass_pro_secure(int dev_num, ulong start, lbaint_t blkcnt, const void
 	return mmc_bwrite_mass_pro(dev_num, start, blkcnt, src);
 }
 
-
-
 static ulong mmc_bread_mass_pro_secure(int dev_num, ulong start, lbaint_t blkcnt, void *dst)
 {
 	if(check_secure_area(start,blkcnt)){
@@ -739,7 +1670,6 @@ static ulong mmc_bread_mass_pro_secure(int dev_num, ulong start, lbaint_t blkcnt
 
 	return mmc_bread_mass_pro(dev_num, start, blkcnt, dst);
 }
-
 
 static unsigned long
 mmc_berase_secure(int dev_num, unsigned long start, lbaint_t blkcnt)
@@ -753,6 +1683,17 @@ mmc_berase_secure(int dev_num, unsigned long start, lbaint_t blkcnt)
 	return mmc_berase(dev_num, start, blkcnt);
 }
 
+int mmc_secure_wipe_secure(int dev_num, unsigned int start, unsigned int blkcnt, unsigned int *skip_space)
+{
+	if(check_secure_area(start,blkcnt)){
+		MMCINFO("Should not w/r secure area in fun %s,line,%d in start %d,end %d\n",\
+			__FUNCTION__,__LINE__ ,start,start + blkcnt-1);
+		return -1;
+	}
+
+	return mmc_secure_wipe(dev_num, start, blkcnt, skip_space);
+}
+
 static ulong mmc_bread_secure(int dev_num, ulong start, lbaint_t blkcnt, void *dst)
 {
 	if(check_secure_area(start,blkcnt)){
@@ -764,6 +1705,58 @@ static ulong mmc_bread_secure(int dev_num, ulong start, lbaint_t blkcnt, void *d
 	return mmc_bread(dev_num, start, blkcnt, dst);
 }
 
+int mmc_mmc_erase_secure(int dev_num, unsigned int start, unsigned int blkcnt, unsigned int *skip_space)
+{
+	if(check_secure_area(start,blkcnt)){
+		MMCINFO("Should not w/r secure area in fun %s,line,%d in start %d,end %d\n",\
+			__FUNCTION__,__LINE__ ,start,start + blkcnt-1);
+		return -1;
+	}
+	return mmc_mmc_erase(dev_num, start, blkcnt, skip_space);
+}
+
+int mmc_mmc_trim_secure(int dev_num, unsigned int start, unsigned int blkcnt)
+{
+	if(check_secure_area(start,blkcnt)){
+		MMCINFO("Should not w/r secure area in fun %s,line,%d in start %d,end %d\n",\
+			__FUNCTION__,__LINE__ ,start,start + blkcnt-1);
+		return -1;
+	}
+	return mmc_mmc_trim(dev_num, start, blkcnt);
+}
+
+int mmc_mmc_discard_secure(int dev_num, unsigned int start, unsigned int blkcnt)
+{
+	if(check_secure_area(start,blkcnt)){
+		MMCINFO("Should not w/r secure area in fun %s,line,%d in start %d,end %d\n",\
+			__FUNCTION__,__LINE__ ,start,start + blkcnt-1);
+		return -1;
+	}
+	return mmc_mmc_discard(dev_num, start, blkcnt);
+}
+
+int mmc_mmc_sanitize_secure(int dev_num)
+{
+	return mmc_mmc_sanitize(dev_num);
+}
+int mmc_mmc_secure_erase_secure(int dev_num, unsigned int start, unsigned int blkcnt, unsigned int *skip_space)
+{
+	if(check_secure_area(start,blkcnt)){
+		MMCINFO("Should not w/r secure area in fun %s,line,%d in start %d,end %d\n",\
+			__FUNCTION__,__LINE__ ,start,start + blkcnt-1);
+		return -1;
+	}
+	return mmc_mmc_secure_erase(dev_num, start, blkcnt, skip_space);
+}
+int mmc_mmc_secure_trim_secure(int dev_num, unsigned int start, unsigned int blkcnt)
+{
+	if(check_secure_area(start,blkcnt)){
+		MMCINFO("Should not w/r secure area in fun %s,line,%d in start %d,end %d\n",\
+			__FUNCTION__,__LINE__ ,start,start + blkcnt-1);
+		return -1;
+	}
+	return mmc_mmc_secure_trim(dev_num, start, blkcnt);
+}
 
 static ulong
 mmc_bwrite_secure(int dev_num, ulong start, lbaint_t blkcnt, const void*src)
@@ -1087,11 +2080,95 @@ int mmc_send_ext_csd(struct mmc *mmc, char *ext_csd)
 	return err;
 }
 
+/* decode ext_csd */
+static int mmc_decode_ext_csd(struct mmc *mmc,
+	struct mmc_ext_csd *dec_ext_csd, u8 *ext_csd)
+{
+	int err = 0;
 
-int mmc_switch(struct mmc *mmc, u8 set, u8 index, u8 value)
+	if ((!ext_csd) || !(dec_ext_csd))
+		return 0;
+
+	/* Version is coded in the CSD_STRUCTURE byte in the EXT_CSD register */
+	dec_ext_csd->raw_ext_csd_structure = ext_csd[EXT_CSD_STRUCTURE];
+
+
+	dec_ext_csd->rev = ext_csd[EXT_CSD_REV];
+	if (dec_ext_csd->rev > 7) {
+		MMCINFO("unrecognised EXT_CSD revision %d\n", dec_ext_csd->rev);
+		err = -1;
+		goto out;
+	}
+
+	dec_ext_csd->raw_sectors[0] = ext_csd[EXT_CSD_SEC_CNT + 0];
+	dec_ext_csd->raw_sectors[1] = ext_csd[EXT_CSD_SEC_CNT + 1];
+	dec_ext_csd->raw_sectors[2] = ext_csd[EXT_CSD_SEC_CNT + 2];
+	dec_ext_csd->raw_sectors[3] = ext_csd[EXT_CSD_SEC_CNT + 3];
+	if (dec_ext_csd->rev >= 2) {
+		dec_ext_csd->sectors =
+			ext_csd[EXT_CSD_SEC_CNT + 0] << 0 |
+			ext_csd[EXT_CSD_SEC_CNT + 1] << 8 |
+			ext_csd[EXT_CSD_SEC_CNT + 2] << 16 |
+			ext_csd[EXT_CSD_SEC_CNT + 3] << 24;
+	}
+
+	dec_ext_csd->raw_card_type = ext_csd[EXT_CSD_CARD_TYPE];
+
+	dec_ext_csd->raw_erase_timeout_mult =
+		ext_csd[EXT_CSD_ERASE_TIMEOUT_MULT];
+	dec_ext_csd->raw_hc_erase_grp_size =
+		ext_csd[EXT_CSD_HC_ERASE_GRP_SIZE];
+	if (dec_ext_csd->rev >= 3) {
+		dec_ext_csd->erase_group_def =
+			ext_csd[EXT_CSD_ERASE_GROUP_DEF];
+		dec_ext_csd->hc_erase_timeout = 300 *
+			ext_csd[EXT_CSD_ERASE_TIMEOUT_MULT];
+		dec_ext_csd->hc_erase_size =
+			ext_csd[EXT_CSD_HC_ERASE_GRP_SIZE] << 10;
+	}
+
+	dec_ext_csd->raw_hc_erase_gap_size =
+		ext_csd[EXT_CSD_HC_WP_GRP_SIZE];
+	dec_ext_csd->raw_sec_trim_mult =
+		ext_csd[EXT_CSD_SEC_TRIM_MULT];
+	dec_ext_csd->raw_sec_erase_mult =
+		ext_csd[EXT_CSD_SEC_ERASE_MULT];
+	dec_ext_csd->raw_sec_feature_support =
+		ext_csd[EXT_CSD_SEC_FEATURE_SUPPORT];
+	dec_ext_csd->raw_trim_mult =
+		ext_csd[EXT_CSD_TRIM_MULT];
+
+	if (dec_ext_csd->rev >= 4) {
+		dec_ext_csd->sec_trim_mult =
+			ext_csd[EXT_CSD_SEC_TRIM_MULT];
+		dec_ext_csd->sec_erase_mult =
+			ext_csd[EXT_CSD_SEC_ERASE_MULT];
+		dec_ext_csd->sec_feature_support =
+			ext_csd[EXT_CSD_SEC_FEATURE_SUPPORT];
+		dec_ext_csd->trim_timeout = 300 *
+			ext_csd[EXT_CSD_TRIM_MULT];
+	}
+
+	dec_ext_csd->raw_erased_mem_count = ext_csd[EXT_CSD_ERASED_MEM_CONT];
+
+	/* eMMC v4.5 or later */
+	if (dec_ext_csd->rev >= 6) {
+		dec_ext_csd->generic_cmd6_time = 10 *
+			ext_csd[EXT_CSD_GENERIC_CMD6_TIME];
+		dec_ext_csd->power_off_longtime = 10 *
+			ext_csd[EXT_CSD_POWER_OFF_LONG_TIME];
+
+	} else {
+		dec_ext_csd->data_sector_size = 512;
+	}
+
+out:
+	return err;
+}
+
+int mmc_do_switch(struct mmc *mmc, u8 set, u8 index, u8 value, u32 timeout)
 {
 	struct mmc_cmd cmd;
-	int timeout = 1000;
 	int ret;
 
 	cmd.cmdidx = MMC_CMD_SWITCH;
@@ -1106,12 +2183,23 @@ int mmc_switch(struct mmc *mmc, u8 set, u8 index, u8 value)
 		MMCINFO("mmc switch failed\n");
 	}
 
+	ret = mmc_update_phase(mmc);
+	if (ret)
+	{
+		MMCINFO("update clock failed after send switch cmd\n");
+		return ret;
+	}
 
 	/* Waiting for the ready status */
 	mmc_send_status(mmc, timeout);
 
 	return ret;
+}
 
+int mmc_switch(struct mmc *mmc, u8 set, u8 index, u8 value)
+{
+	int timeout = 1000;
+	return mmc_do_switch(mmc, set, index, value, timeout);
 }
 
 int mmc_change_freq(struct mmc *mmc)
@@ -1156,6 +2244,13 @@ int mmc_change_freq(struct mmc *mmc)
 		return err;
 	}
 
+	err = mmc_update_phase(mmc);
+	if (err)
+	{
+		MMCINFO("update clock failed\n");
+		return err;
+	}
+
 	/* Now check to see that it worked */
 	err = mmc_send_ext_csd(mmc, ext_csd);
 
@@ -1173,14 +2268,14 @@ int mmc_change_freq(struct mmc *mmc)
 		mmc->card_caps |= MMC_MODE_HS_52MHz | MMC_MODE_HS;
 	else
 		mmc->card_caps |= MMC_MODE_HS;
-
+		
 	if (cardtype & MMC_DDR_52MHZ){
 		mmc->card_caps |= MMC_MODE_DDR_52MHz;
 		MMCDBG("get ddr OK!\n");
 	}else{
 		MMCINFO("get ddr fail!\n");
 	}
-
+		
 
 	return 0;
 }
@@ -1418,6 +2513,13 @@ retry_scr:
 
 	if (err){
 		MMCINFO("switch to high speed failed\n");
+		return err;
+	}
+
+	err = mmc_update_phase(mmc);
+	if (err)
+	{
+		MMCINFO("update clock failed\n");
 		return err;
 	}
 
@@ -1691,24 +2793,45 @@ int mmc_startup(struct mmc *mmc)
 		}
 
 		/*
+		  * Get timeout value
+		  */
+		mmc_mmc_update_timeout(mmc);
+
+		/*
 		 * Check whether GROUP_DEF is set, if yes, read out
 		 * group size from ext_csd directly, or calculate
 		 * the group size from the csd value.
+		 *
+		 *  WJQ, 20141022
+		 *  take write block as the unit of erase group
 		 */
-		if (ext_csd[175])
-			mmc->erase_grp_size = ext_csd[224] * 512 * 1024;
-		else {
+		{
 			int erase_gsz, erase_gmul;
+			int def_erase_grp_size, hc_erase_gpr_size;
+			int hc_erase_timeout;
+
 			erase_gsz = (mmc->csd[2] & 0x00007c00) >> 10;
 			erase_gmul = (mmc->csd[2] & 0x000003e0) >> 5;
-			mmc->erase_grp_size = (erase_gsz + 1)
-				* (erase_gmul + 1);
+			def_erase_grp_size = (erase_gsz + 1) * (erase_gmul + 1);
+
+			hc_erase_gpr_size = ext_csd[EXT_CSD_HC_ERASE_GRP_SIZE] * 512 * 1024;
+			hc_erase_gpr_size = hc_erase_gpr_size / mmc->write_bl_len;
+
+			hc_erase_timeout = 300 * ext_csd[EXT_CSD_ERASE_TIMEOUT_MULT];
+
+			if (ext_csd[EXT_CSD_ERASE_GROUP_DEF] && hc_erase_gpr_size && hc_erase_timeout)
+				mmc->erase_grp_size = hc_erase_gpr_size;
+			else
+				mmc->erase_grp_size = def_erase_grp_size;
 		}
+
+		mmc->secure_feature = ext_csd[EXT_CSD_SEC_FEATURE_SUPPORT];
+		mmc->secure_removal_type = ext_csd[EXT_CSD_SECURE_REMOAL_TYPE];
 
 		/* store the partition info of emmc */
 		if (ext_csd[226])//ext_csd[160] & PART_SUPPORT
 		{
-		  mmc->boot_support = 1;//lwj
+		  	mmc->boot_support = 1;//lwj
 			mmc->part_support = ext_csd[160];
 			mmc->part_config = ext_csd[179];
 			mmc->boot1_lba	= 128000*ext_csd[226]/512;
@@ -1736,6 +2859,14 @@ int mmc_startup(struct mmc *mmc)
 		return err;
 	}
 
+	/* for re-update sample phase */
+	err = mmc_update_phase(mmc);
+	if (err)
+	{
+		MMCINFO("update clock failed\n");
+		return err;
+	}
+	
 	/* Restrict card's capabilities by what the host can do */
 	mmc->card_caps &= mmc->host_caps;
 
@@ -1771,9 +2902,9 @@ int mmc_startup(struct mmc *mmc)
 			mmc_set_clock(mmc, 25000000);
 	} else {
 		if (mmc->card_caps & MMC_MODE_8BIT) {
-
+			
 			if( (mmc->card_caps & MMC_MODE_DDR_52MHz) ){
-				MMCINFO("mmc 8bit bus ddr!!!!!! \n");
+				MMCINFO("ddr8 \n");
 				/* Set the card to use 8 bit ddr*/
 				err = mmc_switch(mmc, EXT_CSD_CMD_SET_NORMAL,
 						EXT_CSD_BUS_WIDTH,
@@ -1788,17 +2919,17 @@ int mmc_startup(struct mmc *mmc)
 				err = mmc_switch(mmc, EXT_CSD_CMD_SET_NORMAL,
 						EXT_CSD_BUS_WIDTH,
 						EXT_CSD_BUS_WIDTH_8);
-
+	
 				if (err){
 					MMCINFO("mmc switch bus width8 failed\n");
 					return err;
 				}
 				mmc_set_bus_width(mmc, 8);
 			}
-
+			
 		}else if (mmc->card_caps & MMC_MODE_4BIT) {
 			if ( (mmc->card_caps & MMC_MODE_DDR_52MHz) ){
-				MMCINFO("mmc 4 bit bus ddr!!!!!! \n");
+				MMCINFO("ddr4 \n");
 				/* Set the card to use 4 bit ddr*/
 				err = mmc_switch(mmc, EXT_CSD_CMD_SET_NORMAL,
 						EXT_CSD_BUS_WIDTH,
@@ -1819,8 +2950,8 @@ int mmc_startup(struct mmc *mmc)
 				}
 				mmc_set_bus_width(mmc, 4);
 			}
-		}
-
+		}	
+				
 		if( (mmc->card_caps & MMC_MODE_DDR_52MHz) ){
 			mmc->io_mode = MMC_MODE_DDR_52MHz;
 			MMCDBG("mmc mmc->io_mode = %x\n",mmc->io_mode);
@@ -1860,22 +2991,24 @@ int mmc_startup(struct mmc *mmc)
 			(mmc->cid[2] >> 16) & 0xf);
 	}
 
-	MMCINFO("%s\n", mmc->block_dev.vendor);
-	MMCINFO("%s -- 0x%02x-%02x-%02x-%02x-%02x-%02x\n", mmc->block_dev.product,
+	MMCDBG("%s\n", mmc->block_dev.vendor);
+	MMCDBG("%s -- 0x%02x-%02x-%02x-%02x-%02x-%02x\n", mmc->block_dev.product,
 			mmc->cid[0] & 0xff, (mmc->cid[1] >> 24), (mmc->cid[1] >> 16) & 0xff,
 			(mmc->cid[1] >> 8) & 0xff, mmc->cid[1] & 0xff);
-	MMCINFO("%s\n", mmc->block_dev.revision);
+	MMCDBG("%s\n", mmc->block_dev.revision);
 
 	if (IS_SD(mmc)){
-		MMCINFO("MDT m-%d y-%d\n", ((mmc->cid[3] >> 8) & 0xF), (((mmc->cid[3] >> 12) & 0xFF) + 2000));
+		MMCDBG("MDT m-%d y-%d\n", ((mmc->cid[3] >> 8) & 0xF), (((mmc->cid[3] >> 12) & 0xFF) + 2000));
 	} else {
 		if (ext_csd[192] > 4) {
-			MMCINFO("MDT m-%d y-%d\n", ((mmc->cid[3] >> 12) & 0xF),
+			MMCDBG("MDT m-%d y-%d\n", ((mmc->cid[3] >> 12) & 0xF),
 				(((mmc->cid[3] >> 8) & 0xF) < 13) ? (((mmc->cid[3] >> 8) & 0xF) + 2013) : (((mmc->cid[3] >> 8) & 0xF) + 1997));
 		} else {
-			MMCINFO("MDT m-%d y-%d\n", ((mmc->cid[3] >> 12) & 0xF), (((mmc->cid[3] >> 8) & 0xF) + 1997));
+			MMCDBG("MDT m-%d y-%d\n", ((mmc->cid[3] >> 12) & 0xF), (((mmc->cid[3] >> 8) & 0xF) + 1997));
 		}
 	}
+
+    MMCINFO("CID 0x%x 0x%x 0x%x 0x%x\n",mmc->cid[0],mmc->cid[1],mmc->cid[2],mmc->cid[3]);
 
     /*printf("---------------ext_csd[192] = %d--------------\n", ext_csd[192]);*/
 	if(!IS_SD(mmc)){
@@ -1922,12 +3055,12 @@ int mmc_startup(struct mmc *mmc)
 
 	mmc->clock_after_init = mmc->clock;//back up clock after mmc init
 
-	MMCINFO("---------------mmc->clock %d-----------\n", mmc->clock);
-	MMCINFO("---------------mmc->bus_width %d--------------\n", mmc->bus_width);
-	MMCINFO("SD/MMC Card: %dbit, capacity: %ldMB\n",mmc->card_caps & MMC_MODE_4BIT ? 4 : 1, mmc->block_dev.lba>>11);
+	MMCINFO("mmc clk %d\n", mmc->clock);
+	//MMCINFO("---mmc bus_width %d---\n", mmc->bus_width);
+	MMCINFO("SD/MMC Card: %dbit, capacity: %ldMB\n",(mmc->card_caps & MMC_MODE_8BIT)?8:(mmc->card_caps & MMC_MODE_4BIT ? 4 : 1), mmc->block_dev.lba>>11);
 	MMCINFO("boot0 capacity: %dKB,boot1 capacity: %dKB\n"
 						,mmc->boot1_lba*512/1024,mmc->boot2_lba*512/1024);
-	MMCINFO("************SD/MMC %d init OK!!!************\n",mmc->control_num);
+	MMCINFO("***SD/MMC %d init OK!!!***\n",mmc->control_num);
 	//init_part(&mmc->block_dev);
 
 	return 0;
@@ -1971,20 +3104,37 @@ int mmc_register(struct mmc *mmc)
 	mmc->block_dev.block_read 	= mmc_bread;
 	mmc->block_dev.block_write 	= mmc_bwrite;
 	mmc->block_dev.block_erase 	= mmc_berase;
+	mmc->block_dev.block_secure_wipe = mmc_secure_wipe;
 	mmc->block_dev.block_read_mass_pro  = mmc_bread_mass_pro;
 	mmc->block_dev.block_write_mass_pro = mmc_bwrite_mass_pro;
+	//mmc->block_dev.block_erase_mass_pro = mmc_berase_mass_pro;
 	mmc->block_dev.block_read_secure 	= NULL;
 	mmc->block_dev.block_write_secure	= NULL;
 	mmc->block_dev.block_get_item_secure= NULL;
+
+	mmc->block_dev.block_mmc_erase = mmc_mmc_erase;
+	mmc->block_dev.block_mmc_trim = mmc_mmc_trim;
+	mmc->block_dev.block_mmc_discard = mmc_mmc_discard;
+	mmc->block_dev.block_mmc_sanitize = mmc_mmc_sanitize;
+	mmc->block_dev.block_mmc_secure_erase = mmc_mmc_secure_erase;
+	mmc->block_dev.block_mmc_secure_trim = mmc_mmc_secure_trim;
 #else
 	mmc->block_dev.block_read 	= mmc_bread_secure;
 	mmc->block_dev.block_write 	= mmc_bwrite_secure;
 	mmc->block_dev.block_erase 	= mmc_berase_secure;
+	mmc->block_dev.block_secure_wipe    = mmc_secure_wipe_secure;
 	mmc->block_dev.block_read_mass_pro  = mmc_bread_mass_pro_secure;
 	mmc->block_dev.block_write_mass_pro = mmc_bwrite_mass_pro_secure;
 	mmc->block_dev.block_read_secure 	= sdmmc_secure_storage_read;
 	mmc->block_dev.block_write_secure	= sdmmc_secure_storage_write;
 	mmc->block_dev.block_get_item_secure= get_sdmmc_secure_storage_max_item;
+
+	mmc->block_dev.block_mmc_erase = mmc_mmc_erase_secure;
+	mmc->block_dev.block_mmc_trim = mmc_mmc_trim_secure;
+	mmc->block_dev.block_mmc_discard = mmc_mmc_discard_secure;
+	mmc->block_dev.block_mmc_sanitize = mmc_mmc_sanitize_secure;
+	mmc->block_dev.block_mmc_secure_erase = mmc_mmc_secure_erase_secure;
+	mmc->block_dev.block_mmc_secure_trim = mmc_mmc_secure_trim_secure;
 #endif
 
 	if (!mmc->b_max)
@@ -3982,7 +5132,7 @@ static int sunxi_exe_tuning(struct mmc *mmc)
 //	mmc_set_clock(mmc, mmc->clock_after_init);//recover clock when init ok
 	//set clock for burn fireware
 	mmc_set_clock(mmc, tuning_freqs[0]);
-	MMCINFO("---------------mmc->clock %d-----------\n", mmc->clock);
+	MMCINFO("---------------mmc clock %d-----------\n", mmc->clock);
 	ret = 0;
 out:
 	return ret;
@@ -4070,7 +5220,7 @@ retry:
 		if(!sunxi_need_rty(mmc)){
 			goto retry;
 		}
-		MMCINFO("************Try MMC card %d************\n",mmc->control_num);
+		MMCINFO("*Try MMC card %d*\n",mmc->control_num);
 		err = mmc_send_op_cond(mmc);
 		if(err && !sunxi_need_rty(mmc)){
 			goto retry;
@@ -4078,14 +5228,14 @@ retry:
 
 		if (err) {
 			MMCINFO("Card did not respond to voltage select!\n");
-			MMCINFO("************SD/MMC %d init error!!!************\n",mmc->control_num);
+			MMCINFO("*SD/MMC %d init error!*\n",mmc->control_num);
 			return UNUSABLE_ERR;
 		}
 	}
 
 	err = mmc_startup(mmc);
 	if (err){
-		MMCINFO("************SD/MMC %d init error!!!************\n",mmc->control_num);
+		MMCINFO("*SD/MMC %d init error!*\n",mmc->control_num);
 		mmc->has_init = 0;
 	}
 	else{
@@ -4146,7 +5296,7 @@ static int mmc_init_boot(struct mmc *mmc)
 	/* The internal partition reset to user partition(0) at every CMD0*/
 	mmc->part_num = 0;
 
-	MMCINFO("************Try SD card %d************\n",mmc->control_num);
+	MMCINFO("*Try SD card %d*\n",mmc->control_num);
 	/* Test for SD version 2 */
 	err = mmc_send_if_cond(mmc);
 
@@ -4155,18 +5305,18 @@ static int mmc_init_boot(struct mmc *mmc)
 
 	/* If the command timed out, we check for an MMC card */
 	if (err == -1){
-		MMCINFO("************Try MMC card %d************\n",mmc->control_num);
+		MMCINFO("*Try MMC card %d*\n",mmc->control_num);
 		err = mmc_send_op_cond(mmc);
 		if (err) {
 			MMCINFO("Card did not respond to voltage select!\n");
-			MMCINFO("************SD/MMC %d init error!!!************\n",mmc->control_num);
+			MMCINFO("***SD/MMC %d init error!!!***\n",mmc->control_num);
 			return UNUSABLE_ERR;
 		}
 	}
 
 	err = mmc_startup(mmc);
 	if (err){
-		MMCINFO("************SD/MMC %d init error!!!************\n",mmc->control_num);
+		MMCINFO("*SD/MMC %d init error!!*\n",mmc->control_num);
 		mmc->has_init = 0;
 	}
 	else{
@@ -4204,12 +5354,10 @@ static int mmc_init_boot(struct mmc *mmc)
 	return err;
 }
 
-
-
-
 int mmc_init(struct mmc *mmc)
 {
 	int work_mode = uboot_spare_head.boot_data.work_mode;
+	int ret = 0;
 
 #if defined(CONFIG_ARCH_SUN9IW1P1)
 	if(gd->securemode == SUNXI_SECURE_MODE_NO_SECUREOS)
@@ -4241,8 +5389,37 @@ int mmc_init(struct mmc *mmc)
 		&&(work_mode != WORK_MODE_BOOT)){
 		return mmc_init_product(mmc);
 	}
+	ret = mmc_init_boot(mmc);
 
-	return mmc_init_boot(mmc);
+	if (mmc->drv_wipe_feature & DRV_PARA_DISABLE_EMMC_SANITIZE)
+		mmc->secure_feature &= (~EXT_CSD_SEC_SANITIZE);
+	else if (mmc->drv_wipe_feature & DRV_PARA_DISABLE_EMMC_SECURE_PURGE)
+		mmc->secure_feature &= (~EXT_CSD_SEC_ER_EN);
+	else if (mmc->drv_wipe_feature & DRV_PARA_DISABLE_EMMC_TRIM)
+		mmc->secure_feature &= (~EXT_CSD_SEC_GB_CL_EN);
+
+	//MMCINFO("========================================\n");
+	//MMCINFO("mmc->block_dev.lba:      %d Sectors\n", mmc->block_dev.lba);
+	//MMCINFO("wr_blk_len:              0x%x Byte\n", mmc->write_bl_len);
+	MMCINFO("erase_grp_size:0x%xWrBlk * 0x%x = 0x%x Byte\n",
+			mmc->erase_grp_size, mmc->write_bl_len, mmc->erase_grp_size*mmc->write_bl_len);
+	//MMCINFO("erase_to:                %d ms\n", mmc->erase_timeout);
+	//MMCINFO("trim_discard_to:         %d ms\n", mmc->trim_discard_timeout);
+	//MMCINFO("secure_tirm_to:          %d ms\n", mmc->secure_erase_timeout);
+	//MMCINFO("secure_erase_to:         %d ms\n", mmc->secure_trim_timeout);
+	
+    
+    MMCDBG("support sanitze:         %d \n", mmc->secure_feature & EXT_CSD_SEC_SANITIZE);
+	MMCDBG("support trim:            %d \n", mmc->secure_feature & EXT_CSD_SEC_GB_CL_EN);
+	MMCDBG("support secure purge op: %d \n", mmc->secure_feature & EXT_CSD_SEC_ER_EN);
+	MMCDBG("secure removal type:     0x%x\n", mmc->secure_removal_type);
+	
+    MMCINFO("secure_feature 0x%x\n", mmc->secure_feature);
+    MMCINFO("secure_removal_type  0x%x\n", mmc->secure_removal_type);
+
+    //MMCINFO("========================================\n\n");
+
+	return ret;
 }
 
 
@@ -4365,6 +5542,9 @@ int mmc_exit(void)
 		//MMCINFO("************SD/MMC %d init OK!!!************\n",mmc->control_num);
 	}
 */
+
+	sunxi_mmc_exit(sdc_no);
+	
 	MMCINFO("mmc %d exit ok\n",mmc->control_num);
 	return err;
 }

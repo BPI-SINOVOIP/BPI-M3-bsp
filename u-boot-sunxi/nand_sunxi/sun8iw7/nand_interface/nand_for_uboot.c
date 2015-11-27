@@ -45,9 +45,9 @@ extern int  mbr_burned_flag;
 
 static int  nand_open_times;
 
-int nand_get_mbr(char* buffer, uint len)
+ int nand_get_mbr(char* buffer, uint len)
 {
-	int i;
+	int i,j;
 
 	sunxi_mbr_t *mbr = (sunxi_mbr_t *)buffer;
 
@@ -55,31 +55,42 @@ int nand_get_mbr(char* buffer, uint len)
     nand_mbr.array[0].addr = 0;
     nand_mbr.array[0].len = 32*1024;
     nand_mbr.array[0].user_type = 0x8000;
+    nand_mbr.array[0].classname[0] = 'm';
+    nand_mbr.array[0].classname[1] = 'b';
+    nand_mbr.array[0].classname[2] = 'r';
+    nand_mbr.array[0].classname[3] = '\0';
 
     for(i=1; i<nand_mbr.PartCount; i++)
     {
+        for(j=0;j<16;j++)
+            nand_mbr.array[i].classname[j] = mbr->array[i-1].name[j];
+
     	nand_mbr.array[i].addr = nand_mbr.array[i-1].addr + nand_mbr.array[i-1].len;
 	    nand_mbr.array[i].len = mbr->array[i-1].lenlo;
 	    nand_mbr.array[i].user_type =mbr->array[i-1].user_type;
 	    if(i == 1)
 	    	nand_mbr.array[0].user_type = nand_mbr.array[1].user_type;
     }
+
+    for(j=0;j<16;j++)
+        nand_mbr.array[nand_mbr.PartCount-1].classname[j] = mbr->array[nand_mbr.PartCount-2].name[j];
+
     nand_mbr.array[nand_mbr.PartCount-1].addr = nand_mbr.array[nand_mbr.PartCount-2].addr + nand_mbr.array[nand_mbr.PartCount-2].len;
     nand_mbr.array[nand_mbr.PartCount-1].len = 0;
-    nand_mbr.array[nand_mbr.PartCount-1].user_type = 0x0;
+    //nand_mbr.array[nand_mbr.PartCount-1].user_type = 0x0;
 
     //for DEBUG
     {
     	printf("total part: %d\n", nand_mbr.PartCount);
     	for(i=0; i<nand_mbr.PartCount; i++)
     	{
-    		printf("%d, %x, %x\n", i, nand_mbr.array[i].len, nand_mbr.array[i].user_type);
+    		printf("%s %d, %x, %x\n",nand_mbr.array[i].classname,i, nand_mbr.array[i].len, nand_mbr.array[i].user_type);
     	}
-
     }
 
 	return 0;
 }
+
 
 int nand_uboot_init(int boot_mode)
 {

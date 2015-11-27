@@ -31,7 +31,10 @@
 #include "spare_head.h"
 #include "private_boot0.h"
 #include "private_uboot.h"
-#include "mmc.h"
+#include <asm/arch/mmc_boot0.h>
+
+extern __s32 check_magic( __u32 *mem_base, const char *magic );
+extern __s32 check_sum( __u32 *mem_base, __u32 size );
 
 extern const boot0_file_head_t  BT0_head;
 
@@ -44,6 +47,9 @@ typedef struct _boot_sdcard_info_t
 	__s32 				speed_mode[4];                //卡的速度模式，0：低速，其它：高速
 	__s32				line_sel[4];                  //卡的线制，0: 1线，其它，4线
 	__s32				line_count[4];                //卡使用线的个数
+	__s32  	        	sdc_2xmode[4];
+	__s32		        ddrmode[4];
+        __s32                   sdc_f_max[4];        
 }
 boot_sdcard_info_t;
 
@@ -78,12 +84,12 @@ __s32 load_boot1_from_sdmmc( char *buf)
 
 			goto __card_op_fail__;
 		}
-		printf("sdcard %d line count %d\n", card_no, sdcard_info->line_count[i] );
-		if(!sdcard_info->line_count[i])
+		printf("sdcard %d line count %d\n", card_no, sdcard_info->line_sel[i] );
+		if(!sdcard_info->line_sel[i])
 		{
-			sdcard_info->line_count[i] = 4;
+			sdcard_info->line_sel[i] = 4;
 		}
-		if( sunxi_mmc_init( card_no, sdcard_info->line_count[i], BT0_head.prvt_head.storage_gpio, 16 ) == -1)   //高速卡，4线配置
+		if( sunxi_mmc_init( card_no, sdcard_info->line_sel[i], BT0_head.prvt_head.storage_gpio, 16 ,(void *)(sdcard_info)) == -1)   //高速卡，4线配置
 		{
 			printf("Fail in Init sdmmc.\n");
 			goto __card_op_fail__;

@@ -257,22 +257,17 @@ int sprite_form_sysrecovery(void)
 	ret = card_part_info(&img_start, &part_size, "data");
 	if (ret)
 	{
-		printf("sprite update error: no data part\n");
-		ret = card_part_info(&img_start, &part_size, "UDISK");
-		if(ret)
-		{
-			printf("sprite update error: no udisk part\n");
-		}
+		printf("sprite update error: no data part found\n");
 	}
-	if(!ret)
+	else
 	{
 		__u32 tmp_size;
 		__u32 tmp_start;
 
 		tmp_start = img_start;
 		tmp_size = part_size;
-		printf("part size=%d\n", tmp_size);
-		printf("begin erase part\n");
+		printf("data part size=%d\n", tmp_size);
+		printf("begin erase part data\n");
 		memset(src_buf, 0xff, 1024 * 1024);
 #if 0
 		while (tmp_size >= 1024 * 1024)
@@ -288,7 +283,7 @@ int sprite_form_sysrecovery(void)
 #else
 		sunxi_flash_write(tmp_start, 1024 * 1024/512, src_buf);
 #endif
-		printf("finish erase part\n");
+		printf("finish erase part data\n");
 	}
 	
 	/* dl info 获取内存空间 */

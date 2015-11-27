@@ -2,18 +2,23 @@
 
 static __s32 is_hdmi;
 static __s32 is_yuv;
+__s32 is_exp = 0;
 __u32		rgb_only = 0;
 __u8		EDID_Buf[1024];
 __u8 		Device_Support_VIC[512];
 
+static __u8 exp0[16] =
+{
+	0x36,0x74,0x4d,0x53,0x74,0x61,0x72,0x20,0x44,0x65,0x6d,0x6f,0x0a,0x20,0x20,0x38
+};
+
+static __u8 exp1[16] =
+{
+	0x2d,0xee,0x4b,0x4f,0x4e,0x41,0x4b,0x20,0x54,0x56,0x0a,0x20,0x20,0x20,0x20,0xa5
+};
+
 void DDC_Init(void)
 {
-	unsigned int reg_val;
-	__inf("DDC_Init\n");
-	reg_val = *((volatile unsigned int*)((0x01c20800) + 0xfc)); //pin
-  reg_val &= 0x000fffff;
-  reg_val |= 0x22200000;
-  *(volatile unsigned int *)((0x01c20800) + 0xfc) = reg_val;
 }
 /*
 void send_ini_sequence()
@@ -231,6 +236,8 @@ static __s32 Parse_AudioData_Block(__u8 *pbuf,__u8 size)
 static __s32 Parse_HDMI_VSDB(__u8 * pbuf,__u8 size)
 {
 	__u8 index = 8;
+	__u8 vic_len = 0;
+	__u8 i;
 
 	/* check if it's HDMI VSDB */
 	if((pbuf[0] ==0x03) &&	(pbuf[1] ==0x0c) &&	(pbuf[2] ==0x00)) {
@@ -263,6 +270,13 @@ static __s32 Parse_HDMI_VSDB(__u8 * pbuf,__u8 size)
 	if( ((pbuf[index]&0x60) ==1) || ((pbuf[index]&0x60) ==2) )
 		__inf("3D_multi_present\n");
 
+	vic_len = pbuf[index+1]>>5;
+	for(i=0; i<vic_len; i++) {
+		/* HDMI_VIC for extended resolution transmission */
+		Device_Support_VIC[pbuf[index+1+1+i] + 0x100] = 1;
+		__inf("Parse_HDMI_VSDB: VIC %d support\n", pbuf[index+1+1+i]);
+	}
+
 	index += (pbuf[index+1]&0xe0) + 2;
 	if(index > (size+1) )
 	    return 0;
@@ -271,6 +285,27 @@ static __s32 Parse_HDMI_VSDB(__u8 * pbuf,__u8 size)
 
 	return 0;
 }
+
+static __s32 Check_EDID(__u8 *buf_src, __u8*buf_dst)
+{
+	__u32 i;
+
+	for(i = 0; i < 2; i++)
+	{
+		if(buf_dst[i] != buf_src[8+i])
+			return -1;
+	}
+	for(i = 0; i < 13; i++)
+	{
+		if(buf_dst[2+i] != buf_src[0x5f+i])
+			return -1;
+	}
+	if(buf_dst[15] != buf_src[0x7f])
+		return -1;
+
+	return 0;
+}
+
 
 __s32 ParseEDID(void)
 {
@@ -284,6 +319,7 @@ __s32 ParseEDID(void)
 	memset(EDID_Buf,0,sizeof(EDID_Buf));
 	is_hdmi = 0;
 	is_yuv = 0;
+	is_exp = 0;
 	DDC_Init();
 
 	GetEDIDData(0, EDID_Buf);
@@ -302,6 +338,13 @@ __s32 ParseEDID(void)
 	Parse_DTD_Block(EDID_Buf + 0x48);
 
 	BlockCount = EDID_Buf[0x7E];
+
+	if((Check_EDID(EDID_Buf,exp0) == 0)||
+		(Check_EDID(EDID_Buf,exp1) == 0))
+	{
+		printf("*****************is_exp*****************\n");
+		is_exp = 1;
+	}
 
 	if( BlockCount > 0 ) {
 		if ( BlockCount > 4 )

@@ -44,7 +44,7 @@ unsigned int go_exec (u32 run_addr, u32 para_addr, int out_secure)
 
 		if(!boot_type)
 		{
-			boot_type = 1;
+			boot_type = 1;			
 		}
 		else if(boot_type == 1)
 		{
@@ -53,7 +53,7 @@ unsigned int go_exec (u32 run_addr, u32 para_addr, int out_secure)
 			//char  storage_data[384];  // 0-159,存储nand信息；160-255,存放卡信息^M
 			set_mmc_para(2,(void *)(toc0_config->storage_data+160));
 		}
-
+		
 		printf("storage_type=%d\n", boot_type);
 		bfh->boot_data.storage_type = boot_type;
 		bfh->boot_data.secureos_exist = 1;

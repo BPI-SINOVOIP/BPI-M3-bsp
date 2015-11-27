@@ -80,8 +80,8 @@ EXPORT_FUNC(sprintf)
 #ifndef CONFIG_SUNXI_SPINOR_PLATFORM
 EXPORT_FUNC(do_fat_fsload)
 EXPORT_FUNC(fat_fsload_file)
+EXPORT_FUNC(do_go)
 #endif
 EXPORT_FUNC(flush_cache)
-EXPORT_FUNC(do_go)
 
 

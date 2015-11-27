@@ -41,12 +41,17 @@
 #include <sys_config.h>
 #include <private_boot0.h>
 #define  SPRITE_CARD_HEAD_BUFF		   (32 * 1024)
+#if defined (CONFIG_SUNXI_SPINOR)
+#define  SPRITE_CARD_ONCE_DATA_DEAL    (2 * 1024 * 1024)
+#else
 #define  SPRITE_CARD_ONCE_DATA_DEAL    (16 * 1024 * 1024)
+#endif
 #define  SPRITE_CARD_ONCE_SECTOR_DEAL  (SPRITE_CARD_ONCE_DATA_DEAL/512)
 
 static void *imghd = NULL;
 static void *imgitemhd = NULL;
 
+//extern int sunxi_flash_mmc_phywipe(unsigned long start_block, unsigned long nblock, unsigned long *skip);
 static int __download_normal_part(dl_one_part_info *part_info,  uchar *source_buff);
 /*
 ************************************************************************************************************
@@ -1088,7 +1093,10 @@ int card_erase(int erase, void *mbr_buffer)
 	unsigned int erase_head_addr;
 	unsigned int erase_tail_sectors;
 	unsigned int erase_tail_addr;
-	int  i;
+	unsigned int skip_space[1+2*2]={0};
+	unsigned int from, nr;
+	int k, ret = 0;
+	int i;
 
 	//tick_printf("erase all part start\n");
 	if(!erase)
@@ -1104,7 +1112,7 @@ int card_erase(int erase, void *mbr_buffer)
 	}
 	memset(erase_buffer, 0, CARD_ERASE_BLOCK_BYTES);
 
-	//erase boot0,write 0x00
+	//erase boot0,write 0x00   
 	card_download_boot0(32 * 1024, erase_buffer);
 	printf("erase boot0, size:32k, write 0x00\n");
 
@@ -1140,32 +1148,62 @@ int card_erase(int erase, void *mbr_buffer)
 			erase_head_sectors = CARD_ERASE_BLOCK_SECTORS;
 			erase_head_addr = mbr->array[i].addrlo;
 			erase_tail_sectors = 0;
-			erase_tail_addr = mbr->array[i].addrlo;
+			erase_tail_addr = mbr->array[i].addrlo;	
 		}
 
-		// erase head for partition
-		if(!sunxi_sprite_write(erase_head_addr, erase_head_sectors, erase_buffer))
+		from = mbr->array[i].addrlo + CONFIG_MMC_LOGICAL_OFFSET;
+		nr = mbr->array[i].lenlo;
+		ret = sunxi_sprite_mmc_phyerase(from, nr, skip_space);
+		if (ret == 0)
 		{
-			printf("card erase fail in erasing part %s\n", mbr->array[i].name);
-			free(erase_buffer);
-			return -1;
+			//printf("erase part from sector 0x%x to 0x%x ok\n", from, (from+nr-1));
 		}
-		printf("erase prat's head from sector 0x%x to 0x%x\n", erase_head_addr, erase_head_addr + erase_head_sectors);
-
-		// erase tail for partition
-		if (erase_tail_sectors)
+		else if (ret == 1)
 		{
-			if(!sunxi_sprite_write(erase_tail_addr, erase_tail_sectors, erase_buffer))
+			for (k=0; k<2; k++)
+			{
+				if (skip_space[0] & (1<<k)) {
+					printf("write zeros-%d: from 0x%x to 0x%x\n", k, skip_space[2*k+1],
+						(skip_space[2*k+1]+skip_space[2*k+2]-1));
+					from = skip_space[2*k+1];
+					nr = skip_space[2*k+2];
+					if(!sunxi_sprite_mmc_phywrite(from, nr, erase_buffer))
+					{
+						printf("card erase fail in erasing part %s\n", mbr->array[i].name);
+						free(erase_buffer);
+						return -1;
+					}
+				}
+			}
+		}
+		else if (ret == -1)
+		{
+			// erase head for partition
+			if(!sunxi_sprite_write(erase_head_addr, erase_head_sectors, erase_buffer))
 			{
 				printf("card erase fail in erasing part %s\n", mbr->array[i].name);
 				free(erase_buffer);
 				return -1;
 			}
-			printf("erase part's tail from sector 0x%x to 0x%x\n", erase_tail_addr, erase_tail_addr + erase_tail_sectors);
+			printf("erase prat's head from sector 0x%x to 0x%x\n", erase_head_addr, erase_head_addr + erase_head_sectors);
+
+			// erase tail for partition
+			if (erase_tail_sectors)
+			{
+				if(!sunxi_sprite_write(erase_tail_addr, erase_tail_sectors, erase_buffer))
+				{
+					printf("card erase fail in erasing part %s\n", mbr->array[i].name);
+					free(erase_buffer);
+					return -1;
+				}
+				printf("erase part's tail from sector 0x%x to 0x%x\n", erase_tail_addr, erase_tail_addr + erase_tail_sectors);
+			}
 		}
 	}
 	printf("card erase all\n");
 	free(erase_buffer);
+
+	//while((*(volatile unsigned int *)0) != 1);
 	//tick_printf("erase all part end\n");
 	return 0;
 }
@@ -1271,7 +1309,7 @@ int sunxi_card_fill_boot0_magic(void)
 	struct mmc *mmc0;
 	char  debug_info[1024];
 	int ret = -1;
-
+	
 	puts("probe mmc0 if exist\n");
 	memset(debug_info, 0, 1024);
 	board_mmc_pre_init(0);
@@ -1326,7 +1364,7 @@ int sunxi_card_fill_boot0_magic(void)
 	if(mmc0->block_dev.block_write_mass_pro(mmc0->block_dev.dev, 16, BOOT0_MAX_SIZE/512, buffer) != BOOT0_MAX_SIZE/512)
 	{
 		strcpy(debug_info, "write mmc boot0 failed");
-
+		
 		goto __sunxi_card_fill_boot0_magic_exit;
 	}
 
@@ -1386,7 +1424,7 @@ int sunxi_sprite_deal_part_from_sysrevoery(sunxi_download_info *dl_map)
 
 		return -1;
 	}
-*/
+*/	
  	//…Í«Îƒ⁄¥Ê
     down_buff = (uchar *)malloc(SPRITE_CARD_ONCE_DATA_DEAL + SPRITE_CARD_HEAD_BUFF);
     if(!down_buff)
@@ -1512,7 +1550,7 @@ static int __download_fullimg_part(uchar *source_buff)
 
     int  ret = -1;
     tmp_partstart_by_sector = 0;
-    imgitemhd = Img_OpenItem(imghd, "12345678", "FULLIMG_00000000");
+    imgitemhd = Img_OpenItem(imghd, "12345678", "FULLIMG_00000000");        
     if(!imgitemhd)
     {
         printf("sunxi sprite error: open part FULLIMG failed\n");

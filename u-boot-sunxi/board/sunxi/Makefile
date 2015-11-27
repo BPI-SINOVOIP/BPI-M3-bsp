@@ -31,6 +31,7 @@ COBJS-y	+= board_common.o
 COBJS-y += power_probe.o
 COBJS-y	+= de.o
 COBJS-y += usb_probe.o
+COBJS-$(CONFIG_USE_UBOOT_SERIALNO) += sunxi_serial.o
 
 ifndef CONFIG_SUNXI_SPINOR_PLATFORM
 COBJS-y += load_check.o

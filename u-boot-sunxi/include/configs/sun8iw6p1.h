@@ -48,17 +48,19 @@
 //#define CONFIG_A73_FPGA
 #define CONFIG_ARCH_SUN8IW6
 #define CONFIG_ARCH_SUN8IW6P1
-
-#define CONFIG_ARCH_HOMELET
-
+#define CONFIG_USE_UBOOT_SERIALNO
+#define SUNXI_SID_VBASE                 (0X01C14000)
 #define CONFIG_NO_BOOT_STANDBY
 #define CONFIG_VECTOR_BY_CP15
 #define CONFIG_BOOT_WITH_SECUREOS
+#define CONFIG_SUNXI_SECURE_STORAGE
 #define CONFIG_SUNXI_SECURE_SYSTEM
+#define CONFIG_SUNXI_HDCP_IN_SECURESTORAGE
 //#define FORCE_BOOT_STANDBY
 #undef FORCE_BOOT_STANDBY
 #define CONFIG_SYS_SDRAM_BASE		     (0x40000000)
 #define CONFIG_SYS_TEXT_BASE		     (0x4A000000)
+#define CONFIG_SYS_OBLIGATE_BASE         (0xF0000000)
 // the sram base address, and the stack address in stage1
 #define CONFIG_SYS_INIT_RAM_ADDR	     (0)
 #define CONFIG_SYS_INIT_RAM_SIZE	     0x00007d00
@@ -137,6 +139,9 @@
 #define BOOT_PUB_HEAD_VERSION           "1100"
 #define EGON_VERSION                    "1100"
 
+#define CONFIG_STORAGE_MEDIA_NAND
+#define CONFIG_STORAGE_MEDIA_MMC
+
 #define SUNXI_DRAM_PARA_MAX              32
 
 #define CONFIG_BOOT0_STACK_BOTTOM        (0x53ff0)
@@ -183,15 +188,8 @@
 
 #define CONFIG_SUNXI_AXP
 #if defined(CONFIG_ARCH_HOMELET)
-	#define CONFIG_SUNXI_I2C		//cvbs used twi1(i2c)
-	#define CONFIG_SYS_I2C_SPEED 400000
-	#define CONFIG_SYS_I2C_SLAVE 0x68
-
 	#define CONFIG_CPUS_STANDBY		//cpus standby for box
-
-	#define USE_AW_FAT
 #endif
-#define POWER_CONFIG_SUNXI_RSB	//axp communication bus
 #define CONFIG_SUNXI_AXP81X
 #define CONFIG_SUNXI_AXP_MAIN        PMU_TYPE_81X
 #define PMU_SCRIPT_NAME                 "pmu1_para"
@@ -246,6 +244,7 @@
 #define CONFIG_STORAGE_EMMC
 #define CONFIG_MMC_LOGICAL_OFFSET   (20 * 1024 * 1024/512)
 #define USE_EMMC_BOOT_PART
+#define USE_EMMC_USER_WHEN_USE_BOOT_PART //use eMMC boot and user part at the same time,if you want to use it,use USE_EMMC_BOOT_PART at the same time
 
 #define CONFIG_DOS_PARTITION
 /*

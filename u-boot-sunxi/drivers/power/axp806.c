@@ -63,18 +63,19 @@ int axp806_probe(void)
     pmu_type &= 0xCF;
 	if(pmu_type == 0x40)
 	{
-                u8 data = 0;
+		u8 data = 0;
 		/* pmu type AXP806 */
 		tick_printf("PMU: AXP806\n");
-                if(axp_i2c_read(AXP806_ADDR,BOOT_POWER806_DCFREQ_SET,&data))
-                {
-                    printf("axp 806 read DCFREQ error\n");
-                    return -1;
-                }
-                data &= (~(0x3 << 4));
-                data |= (0x2 << 4);
-              axp_i2c_write(AXP806_ADDR,BOOT_POWER806_DCFREQ_SET,data);
-                debug("PMU : data is %x\n",data);
+		if(axp_i2c_read(AXP806_ADDR,BOOT_POWER806_DCFREQ_SET,&data))
+		{
+		    printf("axp 806 read DCFREQ error\n");
+		    return -1;
+		}
+		data &= (~(0x3 << 4));
+		data |= (0x2 << 4);
+		axp_i2c_write(AXP806_ADDR,BOOT_POWER806_DCFREQ_SET,data);
+		debug("PMU : data is %x\n",data);
+
 		return 0;
 	}
 

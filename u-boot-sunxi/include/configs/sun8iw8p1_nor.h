@@ -56,9 +56,9 @@
 #define CONFIG_ARCH_SUN8IW8P1
 
 //#define FORCE_BOOT_STANDBY
-#undef FORCE_BOOT_STANDBY
+#define CONFIG_NO_BOOT_STANDBY
 #define CONFIG_SYS_SDRAM_BASE		     (0x40000000)
-#define CONFIG_SYS_TEXT_BASE		     (0x4A000000)
+#define CONFIG_SYS_TEXT_BASE		     (0x40900000)
 // the sram base address, and the stack address in stage1
 #define CONFIG_SYS_INIT_RAM_ADDR	     (0x00000000)
 #define CONFIG_SYS_INIT_RAM_SIZE	     (0x00008000) //0x00048000
@@ -73,13 +73,13 @@
 #define PHYS_SDRAM_1_SIZE			(512 << 20)				/* 0x20000000, 512 MB Bank #1 */
 
 #define CONFIG_NONCACHE_MEMORY
-#define CONFIG_NONCACHE_MEMORY_SIZE (16 * 1024 * 1024)
+#define CONFIG_NONCACHE_MEMORY_SIZE (1 * 1024 * 1024)
 /*
  * define malloc space
  * Size of malloc() pool
  * 1MB = 0x100000, 0x100000 = 1024 * 1024
  */
-#define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + (64 << 20))
+#define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + (20 << 20))
 
 
 
@@ -92,24 +92,31 @@
 /*
 * define all parameters
 */
+//define storage in boot0 
+#define CONFIG_STORAGE_MEDIA_SPINOR
+#define CONFIG_STORAGE_MEDIA_MMC
+
+#define UBOOT_START_SECTOR_IN_SPINOR     (24*1024/512)
 #define CONFIG_STANDBY_RUN_ADDR          (0x1000)
 #define BOOT_STANDBY_DRAM_PARA_ADDR      (0xf00)
 
 #define MMU_BASE_ADDRESS		 	     (0x8000)
+#define BOOT0_SYS_MMU_BASE                            (0x8000)          
 
 #define SUNXI_RUN_EFEX_ADDR			     (0x01c20400 + 0x108)
 
-#define CONFIG_VIDEO_SUNXI_V2
 
 #define DRAM_PARA_STORE_ADDR		     (CONFIG_SYS_SDRAM_BASE + 0x00800000)
 
 #define SYS_CONFIG_MEMBASE               (CONFIG_SYS_SDRAM_BASE + 0x03000000)
+#define CONFIG_SMALL_MEMSIZE                    
 
-//#define CONFIG_SUNXI_LOGBUFFER
+#define CONFIG_SUNXI_LOGBUFFER
+#define CONFIG_READ_LOGO_FOR_KERNEL
 #define SUNXI_DISPLAY_FRAME_BUFFER_ADDR  (CONFIG_SYS_SDRAM_BASE + 0x06400000)
 #define SUNXI_DISPLAY_FRAME_BUFFER_SIZE  0x01000000
 
-#define FEL_BASE                         0xFFFF4020
+#define FEL_BASE                         0xFFFF0020
 /*
 * define const value
 */
@@ -127,6 +134,32 @@
 
 #define MEMCPY_TEST_DST                  (CONFIG_SYS_SDRAM_BASE)
 #define MEMCPY_TEST_SRC                  (CONFIG_SYS_SDRAM_BASE + 0x06000000)
+/****************************************************************************************/
+/*																						*/
+/*      the fowllowing defines are used in sbrom                                        */
+/*																						*/
+/****************************************************************************************/
+#define BOOT_PUB_HEAD_VERSION           "1100"
+#define EGON_VERSION                    "1100"
+
+#define SUNXI_DRAM_PARA_MAX              32
+
+#define CONFIG_BOOT0_STACK_BOTTOM        (0x8000)
+
+#define CONFIG_SYS_SRAM_BASE             (0x0000)
+//#define CONFIG_SYS_SRAMA2_BASE           (0x44000)
+//#define CONFIG_SYS_SRAMA2_SIZE           (0x8000)
+
+#define CONFIG_STACK_BASE                (CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_RAM_SIZE + CONFIG_SYS_SRAM_C_SIZE - 0x10)
+
+#define CONFIG_HEAP_BASE                 (CONFIG_SYS_SDRAM_BASE + 0x800000)
+#define CONFIG_HEAP_SIZE                 (16 * 1024 * 1024)
+
+#define CONFIG_BOOT0_RET_ADDR            (CONFIG_SYS_SRAM_BASE)
+#define CONFIG_BOOT0_RUN_ADDR            (0x0000)
+
+#define CONFIG_FES1_RET_ADDR             (CONFIG_SYS_SRAM_BASE + 0x7210)
+#define CONFIG_FES1_RUN_ADDR             (0x2000)
 /***************************************************************
 *
 * all the config command
@@ -292,5 +325,24 @@
 #define CONFIG_CMD_BOOTA		/* boot android image */
 #define CONFIG_CMD_RUN			/* run a command */
 #define CONFIG_CMD_BOOTD		/* boot the default command */
+
+/* Configuaration of Network and net-driver */
+#define CONFIG_CMD_NET
+#define CONFIG_NET_MULTI
+#define CONFIG_SUNXI_GETH
+
+//#define CONFIG_CMD_NFS		/* NFS support                  */
+#define CONFIG_CMD_DHCP                /* DHCP Support                 */
+//#define CONFIG_CMD_MII		/* MII support                  */
+#define CONFIG_ETHADDR         02:AC:BD:3F:29:E0       /* Ethernet hardware address    */
+#define CONFIG_CMD_PING
+#define CONFIG_HARD_CHECKSUM
+
+#define CONFIG_IPADDR  192.168.0.23
+#define CONFIG_SERVERIP        192.168.0.20
+#define CONFIG_NETMASK 255.255.255.0
+#define CONFIG_GATEWAYIP 192.168.0.1
+#define CONFIG_BOOTFILE        "uImage"
+#define CONFIG_LOADADDR        0x40008000
 
 #endif /* __CONFIG_H */

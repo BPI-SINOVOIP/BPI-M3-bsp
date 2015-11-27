@@ -23,6 +23,7 @@
 
 
 extern void mmu_setup(void);
+void mmu_resetup(u32 dram_mbytes, u32 obligate_dram_mbytes);
 extern void mmu_turn_off(void);
 
 extern int create_heap(unsigned int pHeapHead, unsigned int nHeapSize);

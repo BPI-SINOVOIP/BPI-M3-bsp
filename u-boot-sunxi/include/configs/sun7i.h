@@ -150,7 +150,6 @@
 #define CONFIG_SUN7I_DMA
 #define CONFIG_CMD_MEMORY
 #define CONFIG_SUN7I_DISPLAY
-#define POWER_CONFIG_SUNXI_I2C	//axp communication bus
 #define CONFIG_SUNXI_AXP_MAIN        PMU_TYPE_20X
 #define PMU_SCRIPT_NAME                 "pmu_para"
 #define BOARD_LATE_INIT				/* init the fastboot partitions */

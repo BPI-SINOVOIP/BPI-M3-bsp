@@ -102,8 +102,10 @@ typedef struct sbrom_toc0_config
 	unsigned int        drm_start_mbytes;   //
 	unsigned int        drm_size_mbytes;    //
 	unsigned int        boot_cpu;           //
-	int    				pwr_en;       		//a15 pwr_en gpio [31:24][27:16][15:8][7:0]=port:port_num:mul_sel:data
-	unsigned int      	res[6];   			// 总共1024字节
+	special_gpio_cfg  a15_power_gpio;  //the gpio config is to a15 extern power enable gpio
+	unsigned int        next_exe_pa;
+	unsigned int      	res[5];   			// 总共1024字节
+
 }
 sbrom_toc0_config_t;
 

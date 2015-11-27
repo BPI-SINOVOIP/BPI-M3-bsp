@@ -43,7 +43,9 @@ const boot0_file_head_t  BT0_head = {
                                           0x4000,
 #endif
 							   		      sizeof( boot_file_head_t ),
-							   		      BOOT_PUB_HEAD_VERSION,
+							   		      {
+							   		      	0, 0, 1, 0
+							   		      },
 							   		      CONFIG_BOOT0_RET_ADDR,
 							   		      CONFIG_BOOT0_RUN_ADDR,
 							   		      EGON_VERSION,

@@ -108,8 +108,6 @@
 #define SUNXI_PS2_0_BASE			0X01C2A000		/* 1k */
 #define SUNXI_PS2_1_BASE			0X01C2A400		/* 1k */
 													/* 1k */
-#define SUNXI_TWI_OFFSET			(0x400)
-#define SUNXI_TWI_COUNT				(5)
 #define SUNXI_TWI0_BASE				0X01C2AC00		/* 1k */
 #define SUNXI_TWI1_BASE				0X01C2B000		/* 1k */
 #define SUNXI_TWI2_BASE				0X01C2B400		/* 1k */

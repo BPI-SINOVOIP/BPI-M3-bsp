@@ -94,7 +94,10 @@ static void announce_and_cleanup(void)
 	board_display_wait_lcd_open();		//add by jerry
 	board_display_set_exit_mode(1);
 	sunxi_board_close_source();
-	tick_printf("\nStarting kernel ...\n\n");
+#ifdef CONFIG_SMALL_MEMSIZE
+        reload_config();
+#endif
+        tick_printf("\nStarting kernel ...\n\n");
 
 #ifdef CONFIG_USB_DEVICE
 	{
@@ -153,6 +156,12 @@ int do_bootm_linux(int flag, int argc, char *argv[], bootm_headers_t *images)
 	setup_memory_tags (bd);
 #endif
 #ifdef CONFIG_CMDLINE_TAG
+#ifdef CONFIG_READ_LOGO_FOR_KERNEL
+	if(gd->fb_base != 0)
+	{
+            sprintf(commandline ,"%s%s%x",commandline," fb_base=0x",(uint)gd->fb_base);
+        }
+#endif
 	setup_commandline_tag (bd, commandline);
 #endif
 #ifdef CONFIG_INITRD_TAG
@@ -177,13 +186,21 @@ int do_boota_linux (struct fastboot_boot_img_hdr *hdr)
 	void (*kernel_entry)(int zero, int arch, uint params);
 	bd_t *bd = gd->bd;
 
+#ifdef CONFIG_CMDLINE_TAG
+	char cmdline[FASTBOOT_BOOT_ARGS_SIZE];
+	char *commandline = getenv ("bootargs");
+	char *s = getenv("partitions");
+	char *sig = getenv("signature");
+	char *serial_info = getenv("sunxi_serial");
+	char *hardware_info = getenv("sunxi_hardware");
+	char data[16] = {0};
+#endif
+
 	debug("do_boota_linux storage_type = %d\n", uboot_spare_head.boot_data.storage_type);
 
 	kernel_entry = (void (*)(int, int, uint))(hdr->kernel_addr);
 
-#ifdef CONFIG_CMDLINE_TAG
-	char *commandline = getenv ("bootargs");
-#endif
+
 
 	initrd_start = hdr->ramdisk_addr;
 	initrd_end = initrd_start + hdr->ramdisk_size;
@@ -203,75 +220,63 @@ int do_boota_linux (struct fastboot_boot_img_hdr *hdr)
 	setup_memory_tags (bd);
 #endif
 #ifdef CONFIG_CMDLINE_TAG
-	if(strlen((const char *)hdr->cmdline)) {
-		char *s = getenv("partitions");
-		char *sig = getenv("signature");
-		char data[24] = {0};
 
-		memset(data, 0, sizeof(data));
+	//cmdline  fix start
+	memset(data, 0, 16);
+	memset(cmdline, 0, sizeof(cmdline));
 
-        strcat((char *)hdr->cmdline, " boot_type=");
-        sprintf(data, "%d", uboot_spare_head.boot_data.storage_type);
-        strcat((char *)hdr->cmdline, data);
+	strcpy(cmdline, "boot_type=");
+	sprintf(data, "%d", uboot_spare_head.boot_data.storage_type);
+	strcat(cmdline, data);
 
-        board_display_setenv(data);
-        strcat((char *)hdr->cmdline, data);
+	strcat(cmdline, " disp_para=");
+	board_display_setenv(data);
+	strcat(cmdline, data);
 
-		if(sig != NULL)
-		{
-			strcat((char *)hdr->cmdline, " signature=");
-			strcat((char *)hdr->cmdline, sig);
-        }
-		if(gd->chargemode == 1)
-		{
-			strcat((char *)hdr->cmdline, " androidboot.mode=");
-			strcat((char *)hdr->cmdline, "charger");
-		}
+	strcat(cmdline, " fb_base=");
+	sprintf(data , "0x%x", (uint)gd->fb_base);
+	strcat(cmdline, data);
 
-        strcat((char *)hdr->cmdline, " config_size=");
-        sprintf(data, "%d", script_get_length());
-        strcat((char *)hdr->cmdline, data);
+	if(sig != NULL)
+	{
+		strcat(cmdline, " signature=");
+		strcat(cmdline, sig);
+	}
+	if(gd->chargemode == 1)
+	{
+		strcat(cmdline, " androidboot.mode=");
+		strcat(cmdline, "charger");
+	}
 
-		strcat((char *)hdr->cmdline, " partitions=");
-        strcat((char *)hdr->cmdline, s);
+	strcat(cmdline, " config_size=");
+	sprintf(data, "%d", script_get_length());
+	strcat(cmdline, data);
 
+	if(serial_info != NULL)
+	{
+		strcat(cmdline,  " androidboot.serialno=");
+		strcat(cmdline, serial_info);
+	}
+	if(hardware_info != NULL)
+	{
+		strcat(cmdline,  " androidboot.hardware=");
+		strcat(cmdline, hardware_info);
+	}
+	//cmdline fix end
+
+	if(strlen((const char *)hdr->cmdline))
+	{
+		strcat((char *)hdr->cmdline, " ");
+		strcat(cmdline, " partitions=");
+		strcat(cmdline, s);
+		strcat((char *)hdr->cmdline, cmdline);
 		setup_commandline_tag (bd, (char *)hdr->cmdline);
-	} else {
+	} 
+	else 
+	{
+		strcat(cmdline, " ");
 
-	//	char *s = getenv("partitions");
-		char *sig = getenv("signature");
-		char cmdline[FASTBOOT_BOOT_ARGS_SIZE];
-		char data[24] = {0};
-
-		memset(cmdline, 0, FASTBOOT_BOOT_ARGS_SIZE);
-		memset(data, 0, sizeof(data));
-
-		strcpy(cmdline, commandline);
-
-		strcat(cmdline, " boot_type=");
-        sprintf(data, "%d", uboot_spare_head.boot_data.storage_type);
-        strcat(cmdline, data);
-
-        board_display_setenv(data);
-        strcat(cmdline, data);
-
-		if(gd->chargemode == 1)
-		{
-		    strcat(cmdline," androidboot.mode=");
-		    strcat(cmdline,"charger");
-		}
-
-        strcat((char *)cmdline, " config_size=");
-        sprintf(data, "%d", script_get_length());
-        strcat((char *)cmdline, data);
-
-		if(sig != NULL)
-		{	strcat(cmdline, " signature=");
-			strcat(cmdline, sig);
-        }
-
-	//	strcat(cmdline, " partitions=");
-        //strcat(cmdline, s);
+		strcat(cmdline, commandline);
 		setup_commandline_tag (bd, cmdline);
 	}
 #endif

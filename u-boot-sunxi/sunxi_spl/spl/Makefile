@@ -25,8 +25,8 @@ obj := $(OBJTREE)/sunxi_spl/spl/
 
 
 LIBS-y += arch/$(ARCH)/cpu/$(CPU)/$(SOC)/spl/libsource_spl.o
-LIBS-y += arch/$(ARCH)/cpu/$(CPU)/$(SOC)/mmc/libmmc.o
-LIBS-y += arch/$(ARCH)/cpu/$(CPU)/$(SOC)/nand/libnand.o
+LIBS-$(CONFIG_STORAGE_MEDIA_MMC) += arch/$(ARCH)/cpu/$(CPU)/$(SOC)/mmc/libmmc.o
+LIBS-$(CONFIG_STORAGE_MEDIA_NAND) += arch/$(ARCH)/cpu/$(CPU)/$(SOC)/nand/libnand.o
 LIBS-y += arch/$(ARCH)/cpu/$(CPU)/$(SOC)/dram/libdram.o
 LIBS-y += lib/libgeneral.o
 

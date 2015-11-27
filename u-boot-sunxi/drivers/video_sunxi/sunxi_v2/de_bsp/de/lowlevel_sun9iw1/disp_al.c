@@ -229,12 +229,6 @@ s32 disp_al_be_notifier_callback(struct disp_notifier_block *self,
 		if(al_priv->be_info.enabled)
 			DE_BE_Set_Enhance_ex(sel, al_priv->be_info.out_csc, al_priv->be_info.color_range, 0, 50, 50, 50, 50);
 		break;
-	case DISP_EVENT_INTERLACE:
-		ptr = (u32*)data;
-		al_priv->be_info.b_out_interlace = ptr[0];
-		if(al_priv->be_info.enabled)
-			DE_BE_Set_Outitl_enable(sel, al_priv->be_info.b_out_interlace);
-		break;
 	default:
 		break;
 	}
@@ -399,28 +393,8 @@ s32 disp_al_fe_notifier_callback(struct disp_notifier_block *self,
 			}
 		}
 	}
-	    break;
-	case DISP_EVENT_INTERLACE:
-	{
-		u32 num_scalers;
-		u32 scaler_id;
-
-		num_scalers = bsp_disp_feat_get_num_scalers();
-        //fixme: modify only for homlet.
-        //       Set fe's b_out_interlace whatever be to be out (FE --> BE).
-        //       But it will be error when some special scence, such as dual-display.
-		for(scaler_id = num_scalers - 1; scaler_id > 0; scaler_id--) {
-			al_priv = disp_al_get_priv(scaler_id);
-			if(NULL == al_priv)
-				continue;
-
-			ptr = (u32*)data;
-			al_priv->fe_info.b_out_interlace = ptr[0];
-		}
 		break;
-		//fixme: modify only for homlet.
 
-	}
 	default:
 		break;
 	}
@@ -810,7 +784,6 @@ s32 disp_al_lcd_enable(u32 screen_id, u32 enable, disp_panel_para * panel)
 {
 	__disp_al_private_data *al_priv;
 	disp_size size;
-	u32 interlace[2] = {0};
 
 	al_priv = disp_al_get_priv(screen_id);
 	if(NULL == al_priv)
@@ -859,9 +832,6 @@ s32 disp_al_lcd_enable(u32 screen_id, u32 enable, disp_panel_para * panel)
 	size.width = al_priv->lcd_info.in_width;
 	size.height = al_priv->lcd_info.in_height;
 	disp_al_notifier_call_chain(DISP_EVENT_OUTPUT_SIZE, screen_id, &size);
-	interlace[0] = al_priv->lcd_info.b_out_interlace;
-	interlace[1] = 0;
-	disp_al_notifier_call_chain(DISP_EVENT_INTERLACE, screen_id, &interlace);
 
 	return 0;
 }
@@ -1089,7 +1059,6 @@ s32 disp_al_hdmi_enable(u32 screen_id)
 	__disp_al_private_data *al_priv;
 	disp_size input_size;
 	u32 color_range[2];
-	u32 data[2] = {0};
 	al_priv = disp_al_get_priv(screen_id);
 
 	if(al_priv == NULL)
@@ -1103,10 +1072,6 @@ s32 disp_al_hdmi_enable(u32 screen_id)
 	color_range[1] = al_priv->hdmi_info.color_range;
 	disp_al_notifier_call_chain(DISP_EVENT_OUTPUT_SIZE, screen_id, &input_size);
 	disp_al_notifier_call_chain(DISP_EVENT_OUTPUT_CSC, screen_id, color_range);
-	data[0] = al_priv->hdmi_info.b_out_interlace;
-	data[1] = 0;
-	disp_al_notifier_call_chain(DISP_EVENT_INTERLACE, screen_id, &data);
-
 	return 0;
 }
 
@@ -1127,7 +1092,6 @@ s32 disp_al_hdmi_cfg(u32 screen_id, disp_video_timing *video_info)
 	al_priv->hdmi_info.color_range = DISP_COLOR_RANGE_16_255;
 	al_priv->hdmi_info.in_width = video_info->x_res;
 	al_priv->hdmi_info.in_height = video_info->y_res;
-	al_priv->hdmi_info.b_out_interlace = video_info->interlace;
 
 	tcon1_set_hdmi_mode(screen_id, video_info);
 
@@ -1705,7 +1669,7 @@ s32 scaler_request(u32 requst_index)
 
 	DE_INF("scaler_Request,%d\n", requst_index);
 
-	for(scaler_id = num_scalers - 1; scaler_id >= 0 ; scaler_id--) {
+	for(scaler_id=0; scaler_id<num_scalers; scaler_id++) {
 		__disp_al_private_data *al_priv;
 		al_priv = disp_al_get_priv(scaler_id);
 		if(NULL == al_priv)
@@ -1935,7 +1899,7 @@ s32 scaler_set_para(u32 scaler_id, disp_scaler_info *scaler_info)
 	in_scan.bottom = false;
 
 	/* todo?  get out scan field */
-	out_scan.field = al_priv->fe_info.b_out_interlace;//(gdisp.screen[screen_index].de_flicker_status & DE_FLICKER_USED)?false: gdisp.screen[screen_index].b_out_interlace;
+	out_scan.field = 0;//(gdisp.screen[screen_index].de_flicker_status & DE_FLICKER_USED)?false: gdisp.screen[screen_index].b_out_interlace;
 
 	if(scaler_info->in_fb.cs_mode > DISP_VXYCC)
 		scaler_info->in_fb.cs_mode = DISP_BT601;

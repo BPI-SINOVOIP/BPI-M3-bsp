@@ -22,6 +22,7 @@
 #include "asm/io.h"
 #include "asm/arch/ccmu.h"
 #include "asm/arch/ss.h"
+#include "asm/arch/mmu.h"
 /*
 ************************************************************************************************************
 *
@@ -267,7 +268,7 @@ int  sunxi_sha_calc(u8 *dst_addr, u32 dst_len,
 
 	writel(reg_val, SS_CTL);
 	//set src addr
-	writel((u32)src_addr	, SS_DATA_SRC_LOW_ADR);
+	writel(va2pa((u32)src_addr)	, SS_DATA_SRC_LOW_ADR);
 	writel(0		        , SS_DATA_SRC_HIGH_ADR);
 	//set dest addr
 	writel((u32)p_sign, SS_DATA_DST_LOW_ADR);

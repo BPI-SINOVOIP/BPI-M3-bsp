@@ -32,6 +32,9 @@ extern const boot0_file_head_t  BT0_head;
 
 static void print_version(void);
 static int boot0_clear_env(void);
+#ifdef	SUNXI_OTA_TEST
+static void print_ota_test(void);
+#endif
 
 void __attribute__((weak)) bias_calibration(void)
 {
@@ -50,13 +53,13 @@ void main( void )
 	__u32 status;
 	__s32 dram_size;
 	int   ddr_aotu_scan = 0;
-	int pwr_en = 0;
+	special_gpio_cfg a15_power_gpio;	//a15 extern power enabel gpio
     __u32 fel_flag;
 	__u32 boot_cpu=0;
 
 	bias_calibration();
     timer_init();
-
+    set_debugmode_flag();
     sunxi_serial_init( BT0_head.prvt_head.uart_port, (void *)BT0_head.prvt_head.uart_ctrl, 6 );
 	if( BT0_head.prvt_head.enable_jtag )
     {
@@ -64,6 +67,10 @@ void main( void )
     }
 	printf("HELLO! BOOT0 is starting!\n");
 	print_version();
+
+#ifdef	SUNXI_OTA_TEST
+	print_ota_test();
+#endif
 
 #ifdef CONFIG_ARCH_SUN7I
 	reset_cpux(1);
@@ -97,15 +104,14 @@ void main( void )
 	每次从brom读取的boot_cpu只能是0x100或者0
 */
 	boot_cpu = BT0_head.boot_head.boot_cpu;
-	pwr_en = BT0_head.boot_head.pwr_en;
-
+	a15_power_gpio = BT0_head.boot_head.a15_power_gpio;
 	if(fel_flag == BOOT_A15_FLAG)
 	{
 		rtc_region_clear_fel_flag();
 		if(boot_cpu == 0x00)    //如果原本是a7启动
 			boot_cpu = 0x101;   //a15启动，需要保存标志位
 
-		switch_to_a15(pwr_en);
+		switch_to_a15(a15_power_gpio);
 	}
 	else if(fel_flag == BOOT_A7_FLAG)
 	{
@@ -117,7 +123,7 @@ void main( void )
 	{
 		if(boot_cpu == 0x100)
 		{
-			switch_to_a15(pwr_en);                //a15启动，不需要保存标志位
+			switch_to_a15(a15_power_gpio);                //a15启动，不需要保存标志位
 		}
 		else
 		{
@@ -207,6 +213,7 @@ static void print_version(void)
 
 	return;
 }
+
 /*
 ************************************************************************************************************
 *
@@ -233,3 +240,36 @@ static int boot0_clear_env(void)
 
 	return 0;
 }
+
+
+/*
+************************************************************************************************************
+*
+*                                             function
+*
+*    name          :
+*
+*    parmeters     :
+*
+*    return        :
+*
+*    note          :
+*
+*
+************************************************************************************************************
+*/
+#ifdef	SUNXI_OTA_TEST
+static void print_ota_test(void)
+{
+	printf("*********************************************\n");
+	printf("*********************************************\n");
+	printf("*********************************************\n");
+	printf("*********************************************\n");
+	printf("********[OTA TEST]:update boot0 sucess*******\n");
+	printf("*********************************************\n");
+	printf("*********************************************\n");
+	printf("*********************************************\n");
+	printf("*********************************************\n");
+	return;
+}
+#endif

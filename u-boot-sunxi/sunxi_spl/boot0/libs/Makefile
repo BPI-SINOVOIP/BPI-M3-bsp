@@ -13,6 +13,7 @@ COBJS += check.o
 COBJS += nand_misc.o
 COBJS += mmu.o
 COBJS += eabi_compat.o
+COBJS += common.o
 
 SOBJS   := $(SOBJS)
 COBJS	:= $(COBJS)

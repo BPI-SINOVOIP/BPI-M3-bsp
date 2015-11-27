@@ -30,7 +30,7 @@
 #define SRAM_A1_SIZE		(0x8000)
 #define SRAM_A2_CPU12_BASE	(0x40000)
 #define SRAM_A2_CPU0_BASE	(0x0)
-#define SRAM_A2_SIZE		(0x8000)
+#define SRAM_A2_SIZE		(0xc000)
 #define SRAM_C_BASE			(0x00010000)
 
 /* base address of modules */
@@ -53,7 +53,7 @@
 
 #define SID_BASE			(0x01c14000)
 #define SS_BASE				(0x01c15000)
-//#define HDMI_BASE			(0x01c16000)
+#define HDMI_BASE			(0x01ee0000)
 #define MSGBOX_BASE			(0x01c17000)
 #define SPINLOCK_BASE		(0x01c18000)
 #define OTG_BASE			(0x01c19000)
@@ -125,15 +125,8 @@
 #define ISP_BASE			(0x01cb8000)
 #define ISPMEM_BASE			(0x01cc0000)
 
-#define DEFE0_BASE			(0x01e00000)
-#define DEFE1_BASE			(0x01e20000)
-#define DRC1_BASE			(0x01e50000)
-#define DEBE0_BASE			(0x01e60000)
-#define DRC0_BASE			(0x01e70000)
-#define DEBE1_BASE			(0x01e40000)
-#define SAT0_BASE			(0x01e80000)
-#define DEU1_BASE			(0x01ea0000)
-#define DEU0_BASE			(0x01eb0000)
+#define DE_BASE			(0x01000000)
+#define DE_SIZE			(0x00400000)
 
 #define RTC_BASE			(0x01f00000)
 #define R_BREATH_BASE		(0x01f00400)
@@ -141,6 +134,8 @@
 #define R_INTC_BASE			(0x01f00C00)
 #define R_WDOG_BASE			(0x01f01000)
 #define R_PRCM_BASE			(0x01f01400)
+#define R_PRCM_APB0_GATING  (R_PRCM_BASE + 0x28)
+#define R_PRCE_APB0_RESET 	(R_PRCM_BASE + 0xb0)
 #define R_CPUCFG_BASE		(0x01f01C00)
 #define R_CIR_BASE			(0x01f02000)
 #define R_TWI_BASE			(0x01f02400)

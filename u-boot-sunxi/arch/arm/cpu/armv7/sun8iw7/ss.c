@@ -280,6 +280,7 @@ int  sunxi_sha_calc(u8 *dst_addr, u32 dst_len,
 	task_queue task0;
 
 	memset(sign_buff, 0, sizeof(sign_buff));
+	memset((u8 *)&task0 , 0 ,sizeof(task_queue));
 	p_sign =  (u8 *)(((u32)sign_buff + 31)&(~31));
 
 	total_len = __sha256_padding(src_len, (u8 *)src_addr)/4;	//计算明文长度
@@ -306,7 +307,7 @@ int  sunxi_sha_calc(u8 *dst_addr, u32 dst_len,
 
 	flush_cache((uint)&task0, sizeof(task0));
 	flush_cache((uint)sign_buff, 64);
-	flush_cache((uint)src_addr, src_len);
+	flush_cache((uint)src_addr, total_len * 4);
 
 	writel((uint)&task0, SS_S_TDQ); //descriptor address
 	//enable SS end interrupt

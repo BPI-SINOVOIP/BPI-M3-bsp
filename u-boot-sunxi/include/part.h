@@ -56,21 +56,43 @@ typedef struct block_dev_desc {
 	unsigned long   (*block_erase)(int dev,
 				       unsigned long start,
 				       lbaint_t blkcnt);
+	int (*block_secure_wipe)(int dev,
+						unsigned int start,
+						unsigned int blkcnt,
+						unsigned int *skip_space);
+	int (*block_mmc_erase)(int dev,
+						unsigned int start,
+						unsigned int blkcnt,
+						unsigned int *skip_space);
+	int (*block_mmc_trim)(int dev,
+						unsigned int start,
+						unsigned int blkcnt);
+	int (*block_mmc_discard)(int dev,
+						unsigned int start,
+						unsigned int blkcnt);
+	int (*block_mmc_sanitize)(int dev);
+	int (*block_mmc_secure_erase)(int dev,
+						unsigned int start,
+						unsigned int blkcnt,
+						unsigned int *skip_space);
+	int (*block_mmc_secure_trim)(int dev,
+						unsigned int start,
+						unsigned int blkcnt);
 	unsigned long	 (*block_read_mass_pro)(int dev,
 				      unsigned long start,
 				      lbaint_t blkcnt,
-				      void *buffer);	
+				      void *buffer);
 	unsigned long	(*block_write_mass_pro)(int dev,
 				       unsigned long start,
 				       lbaint_t blkcnt,
-				       const void *buffer);	
+				       const void *buffer);
 	int	(*block_read_secure)(s32 dev_num,
-						u32 item,u8 *buf , 
-						lbaint_t blkcnt);	
-	int	(*block_write_secure)(s32 dev_num,
-						u32 item,u8 *buf , 
+						u32 item,u8 *buf ,
 						lbaint_t blkcnt);
-	int	(*block_get_item_secure)(void);		
+	int	(*block_write_secure)(s32 dev_num,
+						u32 item,u8 *buf ,
+						lbaint_t blkcnt);
+	int	(*block_get_item_secure)(void);
 	void		*priv;		/* driver private struct pointer */
 }block_dev_desc_t;
 

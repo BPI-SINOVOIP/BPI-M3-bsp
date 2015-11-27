@@ -174,7 +174,44 @@ int script_parser_init(char *script_buf)
         return SCRIPT_PARSER_EMPTY_BUFFER;
     }
 }
+#ifdef CONFIG_SMALL_MEMSIZE
+void save_config(void)
+{
+    script_head_t *script_head;
+    uint script_length = 0;
 
+    script_head = (script_head_t *)gd->script_mod_buf;
+    script_length = script_head->length;
+    if(script_length)
+    {
+        printf("save config for small mem_size \n");
+        gd->script_mod_buf = (char *)malloc(script_length * sizeof(char));
+        if(!gd->script_mod_buf)
+        {
+            printf("do not have enough memory to save config \n");
+            return ;
+        }
+        memcpy((void *)gd->script_mod_buf,(void *)script_head ,script_length);
+    }
+    return ;
+}
+
+
+void reload_config(void)
+{
+    script_head_t *script_head;
+    uint script_length = 0;
+
+    script_head = (script_head_t *)gd->script_mod_buf;
+    script_length = script_head->length;
+    if(script_length)
+    {
+        printf("reload config to 0x43000000 \n");
+        memcpy((void*)SYS_CONFIG_MEMBASE,(void*)script_head ,script_length);
+    }
+    return ;
+}
+#endif
 unsigned script_get_length(void)
 {
 	script_head_t *orign_head = (script_head_t *)gd->script_mod_buf;

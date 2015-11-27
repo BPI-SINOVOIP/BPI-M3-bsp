@@ -61,7 +61,8 @@ struct spare_boot_data_head
     normal_gpio_cfg             sdcard_gpio[32];		// sdcard GPIO信息
     char             			sdcard_spare_data[256];	// sdcard 额外信息
     int                         secureos_exist;
-    int							reserved[5];			// 保留数据位, 256bytes align
+    uint                        uboot_start_sector_in_mmc;
+    int							reserved[4];			// 保留数据位, 256bytes align
 
 };
 

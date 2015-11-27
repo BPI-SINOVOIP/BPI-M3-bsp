@@ -381,7 +381,10 @@ int de_al_mgr_apply(unsigned int screen_id, struct disp_manager_data *data)
 	csc_cfg.in_mode = DISP_BT601;
 
 	csc_cfg.out_fmt = (DISP_CSC_TYPE_RGB == data->config.cs)?DE_RGB:DE_YUV;
-	csc_cfg.out_mode = DISP_BT601;
+	if((data->config.size.width < 1280) && (data->config.size.height < 720))
+	  csc_cfg.out_mode = DISP_BT601;
+	else
+	  csc_cfg.out_mode = DISP_BT709;
 	csc_cfg.out_color_range = data->config.color_range;
 	csc_cfg.brightness = 50;
 	csc_cfg.contrast = 50;

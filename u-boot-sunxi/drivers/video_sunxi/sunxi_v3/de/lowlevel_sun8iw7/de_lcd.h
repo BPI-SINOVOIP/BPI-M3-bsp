@@ -99,6 +99,7 @@ s32   tcon_gamma(u32 sel, u32 en,u32 *gamma_tbl);
 
 
 s32 	tcon0_cfg(u32 sel, disp_panel_para * panel);
+s32 tcon0_cfg_ext(u32 sel, panel_extend_para *extend_panel);
 s32   tcon0_src_select(u32 sel, __lcd_src_t src);
 s32 tcon0_src_get(u32 sel);
 s32 	tcon0_open(u32 sel, disp_panel_para * panel);
@@ -128,6 +129,7 @@ s32 tcon1_set_timming(u32 sel, disp_video_timings *timming);
 s32 tcon1_cfg(u32 sel,disp_video_timings* timing);
 s32 tcon1_set_tv_mode(u32 sel,disp_tv_mode mode);
 s32 hmdi_src_sel(u32 sel);
+s32 tcon1_hdmi_color_remap(u32 sel,u32 onoff);
 
 #endif
 

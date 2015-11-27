@@ -38,6 +38,8 @@ unsigned int smc_readl(unsigned int addr);
 void smc_writel(unsigned int value, unsigned int addr);
 int smc_efuse_writel(void *key_buf);
 int smc_efuse_readl(void *key_buf, void *read_buf);
+int smc_aes_bssk_encrypt_to_dram(void *keydata, int keylen, void *buffer, int *real_len);
+int smc_aes_bssk_decrypt_to_keysram(void *srcdata, int srclen);
 
 #endif
 

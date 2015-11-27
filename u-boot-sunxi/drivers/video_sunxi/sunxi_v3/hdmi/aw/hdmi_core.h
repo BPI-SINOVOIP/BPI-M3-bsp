@@ -54,6 +54,7 @@ extern __s32 hdmi_main_task_loop(void);
 extern __s32 Hpd_Check(void);
 extern __s32 get_video_info(__s32 vic);
 extern __s32 get_audio_info(__s32 sample_rate);
+extern __s32 set_video_mode(__u32 vic);
 extern __u32 get_video_mode(void);
 extern __s32 video_config(__u32 vic);
 extern __s32 audio_config(struct audio_para *audio_param);
@@ -66,6 +67,7 @@ extern __u32 get_hdcp_enable(void);
 extern void set_cts_enable(__u32 enable);
 extern __u32 get_cts_enable(void);
 extern __s32 video_enter_lp(void);
+extern __u32 get_csc_type(void);
 
 __s32 hdmi_core_get_list_num(void);
 

@@ -11,5 +11,8 @@ extern int de_al_lyr_apply(unsigned int screen_id, struct disp_layer_config_data
 extern int de_al_mgr_sync(unsigned int screen_id);
 extern int de_al_mgr_update_regs(unsigned int screen_id);
 extern int de_al_query_irq(unsigned int screen_id);
+extern int de_al_enable_irq(unsigned int screen_id, unsigned en);
+
+extern int de_enhance_set_size(unsigned int screen_id, disp_rectsz *size);
 
 #endif

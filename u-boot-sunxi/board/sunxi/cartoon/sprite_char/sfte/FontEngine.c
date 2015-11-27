@@ -92,7 +92,7 @@ __s32 check_change_line(unsigned int x, unsigned char ch)
 		return 1;                              //·µ»Ø1  £¬±íÊ¾ĞèÒª»»ĞĞ
 	}
 
-	return 0;                                  //·µ»Ø0£¬   ±íÊ¾²»ĞèÒª»»ĞĞ?
+	return 0;                                  //·µ»Ø0£¬   ±íÊ¾²»ĞèÒª»»ĞĞí
 }
 
 

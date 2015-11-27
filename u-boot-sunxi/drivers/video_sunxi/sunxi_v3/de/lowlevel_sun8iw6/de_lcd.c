@@ -753,7 +753,7 @@ s32 tcon1_cfg_ex(u32 sel, disp_panel_para * panel)
 	return 0;
 }
 
-s32 tcon1_hdmi_color_remap(u32 sel)
+s32 tcon1_hdmi_color_remap(u32 sel,u32 onoff)
 {
 	lcd_dev[sel]->tcon_ceu_coef_rr.bits.value = 0;
 	lcd_dev[sel]->tcon_ceu_coef_rg.bits.value = 0;
@@ -777,7 +777,10 @@ s32 tcon1_hdmi_color_remap(u32 sel)
 	lcd_dev[sel]->tcon_ceu_coef_bv.bits.max = 235;
 	lcd_dev[sel]->tcon_ceu_coef_bv.bits.min = 16;
 
-	lcd_dev[sel]->tcon_ceu_ctl.bits.ceu_en = 1;
+	if(onoff)
+		lcd_dev[sel]->tcon_ceu_ctl.bits.ceu_en = 1;
+	else
+		lcd_dev[sel]->tcon_ceu_ctl.bits.ceu_en = 0;
 
 	return 0;
 }

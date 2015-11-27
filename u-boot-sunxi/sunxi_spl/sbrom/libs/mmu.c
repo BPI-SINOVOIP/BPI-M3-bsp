@@ -94,6 +94,36 @@ void mmu_setup(void)
 *
 ************************************************************************************************************
 */
+void mmu_resetup(u32 dram_size, u32 reserved_size)
+{
+	u32 *page_table = (u32 *)TOC0_MMU_BASE_ADDRESS;
+	int i,j=0;
+	u32 pa_offset_start, va_offset_start;
+
+	pa_offset_start = (CONFIG_SYS_SDRAM_BASE>>20) + dram_size - reserved_size;
+	va_offset_start = CONFIG_SYS_OBLIGATE_BASE>>20;
+	/* Set up as write through and buffered(not write back) for other 3GB, rw for everyone */
+	for (i = va_offset_start; i < va_offset_start + reserved_size; i++, j++)
+		page_table[i] = ((pa_offset_start + j) << 20) | (3 << 10) | (15 << 5) | (1 << 3) | (0 << 2) | 0x2;
+	/* flush tlb */
+	asm volatile("mcr p15, 0, %0, c8, c7, 0" : : "r" (0));
+}
+/*
+************************************************************************************************************
+*
+*                                             function
+*
+*    name          :
+*
+*    parmeters     :
+*
+*    return        :
+*
+*    note          :
+*
+*
+************************************************************************************************************
+*/
 void  mmu_turn_off( void )
 {
 	uint reg;
@@ -114,4 +144,32 @@ void  mmu_turn_off( void )
 	CP15DSB;
 	/* ISB - make sure the instruction stream sees it */
 	CP15ISB;
+}
+/*
+************************************************************************************************************
+*
+*                                             function
+*
+*    name          :
+*
+*    parmeters     :
+*
+*    return        :
+*
+*    note          :
+*
+*
+************************************************************************************************************
+*/
+u32 va2pa(u32 va)
+{
+    u32 pa;
+    asm volatile("mcr p15, 0, %0, c7, c8, 0\n"::"r"(va):"memory", "cc");
+
+
+    asm volatile("isb \n\t"
+                 " mrc p15, 0, %0, c7, c4, 0\n\t"
+                 : "=r" (pa) : : "memory", "cc");
+
+    return (pa & 0xfffff000) | (va & 0xfff);
 }

@@ -30,6 +30,8 @@
 #include <smc.h>
 //#define RSB_USE_INT
 
+#define SUNXI_RPRCM_BASE            0x01f01400
+
 #ifndef R_RSB_BASE
 #define R_RSB_BASE	(0x01f03400)//should modified acorrding to environment
 #endif

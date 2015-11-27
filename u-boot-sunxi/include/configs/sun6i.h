@@ -139,7 +139,6 @@
 #define CONFIG_SUNXI_DISPLAY
 
 #define CONFIG_SUNXI_AXP
-#define POWER_CONFIG_SUNXI_P2WI	//axp communication bus
 #define CONFIG_SUNXI_AXP22
 #define CONFIG_SUNXI_AXP_MAIN        PMU_TYPE_22X
 #define PMU_SCRIPT_NAME                 "pmu_para"

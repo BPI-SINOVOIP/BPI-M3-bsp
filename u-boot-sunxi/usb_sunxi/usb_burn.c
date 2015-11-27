@@ -30,6 +30,9 @@
 #include "usb_efex.h"
 #include <smc.h>
 #include <securestorage.h>
+#include "key_deal.h"
+
+int smc_set_sst_crypt_name(char *name);
 
 static  int sunxi_usb_pburn_write_enable = 0;
 #if defined(SUNXI_USB_30)
@@ -455,10 +458,11 @@ int __sunxi_burn_key(u8 *buff, uint buff_len)
 		printf("key len=%d\n", key_list->len);
 		printf("key if_burn=%d\n", key_list->if_burn);
 		printf("key if_replace=%d\n", key_list->if_replace);
+		printf("key if_crypt=%d\n", key_list->if_crypt);
 		printf("key data:\n");
 		sunxi_dump(key_list->key_data, key_list->len);
 		printf("###################\n");
-		offset = (sizeof(sunxi_usb_burn_key_info_t) + key_list->len + 15) & (~15);
+		offset = (sizeof(sunxi_usb_burn_key_info_t)) + ((key_list->len + 15) & (~15));
 		printf("offset=%d\n", offset);
 		p_buff += offset;
 #ifdef CONFIG_SUNXI_SECURE_SYSTEM
@@ -477,9 +481,29 @@ int __sunxi_burn_key(u8 *buff, uint buff_len)
 		else
 #endif
 		{
-			if(sunxi_secure_object_write(key_list->name, (char *)key_list->key_data, key_list->len))
+#ifdef CONFIG_SUNXI_HDCP_IN_SECURESTORAGE
+			int ret;
+
+			if(!strcmp("hdcpkey", key_list->name))
 			{
-				return -1;
+				ret = sunxi_deal_hdcp_key((char *)key_list->key_data, key_list->len);
+				if(ret)
+				{
+					printf("sunxi deal with hdcp key failed\n");
+
+					return -1;
+				}
+			}
+			else
+#endif
+			{
+			if(key_list->if_crypt)
+				smc_set_sst_crypt_name(key_list->name);
+
+				if(sunxi_secure_object_write(key_list->name, (char *)key_list->key_data, key_list->len))
+				{
+					return -1;
+				}
 			}
 		}
 	}

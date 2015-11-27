@@ -34,13 +34,15 @@ COBJS	+= clock.o
 COBJS	+= timer.o
 COBJS	+= cpu_info.o
 COBJS	+= board.o
-COBJS	+= key.o
-COBJS	+= usb/usbc.o 			\
+COBJS   += key.o
+ifndef CONFIG_SUNXI_SPINOR_PLATFORM
+COBJS   += usb/usbc.o 			\
            usb/usbc_dev.o 		\
            usb/usbc_host.o 		\
            usb/usbc_phy.o  		\
            usb/usbc_resource.o  \
            usb/usbc_dma.o
+endif
 
 #COBJS-$(CONFIG_XXXX)	+= xxxx.o
 

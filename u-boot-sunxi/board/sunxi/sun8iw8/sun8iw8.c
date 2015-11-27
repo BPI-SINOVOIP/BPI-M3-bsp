@@ -225,3 +225,15 @@ int cpu0_set_detected_paras(void)
 {
 	return 0;
 }
+
+extern int geth_initialize(bd_t *bis);
+#ifdef CONFIG_CMD_NET
+int board_eth_init(bd_t *bis)
+{
+       int rc = 0;
+#ifdef CONFIG_SUNXI_GETH
+       rc = geth_initialize(bis);
+#endif
+       return rc;
+}
+#endif

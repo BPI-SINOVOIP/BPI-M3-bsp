@@ -258,7 +258,6 @@ int de_smbl_update_regs(unsigned int sel)
 
 int de_smbl_set_reg_base(unsigned int sel, unsigned int base)
 {
-	__inf("sel %d, base=0x%x\n", sel, base);
 	smbl_dev[sel] = (__smbl_reg_t *)base;
 
 	return 0;
@@ -271,6 +270,7 @@ int de_smbl_init(unsigned int sel, unsigned int reg_base)
   	unsigned int lcdgamma;
   	int  value = 1;
   	char primary_key[20];
+	char sub_key[20];
   	int  ret;
 
 	base = reg_base + (sel+1)*0x00100000 + SMBL_OFST;
@@ -349,6 +349,10 @@ int de_smbl_init(unsigned int sel, unsigned int reg_base)
 			PWRSAVE_PROC_THRES = value;
 		}
 	}
+	sprintf(sub_key, "lcd%d_backlight", sel);
+	ret = disp_sys_script_get_item("disp_init", sub_key, &value, 1);
+	if(1 == ret)
+		g_smbl_status[sel]->backlight = value;
 
 	return 0;
 }

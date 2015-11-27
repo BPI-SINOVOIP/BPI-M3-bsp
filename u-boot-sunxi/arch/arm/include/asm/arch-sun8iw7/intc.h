@@ -121,12 +121,8 @@
 #define AW_IRQ_HDMI			(AW_IRQ_GIC_START + 88)		/*	HDMI		*/
 #define AW_IRQ_MIPIDSI		(AW_IRQ_GIC_START + 89)		/*	MIPI DSI	*/
 #define AW_IRQ_MIPICSI		(AW_IRQ_GIC_START + 90)		/*	MIPI CSI	*/
-#define AW_IRQ_DRC01		(AW_IRQ_GIC_START + 91)		/*	DRC 0/1		*/
-#define AW_IRQ_DEU01		(AW_IRQ_GIC_START + 92)		/*	DEU	0/1		*/
-#define AW_IRQ_DEFE0		(AW_IRQ_GIC_START + 93)		/*	DE_FE0		*/
-#define AW_IRQ_DEFE1		(AW_IRQ_GIC_START + 94)		/*	DE_FE1		*/
-#define AW_IRQ_DEBE0		(AW_IRQ_GIC_START + 95)		/*	DE_BE0		*/
-#define AW_IRQ_DEBE1		(AW_IRQ_GIC_START + 96)		/*	DE_BE1		*/
+#define AW_IRQ_DEIRQ0		(AW_IRQ_GIC_START + 91)		/*	DE_IRQ0		*/
+#define AW_IRQ_DEIRQ1		(AW_IRQ_GIC_START + 92)		/*	DE IRQ1		*/
 #define	AW_IRQ_GPU			(AW_IRQ_GIC_START + 97)		/*	GPU			*/
 
 #define	AW_IRQ_CTI0			(AW_IRQ_GIC_START + 108)	/*	CTI0		*/

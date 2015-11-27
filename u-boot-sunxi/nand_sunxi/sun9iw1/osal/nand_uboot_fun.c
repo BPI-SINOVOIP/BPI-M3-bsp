@@ -207,15 +207,15 @@ int _is_lsb_page(__u32 page_num)
 
 	if((read_retry_mode == 0x0)||(read_retry_mode==0x1)||(read_retry_mode==0x2)||(read_retry_mode==0x3))
 	{
-
+	
 		if((page_num == 0)||(page_num == 1))
-			return 1;
+			return 1;		
 		if((page_num%4 == 2)||(page_num%4 == 3))
 		{
 			if((page_num!=(pages_per_block-1))&&(page_num!=(pages_per_block-2)))
 				return 1;
 		}
-		return 0;
+		return 0;		
 	}
 	else if(read_retry_mode == 0x4)
 	{
@@ -293,7 +293,7 @@ __s32 _generate_page_map_tab(__u32 nand_page_size, __u32 copy_cnt, __u32 page_cn
 		*tab_size = 1024;
 
 	}
-	else
+	else 
 	{
 
 		page_tab_size = NDFC_PAGE_TAB_HEAD_SIZE + copy_cnt * page_cnt * 4;
@@ -320,7 +320,7 @@ __s32 _generate_page_map_tab(__u32 nand_page_size, __u32 copy_cnt, __u32 page_cn
 			for (c=0; c<copy_cnt; c++)
 			{
 				i = NDFC_PAGE_TAB_HEAD_SIZE/4 + p*copy_cnt + c;
-				j = c*page_cnt + p;//j = c*(page_cnt+4) + p;
+				j = c*page_cnt + p;//j = c*(page_cnt+4) + p; 
 				*(pdst + i) = page_addr[j];
 			}
 		}
@@ -399,7 +399,7 @@ int NAND_PhyInit(void)
 
 int NAND_PhyExit(void)
 {
-	NAND_Print("NB1 : enter phy Exit\n");
+	NAND_Print("NB1 : enter phy Exit\n");	
 	NandHwExit();
 
 	return 0;
@@ -509,7 +509,7 @@ int NAND_LogicInit(int boot_mode)
 	if(boot_mode == 1)
 	{
 		nftl_num = get_phy_partition_num(nand_info);
-		printf("boot_mode 1: nftl num: %d \n", nftl_num);
+		printf("NB1 : nftl num: %d \n", nftl_num);
 		if((nftl_num<1)||(nftl_num>5))
 		{
 			printf("NB1 : nftl num: %d error \n", nftl_num);
@@ -529,24 +529,12 @@ int NAND_LogicInit(int boot_mode)
 	{
 		nftl_num = get_phy_partition_num(nand_info);
 		printf("boot_mode 2: nftl num: %d \n", nftl_num);
-		if((nftl_num<1)||(nftl_num>5))
-		{
-			printf("NB1 : nftl num: %d error \n", nftl_num);
-			return -1;
-		}
-
-        nand_partition_num = 0;
-		for(i=0; i<nftl_num; i++)
-		{
-		    nand_partition_num++;
-			printf(" init nftl: %d \n", i);
-			result = nftl_build_one(nand_info, i);
-		}
 #else
 	if(boot_mode)
 	{
 		nftl_num = get_phy_partition_num(nand_info);
 		printf("NB1 : nftl num: %d \n", nftl_num);
+#endif
 		if((nftl_num<1)||(nftl_num>5))
 		{
 			printf("NB1 : nftl num: %d error \n", nftl_num);
@@ -560,7 +548,6 @@ int NAND_LogicInit(int boot_mode)
 			printf(" init nftl: %d \n", i);
 			result = nftl_build_one(nand_info, i);
 		}
-#endif
 	}
 	else
 	{
@@ -1361,9 +1348,9 @@ int NAND_UbootInit(int boot_mode)
 	//uint good_block_ratio=0;
 
 	printf("NAND_UbootInit start\n");
-
+		
 	NAND_set_boot_mode(boot_mode);
-
+	
     /* logic init */
 	ret |= NAND_LogicInit(boot_mode);
 	if(!boot_mode)
@@ -1520,7 +1507,7 @@ __s32  burn_boot0_1k_mode_secure( __u32 read_retry_type, __u32 length, __u32 Boo
 		{
 			printf("write boot0 \n");
 			for( i = 0;  i < blocks_per_copy;  i++ )
-		    {
+		    {  
 				para.chip  = 0;
 				para.block = m*blocks_per_copy+i;
 				for(k=0;k<pages_per_block;k++)
@@ -1581,7 +1568,7 @@ __s32  burn_boot0_1k_mode_secure( __u32 read_retry_type, __u32 length, __u32 Boo
 	       	}
 	    }
 	}
-
+    
 	return 0;
 
 error:
@@ -1701,7 +1688,7 @@ __s32  burn_boot0_lsb_mode_secure(__u32 read_retry_type,  __u32 length, __u32 Bo
 						para.mainbuf = (void *) (Boot0_buf + count * data_size_per_page);
 						count ++;
 					}
-
+	
 					if( PHY_SimpleWrite_CFG( &para , &cfg) <0)
 					{
 						printf("Warning. Fail in writing page %d in block %d.\n", para.page, i );
@@ -1709,7 +1696,7 @@ __s32  burn_boot0_lsb_mode_secure(__u32 read_retry_type,  __u32 length, __u32 Bo
 				}
 			}
 		}
-	}
+	}	
 
 exit:
   /* lsb disable */
@@ -1790,7 +1777,7 @@ __s32  burn_boot0_lsb_FF_mode_secure(__u32 read_retry_type,  __u32 length, __u32
 	data_size_per_page = 4096;
 	pages_per_block = NAND_GetPageCntPerBlk();
 	copies_per_block = pages_per_block / NAND_BOOT0_PAGE_CNT_PER_COPY;
-
+	
 	count = 0;
 	for( i = NAND_BOOT0_BLK_START;  i < (NAND_BOOT0_BLK_START + NAND_BOOT0_BLK_CNT);  i++ )
 	{
@@ -1832,7 +1819,7 @@ __s32  burn_boot0_lsb_FF_mode_secure(__u32 read_retry_type,  __u32 length, __u32
 				para.block = i;
 				para.page = j * NAND_BOOT0_PAGE_CNT_PER_COPY + k;
 				para.oobbuf = oob_buf;
-
+			
 				if(_is_lsb_page(para.page))
 				{
 					cfg.ecc_mode = 9;//A80 support 72 bits ecc
@@ -1860,9 +1847,9 @@ __s32  burn_boot0_lsb_FF_mode_secure(__u32 read_retry_type,  __u32 length, __u32
 		   			}
 				}
 
-			}
+			}	
 		}
-	}
+	}	
 	if(pos_data)
 		free(pos_data);
 	if(tab)
@@ -2003,7 +1990,7 @@ __s32  burn_boot0_lsb_FF_mode_8K(__u32 read_retry_type,  __u32 length, __u32 Boo
 				}
 			}
 			_generate_page_map_tab(data_size_per_page, 1, length/data_size_per_page, pos_data, (__u32)tab, &tab_size);
-
+			
 			count = 0;
 			for(k=0;k<NAND_BOOT0_PAGE_CNT_PER_COPY;k++)
 			{
@@ -2011,7 +1998,7 @@ __s32  burn_boot0_lsb_FF_mode_8K(__u32 read_retry_type,  __u32 length, __u32 Boo
 				para.block = i;
 				para.page = j * NAND_BOOT0_PAGE_CNT_PER_COPY + k;
 				para.oobbuf = oob_buf;
-
+				
 				if(_is_lsb_page(para.page))
 				{
 					cfg.ecc_mode = 9;//A80 support 72 bits ecc
@@ -2024,7 +2011,7 @@ __s32  burn_boot0_lsb_FF_mode_8K(__u32 read_retry_type,  __u32 length, __u32 Boo
 						para.mainbuf = (void *) (Boot0_buf + count * data_size_per_page);
 						count ++;
 					}
-
+						
 					if( PHY_SimpleWrite_CFG( &para , &cfg) <0)
 					{
 						printf("Warning. Fail in writing page %d in block %d.\n", para.page, i );
@@ -2038,7 +2025,7 @@ __s32  burn_boot0_lsb_FF_mode_8K(__u32 read_retry_type,  __u32 length, __u32 Boo
 						printf("Warning. Fail in writing page %d in block %d.\n", k, i );
 		   			}
 				}
-
+					
 			}
 		}
 	}
@@ -2161,7 +2148,7 @@ __s32  burn_boot0_lsb_FF_mode(__u32 read_retry_type, __u32 Boot0_buf )
 					printf("Warning. Fail in writing page %d in block %d.\n", k, i );
 	   			}
 			}
-
+			
    		}
 
     }
@@ -2170,7 +2157,7 @@ __s32  burn_boot0_lsb_FF_mode(__u32 read_retry_type, __u32 Boot0_buf )
 	if(!buf){
 		printf("malloc fail\n");
 		goto exit;
-	}
+	}	
 
     //check boot0
     for( i = NAND_BOOT0_BLK_START;  i < (NAND_BOOT0_BLK_START + NAND_BOOT0_BLK_CNT);  i++ )
@@ -2196,13 +2183,13 @@ __s32  burn_boot0_lsb_FF_mode(__u32 read_retry_type, __u32 Boot0_buf )
 			{
 				printf("Warning. data in reading page %d in block %d error.\n",  j, i );
 				printf("src :%x \n",data_debug[j]);
-				printf("dst :%x \n",*((__u32 *)(buf)));
-			}
+				printf("dst :%x \n",*((__u32 *)(buf)));				
+			}	
 		}
 
     }
 
-
+	
 	free(buf);
 exit:
 	free(data_FF_buf);
@@ -2288,12 +2275,12 @@ __s32  burn_boot0_lsb_mode(__u32 read_retry_type, __u32 Boot0_buf )
    		}
 
     }
-
+	
 	buf = malloc(page_size);
 	if(!buf){
 		printf("malloc fail\n");
 		goto exit;
-	}
+	}	
 
     //check boot0
     for( i = NAND_BOOT0_BLK_START;  i < (NAND_BOOT0_BLK_START + NAND_BOOT0_BLK_CNT);  i++ )
@@ -2318,7 +2305,7 @@ __s32  burn_boot0_lsb_mode(__u32 read_retry_type, __u32 Boot0_buf )
    		}
 
     }
-	free(buf);
+	free(buf);	
 exit:
     /* lsb disable */
     NFC_LSBDisable(0, read_retry_type);
@@ -2401,6 +2388,72 @@ error:
     return -1;
 }
 
+__s32  burn_boot0_1k_fullpage_mode( __u32 read_retry_type, __u32 Boot0_buf )
+{
+    __u32 i, j, k;
+//    __u32 length;
+	__u32 pages_per_block,page_size;
+	__u32 copies_per_block;
+    __u8  oob_buf[32];
+    struct boot_physical_param  para;	
+	struct boot_ndfc_cfg cfg;
+
+    printf("burn boot0 1k full page mode!\n");
+
+    for(i=0;i<32;i++)
+        oob_buf[i] = 0xff;
+
+    NAND_GetVersion(oob_buf);
+	if((oob_buf[0]!=0xff)||(oob_buf[1]!= 0x00))
+	{
+		printf("get flash driver version error!");
+		goto error;
+	}
+
+	/* ¼ì²é page count */
+	pages_per_block = NAND_GetPageCntPerBlk();
+	if(pages_per_block%64)
+	{
+		printf("get page cnt per block error %x!", pages_per_block);
+		goto error;
+	}
+
+	/* cal copy cnt per bock */
+	copies_per_block = pages_per_block / 64;
+
+	page_size = NAND_GetPageSize();
+	/* burn boot0 copys */
+    for( i = NAND_BOOT0_BLK_START;  i < (NAND_BOOT0_BLK_START + NAND_BOOT0_BLK_CNT);  i++ )
+    {
+		for(j=0;j<copies_per_block;j++)
+		{
+			for(k=0;k<NAND_BOOT0_PAGE_CNT_PER_COPY;k++)
+			{
+				para.chip  = 0;
+				para.block = i;
+				para.page = j * NAND_BOOT0_PAGE_CNT_PER_COPY + k;
+				para.oobbuf = oob_buf;
+			
+				cfg.ecc_mode = 9;//A80 support 72 bits ecc
+				cfg.page_size_kb = (page_size/1024)-1;
+				cfg.sequence_mode = 1;
+				
+				para.mainbuf = (void *) (Boot0_buf + k * 1024);
+		
+				if( PHY_SimpleWrite_CFG( &para , &cfg) <0)
+				{
+					printf("Warning. Fail in writing page %d in block %d.\n", para.page, i );
+				}					
+			}
+		}
+    }
+	return 0;
+
+error:
+    return -1;
+}
+
+
 int NAND_BurnBoot0_nonsecure(uint length, void *buffer)
 {
 	__u32 read_retry_type = 0, read_retry_mode;
@@ -2409,7 +2462,7 @@ int NAND_BurnBoot0_nonsecure(uint length, void *buffer)
 	//int page_cnt_per_block;
 
 	page_size = NAND_GetPageSize();
-
+	
 	read_retry_type = NAND_GetReadRetryType();
 	read_retry_mode = (read_retry_type>>16)&0xff;
 	if( (read_retry_type>0)&&(read_retry_mode < 0x10))
@@ -2433,11 +2486,11 @@ int NAND_BurnBoot0_nonsecure(uint length, void *buffer)
 			if( burn_boot0_lsb_mode(read_retry_type, (__u32)buffer) )
 	        	goto error;
 		}
-
+	    
 	}
 	else
 	{
-	    if( burn_boot0_1k_mode(read_retry_type, (__u32)buffer) )
+	    if( burn_boot0_1k_fullpage_mode(read_retry_type, (__u32)buffer) )
 	        goto error;
 	}
 
@@ -2563,16 +2616,16 @@ __s32 burn_uboot_in_one_blk(__u32 UBOOT_buf, __u32 length)
 			{
 				printf("Warning. Fail in writing page %d in block %d.\n", k, i );
    			}
-   		}
+   		}		
     }
 
 	memset(oob_buf, 0, 32);
-
+	
 	buf = malloc(page_size);
 	if(!buf){
 		printf("malloc fail\n");
 		goto exit;
-	}
+	}		
     //check uboot
     for( i = NAND_UBOOT_BLK_START;  i < (NAND_UBOOT_BLK_START + NAND_UBOOT_BLK_CNT);  i++ )
     {

@@ -139,7 +139,7 @@ int sunxi_clock_get_ahb(void)
     int src = 0;
 
 	reg_val = readl(CCMU_AHB1_APB1_CFG_REG);
-
+	
     src = (reg_val >> 12)&0x3;
     clock = 0;
     switch(src)
@@ -148,7 +148,7 @@ int sunxi_clock_get_ahb(void)
             factor  = ((reg_val >> 4) & 0x03);
             clock = 24/(2<<factor);
         case 2:
-        case 3://src is pll6,use AHB1_PRE_DIV  * AHB_DIV_RATIO
+        case 3://src is pll6,use AHB1_PRE_DIV  * AHB_DIV_RATIO 
             factor  = ((reg_val >> 6) & 0x03) + 1;
             factor *= (1<<((reg_val >> 4) & 0x03));
             clock   = sunxi_clock_get_pll6()/factor;
@@ -232,7 +232,7 @@ static int clk_set_divd(void)
 	unsigned int reg_val;
     unsigned int clock;
 
-
+    
     clock =  sunxi_clock_get_corepll();
 	//config axi --c0_cpux:axi0
 	reg_val = readl(CCMU_CPUX_AXI_CFG_REG);
@@ -256,7 +256,7 @@ static int clk_set_divd(void)
 	#if 0
 	reg_val = readl(CCMU_AHB1_APB1_CFG_REG);;
 	reg_val &= ~((0x03 << 12) | (0x03 << 8) | (0x03 << 6) | (0x03 << 4));
-	reg_val |=   (0x03 << 12);//ahb1 clk src is pll6
+	reg_val |=   (0x03 << 12);//ahb1 clk src is pll6 
 	reg_val |=  (2 << 6);     //ahb1 clk pre divide ratio is 3
 	reg_val |=  (1 << 8);     //apb1 clk divide ratio is 2
 

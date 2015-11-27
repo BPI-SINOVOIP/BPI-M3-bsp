@@ -77,7 +77,7 @@
 #define CCM_DDR_CFG_CTRL	    (CCM_BASE+0x0f8) //--new
 #define CCM_MBUS_RESET_CTRL     (CCM_BASE+0x0fC ) //--new
 
-
+#define CCM_AHB1_RESET_CTRL     (CCM_BASE + 0x02c0)
 
 #define CCM_DRAMCLK_GATE_CTRL	(CCM_BASE+0x0100)
 #define CCM_BE0_SCLK_CTRL		(CCM_BASE+0x0104)

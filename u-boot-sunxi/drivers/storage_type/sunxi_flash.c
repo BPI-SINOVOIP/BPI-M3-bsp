@@ -438,6 +438,24 @@ int sunxi_sprite_mmc_phywrite(unsigned int start_block, unsigned int nblock, voi
 	return mmc_sprite->block_dev.block_write_mass_pro(mmc_sprite->block_dev.dev, start_block, nblock, buffer);
 }
 
+int sunxi_sprite_mmc_phyerase(unsigned int start_block, unsigned int nblock, void *skip)
+{
+	if (nblock == 0) {
+		printf("%s: @nr is 0, erase from @from to end\n", __FUNCTION__);
+		nblock = mmc_sprite->block_dev.lba - start_block - 1;
+	}
+	return mmc_sprite->block_dev.block_mmc_erase(mmc_sprite->block_dev.dev, start_block, nblock, skip);
+}
+
+int sunxi_sprite_mmc_phywipe(unsigned int start_block, unsigned int nblock, void *skip)
+{
+	if (nblock == 0) {
+		printf("%s: @nr is 0, wipe from @from to end\n", __FUNCTION__);
+		nblock = mmc_sprite->block_dev.lba - start_block - 1;
+	}
+	return mmc_sprite->block_dev.block_secure_wipe(mmc_sprite->block_dev.dev, start_block, nblock, skip);
+}
+
 int sunxi_sprite_mmc_force_erase(void)
 {
     return 0;
@@ -655,22 +673,21 @@ int sunxi_flash_handle_init(void)
 		    script_parser_patch("nand1_para", "nand1_used", &nand_used, 1);
 		    script_parser_patch("mmc2_para",  "sdc_used",   &sdc2_used, 1);
 
-		    tick_printf("NAND: ");
+			tick_printf("NAND: ");
 			if (workmode == WORK_MODE_BOOT) {
-		    	if(nand_uboot_init(1))
-		    	{
-		    		tick_printf("nand init fail\n");
+				if(nand_uboot_init(1))
+				{
+					tick_printf("nand init fail\n");
 					return -1;
-		    	}
+				}
 			}
 			else if (workmode == WORK_MODE_SPRITE_RECOVERY)
 			{
-		    	if(nand_uboot_init(2))	
-		    	{
-		    		tick_printf("nand init fail\n");
+				if(nand_uboot_init(2))
+				{
+					tick_printf("nand init fail\n");
 					return -1;
-		    	}
-				
+				}
 			}
 			//flash_size = nand_uboot_get_flash_size();
 			//flash_size <<= 9;

@@ -42,9 +42,9 @@ uint rtc_region_probe_fel_flag(void)
 	uint fel_flag, reg_value;
 	int  i;
 
-    fel_flag = readl(RTC_GENERAL_PURPOSE_REG(0));
-    printf("rtc[0] value = 0x%x\n", fel_flag);
-	for(i=1;i<8;i++)
+    fel_flag = readl(RTC_GENERAL_PURPOSE_REG(2));
+    printf("fel_flag = 0x%x\n", fel_flag);
+	for(i=0;i<8;i++)
 	{
 		reg_value = readl(RTC_GENERAL_PURPOSE_REG(i));
 		printf("rtc[%d] value = 0x%x\n", i, reg_value);
@@ -70,7 +70,7 @@ uint rtc_region_probe_fel_flag(void)
 */
 void rtc_region_clear_fel_flag(void)
 {
-    writel(0, RTC_GENERAL_PURPOSE_REG(0));
+    writel(0, RTC_GENERAL_PURPOSE_REG(2));
 }
 
 

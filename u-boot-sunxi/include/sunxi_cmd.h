@@ -37,8 +37,6 @@ extern int do_fat_fsload (cmd_tbl_t *cmdtp, int flag, int argc, char * const arg
 extern int do_fat_fsdown (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 extern int do_fat_ls (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 extern int do_fat_fsinfo (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
-extern int do_aw_fat_fsload(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
-extern int aw_fat_fsload(char *part_name, char *file_name, char *load_addr, int len);
 
 extern int do_save_user_data (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 

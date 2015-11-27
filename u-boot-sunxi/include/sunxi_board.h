@@ -50,6 +50,9 @@ extern int battery_charge_cartoon_rate(int rate);
 extern int battery_charge_cartoon_reset(void);
 extern int battery_charge_cartoon_degrade(int alpha_step);
 
+#ifdef CONFIG_READ_LOGO_FOR_KERNEL
+extern void sunxi_read_bootlogo(char *part_name);
+#endif
 extern int board_display_layer_request(void);
 extern int board_display_layer_release(void);
 extern int board_display_wait_lcd_open(void);
@@ -80,8 +83,6 @@ extern void usb_detect_for_charge(int detect_time);
 extern int sunxi_flash_handle_init(void);
 
 extern int sunxi_bmp_display(char *name);
-extern int sunxi_advert_display(char *fatname, char *filename);
-extern int sunxi_advert_disp_probe(void);
 
 extern int drv_disp_init(void);
 extern int drv_disp_exit(void);
@@ -115,6 +116,10 @@ extern uint add_sum_neon(void *buffer, uint length);
 
 extern void respond_physical_key_action(void);
 extern int check_physical_key_early(void);
+
+#if defined(CONFIG_ARCH_SUN8IW7P1)
+extern int power_off(void);
+#endif
 
 extern void sunxi_set_fel_flag(void);
 extern void sunxi_clear_fel_flag(void);

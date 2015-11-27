@@ -1731,7 +1731,13 @@ static int sunxi_efex_state_loop(void  *buffer)
 							//sunxi_usb_dbg("sunxi usb efex trans finish\n");
 							printf("before sunxi_sprite_setdata_finish\n");
 
-							sunxi_sprite_setdata_finish();
+							if(sunxi_sprite_setdata_finish())
+							{
+								printf("burn nor img error \n");
+								csw.status = -1;
+								trans_data.last_err = -1;
+								sunxi_usb_efex_app_step = SUNXI_USB_EFEX_APPS_IDLE;
+							}
 						}
 #endif
 					}

@@ -306,11 +306,6 @@ s32 drv_disp_init(void)
 	memset(&g_disp_drv, 0, sizeof(disp_drv_info));
 
 	bsp_disp_init(&para);
-
-#if (defined(CONFIG_ARCH_TV) && defined(CONFIG_ARCH_SUN9IW1P1))
-	gm7121_module_init();
-#endif //#if defined(CONFIG_ARCH_TV)
-
 #if ((defined CONFIG_SUN6I) || (defined CONFIG_ARCH_SUN8IW1P1) || (defined CONFIG_ARCH_SUN9IW1P1))
 	Hdmi_init();
 #endif
@@ -411,9 +406,6 @@ long disp_ioctl(void *hd, unsigned int cmd, void *arg)
 			ret =  bsp_disp_get_output_type(ubuffer[0]);
 		}	else {
 			ret = suspend_output_type[ubuffer[0]];
-		}
-		if(DISP_OUTPUT_TYPE_LCD == ret) {
-			ret = bsp_disp_get_lcd_output_type(ubuffer[0]);
 		}
 
 		break;
@@ -526,13 +518,15 @@ long disp_ioctl(void *hd, unsigned int cmd, void *arg)
         case DISP_CMD_HDMI_SUPPORT_MODE:
 		ret = bsp_disp_hdmi_check_support_mode(ubuffer[0], ubuffer[1]);
 		break;
-	case DISP_CMD_HDMI_GET_HPD_STATUS:
-		ret = bsp_disp_hdmi_get_hpd_status(ubuffer[0]);
-		break;
-
 #endif
 #if 0
-
+	case DISP_CMD_HDMI_GET_HPD_STATUS:
+		if(DISPLAY_NORMAL == suspend_status) {
+			ret = bsp_disp_hdmi_get_hpd_status(ubuffer[0]);
+		}	else {
+			ret = 0;
+		}
+		break;
 
 	case DISP_CMD_HDMI_SUPPORT_MODE:
 		ret = bsp_disp_hdmi_check_support_mode(ubuffer[0], ubuffer[1]);
@@ -789,32 +783,6 @@ long disp_ioctl(void *hd, unsigned int cmd, void *arg)
 	case DISP_CMD_LCD_CHECK_CLOSE_FINISH:
 		ret = drv_lcd_check_close_finished(ubuffer[0]);
 		break;
-
-#if defined(CONFIG_ARCH_TV)
-	//----for tv ----
-	case DISP_CMD_TV_ON:
-#if defined(CONFIG_ARCH_SUN9IW1P1)
-		ret = drv_lcd_enable(ubuffer[0]);
-		suspend_output_type[ubuffer[0]] = DISP_OUTPUT_TYPE_LCD;
-#endif
-		break;
-	case DISP_CMD_TV_OFF:
-#if defined(CONFIG_ARCH_SUN9IW1P1)
-		ret = drv_lcd_disable(ubuffer[0]);
-		suspend_output_type[ubuffer[0]] = DISP_OUTPUT_TYPE_NONE;
-#endif
-		break;
-	case DISP_CMD_TV_GET_MODE:
-#if defined(CONFIG_ARCH_SUN9IW1P1)
-		ret = bsp_disp_lcd_get_tv_mode(ubuffer[0]);
-#endif
-		break;
-	case DISP_CMD_TV_SET_MODE:
-#if defined(CONFIG_ARCH_SUN9IW1P1)
-		ret = bsp_disp_lcd_set_tv_mode(ubuffer[0], ubuffer[1]);
-#endif
-		break;
-#endif //#if defined(CONFIG_ARCH_TV)
 
 	default:
 		break;

@@ -147,5 +147,84 @@ int sid_probe_security_mode(void)
 	return ((sid_read_key(EFUSE_LCJS)>>11) & 1);
 }
 
+/*
+************************************************************************************************************
+*
+*                                             function
+*
+*    name          :
+*
+*    parmeters     :
+*
+*    return        :
+*
+*    note          :
+*
+*
+************************************************************************************************************
+*/
+void sid_read_chipid(void)
+{
+	uint chipid_index = 0;
+	uint id_length = 4;
+	uint i = 0;
+	for(i = 0 ; i < id_length ;i++ )
+	{
+		sid_read_key(chipid_index + i *4);
+	}
+	return ;
+}
 
+/*
+************************************************************************************************************
+*
+*                                             function
+*
+*    name          :
+*
+*    parmeters     :
+*
+*    return        :
+*
+*    note          :
+*
+*
+************************************************************************************************************
+*/
+void sid_read_thermal_sensor(void)
+{
+	uint thermal_sensor_index = 0x34;
+	uint id_length = 2;
+	uint i = 0;
+	for(i = 0 ; i < id_length ;i++ )
+	{
+		sid_read_key(thermal_sensor_index + i *4);
+	}
+	return ;
+}
 
+/*
+************************************************************************************************************
+*
+*                                             function
+*
+*    name          :
+*
+*    parmeters     :
+*
+*    return        :
+*
+*    note          :
+*
+*
+************************************************************************************************************
+*/
+void sid_read(void)
+{
+	if(uboot_spare_head.boot_data.work_mode != WORK_MODE_BOOT)
+		return ;
+	sid_read_chipid();
+	sid_read_thermal_sensor();
+    printf("sid read already \n");
+	return ;
+}

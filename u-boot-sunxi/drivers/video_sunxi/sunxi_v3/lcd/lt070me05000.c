@@ -73,10 +73,10 @@ static void LCD_cfg_panel_info(panel_extend_para * info)
 
 static s32 LCD_open_flow(u32 sel)
 {
-	LCD_OPEN_FUNC(sel, LCD_power_on, 100);   //open lcd power, and delay 50ms
+	LCD_OPEN_FUNC(sel, LCD_power_on, 20);   //open lcd power, and delay 50ms
 	LCD_OPEN_FUNC(sel, LCD_panel_init, 120);   //open lcd power, than delay 200ms
-	LCD_OPEN_FUNC(sel, LCD_panel_init2, 200);   //open lcd power, than delay 200ms
-	LCD_OPEN_FUNC(sel, sunxi_lcd_tcon_enable, 100);     //open lcd controller, and delay 100ms
+	LCD_OPEN_FUNC(sel, LCD_panel_init2, 10);   //open lcd power, than delay 200ms
+	LCD_OPEN_FUNC(sel, sunxi_lcd_tcon_enable, 20);     //open lcd controller, and delay 100ms
 	LCD_OPEN_FUNC(sel, LCD_bl_open, 0);     //open lcd backlight, and delay 0ms
 
 	return 0;

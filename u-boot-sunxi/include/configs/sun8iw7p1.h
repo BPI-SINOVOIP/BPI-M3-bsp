@@ -45,19 +45,26 @@
 #define CONFIG_ALLWINNER			/* It's a Allwinner chip */
 #define	CONFIG_SUNXI				/* which is sunxi family */
 
-#define CONFIG_FPGA
-#define CONFIG_A80_FPGA
+//#define CONFIG_FPGA
 #define CONFIG_ARCH_SUN8IW7P1
+#define CONFIG_ARCH_HOMELET
+#define CONFIG_ARCH_SUN8IW7
+#define CONFIG_VIDEO_SUNXI_V3
+
+#define CONFIG_CPUS_STANDBY
 #define CONFIG_NO_BOOT_STANDBY
-#define CONFIG_VECTOR_BY_CP15
+//#define CONFIG_VECTOR_BY_CP15
 //#define FORCE_BOOT_STANDBY
 #undef FORCE_BOOT_STANDBY
 #define CONFIG_SYS_SDRAM_BASE		     (0x40000000)
 #define CONFIG_SYS_TEXT_BASE		     (0x4A000000)
+#define CONFIG_SYS_OBLIGATE_BASE         (0xF0000000)
 // the sram base address, and the stack address in stage1
 #define CONFIG_SYS_INIT_RAM_ADDR	     (0)
 #define CONFIG_SYS_INIT_RAM_SIZE	     0x0000fff0
 
+#define CONFIG_SUNXI_SECURE_STORAGE
+#define CONFIG_SUNXI_SECURE_SYSTEM
 #define CONFIG_SYS_SRAM_C_BASE           (0x00010000)
 #define CONFIG_SYS_SRAM_C_SIZE           (0x0000b000)
 
@@ -93,11 +100,9 @@
 #define CONFIG_STANDBY_RUN_ADDR          (0x1000)
 #define BOOT_STANDBY_DRAM_PARA_ADDR      (0xf00)
 
-#define MMU_BASE_ADDRESS                 (CONFIG_SYS_SDRAM_BASE + 0x02f00000)
+#define MMU_BASE_ADDRESS                 (CONFIG_SYS_SDRAM_BASE + 0x03f00000)
 
 #define SUNXI_RUN_EFEX_ADDR			     (0x01f00000 + 0x108)
-
-#define CONFIG_VIDEO_SUNXI_V2
 
 #define DRAM_PARA_STORE_ADDR		     (CONFIG_SYS_SDRAM_BASE + 0x00800000)
 
@@ -107,7 +112,7 @@
 #define SUNXI_DISPLAY_FRAME_BUFFER_ADDR  (CONFIG_SYS_SDRAM_BASE + 0x06400000)
 #define SUNXI_DISPLAY_FRAME_BUFFER_SIZE  0x01000000
 
-#define FEL_BASE                         0xFFFF4020
+#define FEL_BASE                         0xFFFF0020
 /*
 * define const value
 */
@@ -134,9 +139,12 @@
 #define BOOT_PUB_HEAD_VERSION           "1100"
 #define EGON_VERSION                    "1100"
 
+#define CONFIG_STORAGE_MEDIA_NAND
+#define CONFIG_STORAGE_MEDIA_MMC
+
 #define SUNXI_DRAM_PARA_MAX              32
 
-#define CONFIG_BOOT0_STACK_BOTTOM        (0x1aff0)
+#define CONFIG_BOOT0_STACK_BOTTOM        (0x4B000)
 
 #define CONFIG_SYS_SRAM_BASE             (0x0000)
 #define CONFIG_SYS_SRAMA2_BASE           (0x44000)
@@ -175,6 +183,7 @@
 ***************************************************************/
 //#define CONFIG_SUNXI_RSB
 #define CONFIG_SUNXI_I2C
+#define CONFIG_CPUS_I2C
 #define CONFIG_SYS_I2C_SPEED    400000
 #define CONFIG_SYS_I2C_SLAVE    0x68
 #define CONFIG_USE_IRQ
@@ -187,9 +196,8 @@
 #define CONFIG_SUNXI_DISPLAY
 
 #define CONFIG_SUNXI_AXP
-#define POWER_CONFIG_SUNXI_I2C	//axp communication bus
-#define CONFIG_SUNXI_AXP22
-#define CONFIG_SUNXI_AXP_MAIN        PMU_TYPE_22X
+//#define CONFIG_SUNXI_AXP22
+//#define CONFIG_SUNXI_AXP_MAIN        PMU_TYPE_22X
 #define PMU_SCRIPT_NAME                 "pmu1_para"
 //#define CONFIG_SUNXI_AXP_CONFIG_ONOFF
 
@@ -243,6 +251,7 @@
 #define CONFIG_STORAGE_EMMC
 #define CONFIG_MMC_LOGICAL_OFFSET   (20 * 1024 * 1024/512)
 #define USE_EMMC_BOOT_PART
+#define USE_EMMC_USER_WHEN_USE_BOOT_PART //use eMMC boot and user part at the same time,if you want to use it,use USE_EMMC_BOOT_PART at the same time
 
 #define CONFIG_DOS_PARTITION
 /*

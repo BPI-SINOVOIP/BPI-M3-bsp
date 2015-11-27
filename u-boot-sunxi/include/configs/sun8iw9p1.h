@@ -135,7 +135,6 @@
 #define CONFIG_CMD_MEMORY
 //#define CONFIG_SUNXI_DISPLAY
 #define CONFIG_SUNXI_AXP
-#define POWER_CONFIG_SUNXI_RSB	//axp communication bus
 #define CONFIG_SUNXI_AXP22
 #define CONFIG_SUNXI_AXP_MAIN        PMU_TYPE_22X
 #define PMU_SCRIPT_NAME                 "pmu1_para"
@@ -191,6 +190,7 @@
 #define CONFIG_STORAGE_EMMC
 #define CONFIG_MMC_LOGICAL_OFFSET   (20 * 1024 * 1024/512)
 #define USE_EMMC_BOOT_PART
+#define USE_EMMC_USER_WHEN_USE_BOOT_PART //use eMMC boot and user part at the same time,if you want to use it,use USE_EMMC_BOOT_PART at the same time
 
 #define CONFIG_DOS_PARTITION
 /*

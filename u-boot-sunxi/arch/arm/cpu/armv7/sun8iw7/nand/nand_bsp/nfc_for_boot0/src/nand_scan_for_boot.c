@@ -55,7 +55,8 @@ void _InitNandPhyInfo(boot_nand_para_t *nand_info)
     NandStorageInfo.SectorCntPerPage = nand_info->SectorCntPerPage ;
     NandStorageInfo.PageCntPerPhyBlk = nand_info->PageCntPerPhyBlk ;
     NandStorageInfo.BlkCntPerDie     = nand_info->BlkCntPerDie     ;
-    NandStorageInfo.OperationOpt     = (nand_info->OperationOpt)&(NAND_RANDOM|NAND_READ_RETRY)     ;
+    NandStorageInfo.OperationOpt     = nand_info->OperationOpt & (NAND_LSB_PAGE_TYPE 
+| NAND_RANDOM | NAND_READ_RETRY);
     NandStorageInfo.FrequencePar     = nand_info->FrequencePar     ;
     NandStorageInfo.EccMode          = nand_info->EccMode          ;
     NandStorageInfo.ValidBlkRatio    = nand_info->ValidBlkRatio    ;
@@ -171,9 +172,11 @@ __s32  BOOT_AnalyzeNandSystem(void)
 
 	PHY_ChangeMode(1);
 
-	if(SUPPORT_READ_RETRY&&(((READ_RETRY_TYPE>>16)&0xff) <0x10))  //boot0 only support hynix readretry
+	if( SUPPORT_READ_RETRY
+		&& ( (((READ_RETRY_TYPE>>16)&0xff) < 0x10)
+			|| (((READ_RETRY_TYPE>>16)&0xff) == 0x40)
+			|| (((READ_RETRY_TYPE>>16)&0xff) == 0x41) ))   //boot0 support hynix, micron readretry
 	{
-		SCAN_DBG("NFC Read Retry Init. \n");
 		NFC_ReadRetryInit(READ_RETRY_TYPE);
 	    PHY_GetDefaultParam(0);
 	}
@@ -184,3 +187,145 @@ __s32  BOOT_AnalyzeNandSystem(void)
 
     return 0;
 }
+
+__u32 NAND_Getlsbpage_type(void)
+{
+	//PRINT("%x\n",NandStorageInfo.OperationOpt);
+	//PRINT("LSB TYPE:%x\n",(((0xff<<12) & NandStorageInfo.OperationOpt)>>12));
+	return (((0xff<<12) & NandStorageInfo.OperationOpt)>>12);
+}
+
+__u32 Nand_Is_lsb_page(__u32 page)
+{
+	__u32 retry_mode;
+	__u32 NAND_LSBPAGE_TYPE;
+	
+	NAND_LSBPAGE_TYPE = NAND_Getlsbpage_type();
+	
+	if(!NAND_LSBPAGE_TYPE)
+	{
+		return 1;//every page is lsb page
+	}
+
+	if(NAND_LSBPAGE_TYPE == 0x20) //samsung 25nm
+	{
+		if(page==0)
+			return 1;
+		if(page==PAGE_CNT_OF_PHY_BLK-1)
+			return 0;
+		if(page%2==1)
+			return 1;
+		return 0;
+	}
+
+	if((NAND_LSBPAGE_TYPE==0x01))//hynix 26nm,20nm
+	{
+		if((page==0)||(page==1))
+			return 1;
+		if((page==PAGE_CNT_OF_PHY_BLK-2)||(page==PAGE_CNT_OF_PHY_BLK-1))
+			return 0;
+		if((page%4 == 2)||(page%4 == 3))
+			return 1;
+		return 0;
+	}
+
+	if((NAND_LSBPAGE_TYPE==0x02))//hynix 16nm
+	{
+		if(page==0)
+			return 1;
+		if(page==PAGE_CNT_OF_PHY_BLK-1)
+			return 0;
+		if(page%2 == 1)
+			return 1;
+		return 0;
+	}
+
+	if(NAND_LSBPAGE_TYPE==0x10)//toshiba 2xnm 19nm 1ynm
+	{
+		if(page==0)
+			return 1;
+		if(page==PAGE_CNT_OF_PHY_BLK-1)
+			return 0;
+		if(page%2 == 1)
+			return 1;
+		return 0;	
+	}
+
+	if(NAND_LSBPAGE_TYPE==0x40)//micron 20nm 29f64g08cbaba
+	{
+		if((page==0)||(page==1))
+			return 1;
+		if((page==PAGE_CNT_OF_PHY_BLK-2)||(page==PAGE_CNT_OF_PHY_BLK-1))
+			return 0;
+		if((page%4 == 2)||(page%4 == 3))
+			return 1;
+		return 0;
+	}	
+	
+	if(NAND_LSBPAGE_TYPE==0x41)//micron 20nm 29f32g08cbada
+	{
+		if((page==2)||(page==3))
+			return 1;
+		if((page==PAGE_CNT_OF_PHY_BLK-2)||(page==PAGE_CNT_OF_PHY_BLK-1))
+			return 1;
+		if((page%4 == 0)||(page%4 == 1))
+			return 1;
+		return 0;
+	}		
+	
+	if(NAND_LSBPAGE_TYPE==0x42)//micron 16nm l95b
+	{
+		if((page==0)||(page==1)||(page==2)||(page==3)||(page==4)||(page==5)||(page==7)||(page==8)||(page==509))
+			return 1;
+		if((page==6)||(page==508)||(page==511))
+			return 0;
+		if((page%4 == 2)||(page%4 == 3))
+			return 1;
+		return 0;
+	}
+
+	if(NAND_LSBPAGE_TYPE==0x50)//intel JS29F64G08ACMF3
+	{
+		if((page==0)||(page==1))
+			return 1;
+		if((page==PAGE_CNT_OF_PHY_BLK-2)||(page==PAGE_CNT_OF_PHY_BLK-1))
+			return 0;
+		if((page%4 == 2)||(page%4 == 3))
+			return 1;
+		return 0;
+	}	
+
+
+	if(NAND_LSBPAGE_TYPE==0x30)//sandisk 2xnm 19nm 1ynm
+	{
+		if(page==0)
+			return 1;
+		if(page==PAGE_CNT_OF_PHY_BLK-1)
+			return 0;
+		if(page%2 == 1)
+			return 1;
+		return 0;	
+	}
+	
+	return 0;
+
+}
+
+
+__u32 NAND_GetLsbblksize(void)
+{	
+	__u32 i,count;
+
+	count=0;	
+
+	if(NAND_Getlsbpage_type()==0)
+		return NandStorageInfo.PageCntPerPhyBlk*NandStorageInfo.SectorCntPerPage*512;
+
+	for(i=0;i<NandStorageInfo.PageCntPerPhyBlk;i++)
+	{
+		if(Nand_Is_lsb_page(i))
+			count++;
+	}
+	return count*NandStorageInfo.SectorCntPerPage*512;
+}
+

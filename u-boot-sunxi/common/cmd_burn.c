@@ -30,6 +30,7 @@
 #include "asm/arch/timer.h"
 #include <securestorage.h>
 #include <asm/arch/key.h>
+#include <pmu.h>
 
 extern  void sunxi_usb_main_loop(int delaytime);
 extern  int sunxi_usb_extern_loop(void);
@@ -128,6 +129,9 @@ int do_burn_from_boot(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		{
 			printf("usb sof ok\n");
 			del_timer(&timer_t);
+			//limit to pc
+			printf("vbus pc exist ,limit to pc \n");
+			axp_set_vbus_limit_pc();
 			break;
 		}
 		if(sunxi_usb_burn_from_boot_overtime)	//当定时时间到，还没有中断，跳出循环
@@ -136,6 +140,9 @@ int do_burn_from_boot(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			del_timer(&timer_t);
 			sunxi_usb_exit();
 			tick_printf("%s usb : no usb exist\n", __func__);
+			//limit to dc
+			printf("limit to dc \n");
+			axp_set_vbus_limit_dc();
 
 			return 0;
 		}
@@ -163,7 +170,6 @@ int do_burn_from_boot(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			del_timer(&timer_t);
 			sunxi_usb_exit();
 			tick_printf("%s usb : have no handshake\n", __func__);
-
 			return 0;
 		}
 		if(ctrlc())

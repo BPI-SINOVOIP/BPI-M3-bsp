@@ -29,6 +29,8 @@ void * OSAL_malloc(__u32 Size)
     void * addr;
 
     addr = malloc(Size);
+    if(addr)
+    	memset(addr,0,Size);
 	return addr;
 }
 
@@ -45,6 +47,8 @@ void * OSAL_PhyAlloc(__u32 Size)
     void * addr;
 
     addr = malloc(Size);
+    if(addr)
+    	memset(addr,0,Size);
 	return addr;
 }
 

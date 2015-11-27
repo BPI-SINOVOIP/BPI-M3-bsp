@@ -40,16 +40,21 @@ LIBS-y += arch/$(ARCH)/cpu/$(CPU)/$(SOC)/dram/libdram.o
 
 LIBS := $(addprefix $(OBJTREE)/,$(sort $(LIBS-y)))
 
-LIBNAND-y += sunxi_spl/boot0/load_nand/libloadnand.o
-LIBNAND-y += arch/$(ARCH)/cpu/$(CPU)/$(SOC)/nand/libnand.o
+LIBNAND-$(CONFIG_STORAGE_MEDIA_NAND) += sunxi_spl/boot0/load_nand/libloadnand.o
+LIBNAND-$(CONFIG_STORAGE_MEDIA_NAND) += arch/$(ARCH)/cpu/$(CPU)/$(SOC)/nand/libnand.o
 
 LIBNAND := $(addprefix $(OBJTREE)/,$(sort $(LIBNAND-y)))
 
-LIBMMC-y += sunxi_spl/boot0/load_mmc/libloadmmc.o
-LIBMMC-y += arch/$(ARCH)/cpu/$(CPU)/$(SOC)/mmc/libmmc.o
+LIBMMC-$(CONFIG_STORAGE_MEDIA_MMC) += sunxi_spl/boot0/load_mmc/libloadmmc.o
+LIBMMC-$(CONFIG_STORAGE_MEDIA_MMC) += arch/$(ARCH)/cpu/$(CPU)/$(SOC)/mmc/libmmc.o
 
 LIBMMC := $(addprefix $(OBJTREE)/,$(sort $(LIBMMC-y)))
 
+
+LIBSPINOR-$(CONFIG_STORAGE_MEDIA_SPINOR) += sunxi_spl/boot0/load_spinor/libloadspinor.o
+LIBSPINOR-$(CONFIG_STORAGE_MEDIA_SPINOR) += arch/$(ARCH)/cpu/$(CPU)/$(SOC)/spinor/libspinor.o
+
+LIBSPINOR := $(addprefix $(OBJTREE)/,$(sort $(LIBSPINOR-y)))
 
 __LIBS := $(subst $(obj),,$(LIBS))
 
@@ -79,10 +84,11 @@ LDPPFLAGS += \
 	$(shell $(LD) --version | \
 	  sed -ne 's/GNU ld version \([0-9][0-9]*\)\.\([0-9][0-9]*\).*/-DLD_MAJOR=\1 -DLD_MINOR=\2/p')
 
-ALL-y	+= $(obj)boot0_nand.bin $(obj)boot0_sdcard.bin
+ALL-$(CONFIG_STORAGE_MEDIA_NAND)  += $(obj)boot0_nand.bin 
+ALL-$(CONFIG_STORAGE_MEDIA_MMC)  += $(obj)boot0_sdcard.bin
+ALL-$(CONFIG_STORAGE_MEDIA_SPINOR)  += $(obj)boot0_spinor.bin
 
 all:	$(ALL-y)
-
 
 $(obj)boot0_nand.bin:	$(obj)boot0_nand.axf
 	$(OBJCOPY) $(OBJCFLAGS) -O binary  $< $@
@@ -96,13 +102,22 @@ $(obj)boot0_sdcard.bin:	$(obj)boot0_sdcard.axf
 $(obj)boot0_sdcard.axf: depend $(LIBS) $(LIBMMC) $(obj)boot0.lds
 	$(LD) $(LIBS) $(LIBMMC)  $(PLATFORM_LIBGCC) $(LDFLAGS) -T$(obj)boot0.lds -o boot0_sdcard.axf -Map boot0_sdcard.map
 
+$(obj)boot0_spinor.bin:	$(obj)boot0_spinor.axf
+	$(OBJCOPY) $(OBJCFLAGS) -O binary  $< $@
+
+$(obj)boot0_spinor.axf: depend $(LIBS) $(LIBSPINOR) $(obj)boot0.lds
+	$(LD) $(LIBS) $(LIBSPINOR)  $(PLATFORM_LIBGCC) $(LDFLAGS) -T$(obj)boot0.lds -o boot0_spinor.axf -Map boot0_spinor.map
+
 $(LIBS):	depend
 	$(MAKE) -C $(SRCTREE)$(dir $(subst $(OBJTREE),,$@))
-
+	
 $(LIBNAND): depend
 	$(MAKE) -C $(SRCTREE)$(dir $(subst $(OBJTREE),,$@))
 
 $(LIBMMC): depend
+	$(MAKE) -C $(SRCTREE)$(dir $(subst $(OBJTREE),,$@))
+
+$(LIBSPINOR): depend
 	$(MAKE) -C $(SRCTREE)$(dir $(subst $(OBJTREE),,$@))
 
 $(obj)boot0.lds: $(BOOT0_LDSCRIPT)

@@ -30,20 +30,19 @@ void hdmi_delay_us(unsigned long us)
 
 __s32 Hdmi_open(void)
 {
-	__s32 ret;
 	__inf("[Hdmi_open]\n");
 #if !defined(__UBOOT_OSAL__)
-	ret = Hdmi_hal_video_enable(1);
+	Hdmi_hal_video_enable(1);
 #else
 	printf("%s\n", __func__);
-	ret = Hdmi_hal_video_enable_sync(1);
+	Hdmi_hal_video_enable_sync(1);
 #endif
 	//if(ghdmi.bopen == 0)
 	//{
 	//	up(run_sem);
 	//}
 	bopen = 1;
-	return ret;
+	return 0;
 }
 
 __s32 Hdmi_close(void)
@@ -238,11 +237,7 @@ __s32 Hdmi_init(void)
 
 		if(hdmi_used)
 		{
-#if defined(CONFIG_ARCH_HOMELET) //need to be same later
-			ret = script_parser_fetch("hdmi_para", "hdmi_power_boot", (int *)hdmi_power, 25);
-#else
 			ret = script_parser_fetch("hdmi_para", "hdmi_power", (int *)hdmi_power, 25);
-#endif
 			if(ret == 0) {
 				OSAL_Power_Enable(hdmi_power);
 			}

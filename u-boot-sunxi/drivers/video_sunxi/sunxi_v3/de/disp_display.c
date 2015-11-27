@@ -24,6 +24,9 @@ s32 bsp_disp_init(disp_bsp_init_para * para)
 #if defined(SUPPORT_HDMI)
 	disp_init_hdmi(para);
 #endif
+#if defined(SUPPORT_TV)
+	disp_init_tv(para);
+#endif
 	disp_init_mgr(para);
 	disp_init_enhance(para);
 	disp_init_smbl(para);
@@ -211,7 +214,7 @@ s32 disp_init_connections(void)
 	for(disp=0; disp<num_screens; disp++) {
 		struct disp_manager *mgr;
 		struct disp_layer *lyr;
-		//struct disp_device *dispdev = NULL;
+		struct disp_device *dispdev = NULL;
 		struct disp_enhance *enhance = NULL;
 		struct disp_smbl *smbl = NULL;
 		struct disp_capture *cptr = NULL;
@@ -228,7 +231,7 @@ s32 disp_init_connections(void)
 				lyr->set_manager(lyr, mgr);
 			}
 		}
-#if 0
+
 		/* connect device & it's manager */
 		if(bsp_disp_feat_is_supported_output_types(disp, DISP_OUTPUT_TYPE_LCD)) {
 			dispdev = disp_device_get(disp, DISP_OUTPUT_TYPE_LCD);
@@ -237,7 +240,7 @@ s32 disp_init_connections(void)
 		} else {
 			//other device
 		}
-#endif
+
 		enhance = disp_get_enhance(disp);
 		if(enhance && (enhance->set_manager)) {
 			enhance->set_manager(enhance, mgr);
@@ -523,6 +526,36 @@ s32 bsp_disp_get_screen_height_from_output_type(u32 disp, u32 output_type, u32 o
 	return height;
 }
 
+s32 bsp_disp_set_tv_func(disp_tv_func * func)
+{
+	u32 disp = 0;
+	u32 num_screens = 0;
+	s32 ret = 0, registered_cnt = 0;
+
+	DE_INF("\n");
+	num_screens = bsp_disp_feat_get_num_screens();
+	for(disp=0; disp<num_screens; disp++) {
+		struct disp_device *tv;
+		tv = disp_device_find(disp, DISP_OUTPUT_TYPE_TV);
+		if(tv) {
+			ret = tv->set_tv_func(tv, func);
+			if(0 == ret)
+				registered_cnt ++;
+		}
+	}
+
+	if(0 != registered_cnt) {
+		DE_INF("tv registered!!\n");
+		gdisp.tv_registered = 1;
+		if(gdisp.init_para.start_process)
+			gdisp.init_para.start_process();
+
+		return 0;
+	}
+	return -1;
+}
+
+
 s32 bsp_disp_set_hdmi_func(disp_hdmi_func * func)
 {
 		u32 disp = 0;
@@ -589,6 +622,25 @@ s32 bsp_disp_hdmi_get_hpd_status(u32 disp)
 
 	return ret;
 }
+
+s32 bsp_disp_tv_get_hpd_status(u32 disp)
+{
+	u32 num_screens = 0;
+	s32 ret = 0 ;
+
+	num_screens = bsp_disp_feat_get_num_screens();
+	for(disp=0; disp<num_screens; disp++) {
+		struct disp_device *tv;
+		tv = disp_device_find(disp, DISP_OUTPUT_TYPE_TV);
+		if(tv && tv->detect) {
+			ret = tv->detect(tv);
+			break;
+		}
+	}
+
+	return ret;
+}
+
 
 disp_lcd_flow * bsp_disp_lcd_get_open_flow(u32 disp)
 {

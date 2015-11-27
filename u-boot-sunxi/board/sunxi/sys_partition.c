@@ -104,6 +104,27 @@ uint sunxi_partition_get_offset_byname(const char *part_name)
 	return 0;
 }
 
+int sunxi_partition_get_partno_byname(const char *part_name)
+{
+	sunxi_mbr_t        *mbr  = (sunxi_mbr_t*)mbr_buf;
+	int			i;
+
+	if(!mbr_status)
+	{
+		return -1;
+	}
+	for(i=0;i<mbr->PartCount;i++)
+	{
+		if(!strcmp(part_name, (const char *)mbr->array[i].name))
+		{
+			return i;
+		}
+	}
+
+	return -1;
+}
+
+
 uint sunxi_partition_get_size_byname(const char *part_name)
 {
 	sunxi_mbr_t        *mbr  = (sunxi_mbr_t*)mbr_buf;

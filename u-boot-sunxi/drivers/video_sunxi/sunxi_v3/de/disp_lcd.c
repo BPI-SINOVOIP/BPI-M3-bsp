@@ -1943,9 +1943,10 @@ s32 disp_init_lcd(disp_bsp_init_para * para)
 		lcd->init = disp_lcd_init;
 		lcd->exit = disp_lcd_exit;
 
-		if(bsp_disp_feat_is_supported_output_types(disp, DISP_OUTPUT_TYPE_LCD))
+		if(bsp_disp_feat_is_supported_output_types(disp, DISP_OUTPUT_TYPE_LCD)) {
 			lcd->init(lcd);
 			disp_device_register(lcd);
+		}
 	}
 
 	return 0;

@@ -129,7 +129,7 @@ s32 tcon1_set_timming(u32 sel, disp_video_timings *timming);
 s32 tcon1_cfg(u32 sel,disp_video_timings* timing);
 s32 tcon1_set_tv_mode(u32 sel,disp_tv_mode mode);
 s32 hmdi_src_sel(u32 sel);
-s32 tcon1_hdmi_color_remap(u32 sel);
+s32 tcon1_hdmi_color_remap(u32 sel,u32 onoff);
 
 #endif
 

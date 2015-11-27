@@ -46,11 +46,11 @@ int sunxi_verify_signature(void *buff, uint len, const char *cert_name)
 	if(ret)
 	{
 		printf("sunxi_verify_signature err: calc hash failed\n");
-		sunxi_ss_close();
+		//sunxi_ss_close();
 
 		return -1;
 	}
-	sunxi_ss_close();
+	//sunxi_ss_close();
 	printf("show hash of file\n");
 	sunxi_dump(hash_of_file, 32);
 	//获取来自toc1的证书序列

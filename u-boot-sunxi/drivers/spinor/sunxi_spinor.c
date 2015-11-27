@@ -26,6 +26,7 @@
 #include <spi.h>
 #include <asm/arch/spi.h>
 #include <sunxi_mbr.h>
+#include <private_boot0.h>
 
 static int   spinor_flash_inited = 0;
 uint  total_write_bytes;
@@ -84,6 +85,11 @@ static void spic_config_dual_mode(u32 spi_no, u32 rxdual, u32 dbc, u32 stc)
 {
 	writel((rxdual<<28)|(dbc<<24)|(stc), SPI_BCC);
 }
+#endif
+#ifndef CONFIG_SUNXI_SPINOR_PLATFORM
+extern uint sunxi_sprite_generate_checksum(void *buffer, uint length, uint src_sum);
+
+extern int sunxi_sprite_verify_checksum(void *buffer, uint length, uint src_sum);
 #endif
 /*
 ************************************************************************************************************
@@ -521,6 +527,7 @@ int spinor_init(int stage)
 	if(spinor_flash_inited)
 	{
 		puts("sunxi spinor is already inited\n");
+                return 0;
 	}
 	else
 	{
@@ -886,19 +893,52 @@ int spinor_sprite_write(uint start, uint nblock, void *buffer)
 //		}
 //	}
 //}
+#ifndef CONFIG_SUNXI_SPINOR_PLATFORM
+int update_boot0_dram_para(char *buffer)
+{
+    boot0_file_head_t    *boot0  = (boot0_file_head_t *)buffer;
+	int i;
+	uint *addr = (uint *)DRAM_PARA_STORE_ADDR;
+
+	//校验特征字符是否正确
+	printf("%s\n", boot0->boot_head.magic);
+	if(strncmp((const char *)boot0->boot_head.magic, BOOT0_MAGIC, MAGIC_SIZE))
+	{
+		printf("sunxi sprite: boot0 magic is error\n");
+		return -1;
+	}
+	if(sunxi_sprite_verify_checksum((void *)buffer, boot0->boot_head.length, boot0->boot_head.check_sum))
+	{
+		printf("sunxi sprite: boot0 checksum is error\n");
+
+		return -1;
+	}
+
+	for(i=0;i<32;i++)
+	{
+		printf("dram para[%d] = %x\n", i, addr[i]);
+	}
+	memcpy((void *)&boot0->prvt_head.dram_para, (void *)DRAM_PARA_STORE_ADDR, 32 * 4);
+	/* regenerate check sum */
+	boot0->boot_head.check_sum = sunxi_sprite_generate_checksum(buffer, boot0->boot_head.length, boot0->boot_head.check_sum);
+	//校验数据是否正确
+	if(sunxi_sprite_verify_checksum((void *)buffer, boot0->boot_head.length, boot0->boot_head.check_sum))
+	{
+		printf("sunxi sprite: boot0 checksum is error\n");
+		return -1;
+	}
+	printf("update dram para success \n");
+	return 0;
+
+}
+#endif
 
 int spinor_datafinish(void)
 {
-	//char  test_buffer[512];
-	//int   i,j;
 	uint  id = 0xff;
-	//char  *buffer;
 	int   ret;
 
 	printf("spinor_datafinish\n");
-	//spinor_get_private_data((void *)spinor_mbr, 1);
-
-//	while((*(volatile unsigned int *)0) != 0x1234);
 	__spinor_read_id(&id);
 
 	printf("spinor id = 0x%x\n", id);
@@ -906,6 +946,13 @@ int spinor_datafinish(void)
 	__spinor_erase_all();
 
 	printf("spinor has erasered\n");
+
+#ifndef CONFIG_SUNXI_SPINOR_PLATFORM
+	if(update_boot0_dram_para(spinor_store_buffer))
+	{
+		return -1;
+	}
+#endif
 
 	printf("total write bytes = %d\n", total_write_bytes);
 	ret = __spinor_sector_write(0, total_write_bytes/512, spinor_store_buffer);

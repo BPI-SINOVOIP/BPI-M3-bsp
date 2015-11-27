@@ -35,7 +35,7 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 sprite_cartoon_source  sprite_source;
-#ifndef CONFIG_FPGA
+#if !defined(CONFIG_FPGA) && defined(CONFIG_SUNXI_DISPLAY)
 static uint  progressbar_hd;
 static int   last_rate;
 #endif
@@ -58,7 +58,7 @@ static int   last_rate;
 */
 int sprite_cartoon_screen_set(void)
 {
-#ifdef CONFIG_FPGA
+#if defined(CONFIG_FPGA) || !defined(CONFIG_SUNXI_DISPLAY)
     return 0;
 #else
 	/* 初始化图形参数 */
@@ -120,7 +120,7 @@ int sprite_cartoon_screen_set(void)
 */
 int sprite_cartoon_test(void)
 {
-#ifdef CONFIG_FPGA
+#if defined(CONFIG_FPGA) || !defined(CONFIG_SUNXI_DISPLAY)
 	return 0;
 #else
 	int i;
@@ -197,7 +197,7 @@ int sprite_cartoon_test(void)
 */
 uint sprite_cartoon_create(void)
 {
-#ifdef CONFIG_FPGA
+#if defined(CONFIG_FPGA) || !defined(CONFIG_SUNXI_DISPLAY)
     return 0;
 #else
 	int screen_width, screen_height;
@@ -252,7 +252,7 @@ uint sprite_cartoon_create(void)
 */
 int sprite_cartoon_upgrade(int rate)
 {
-#ifdef CONFIG_FPGA
+#if defined(CONFIG_FPGA) || !defined(CONFIG_SUNXI_DISPLAY)
     return 0;
 #else
 	if(last_rate == rate)
@@ -284,7 +284,7 @@ int sprite_cartoon_upgrade(int rate)
 */
 int sprite_cartoon_destroy(void)
 {
-#ifdef CONFIG_FPGA
+#if defined(CONFIG_FPGA) || !defined(CONFIG_SUNXI_DISPLAY)
     return 0;
 #else
 	sprite_cartoon_progressbar_destroy(progressbar_hd);

@@ -30,60 +30,11 @@
 #include <command.h>
 #include <malloc.h>
 #include <bat.h>
-#include <sunxi_advert.h>
-#include <sys_config.h>
 
 static int sunxi_bmp_probe_info (uint addr);
 static int sunxi_bmp_show(sunxi_bmp_store_t bmp_info);
 
-struct __advert_head	advert_head;
-
 DECLARE_GLOBAL_DATA_PTR;
-
-static __s32 check_sum(void *mem_base, __u32 size, __u32 src_sum)
-{
-	__u32 *buf = (__u32 *)mem_base;
-	__u32 count = 0;
-	__u32 sum = 0;
-	__u32 last 	= 0;
-	__u32 curlen = 0;
-	__s32 i = 0;
-
-	/* 生成校验和 */
-	count = size >> 2;                         // 以 字（4bytes）为单位计数
-
-	//16字节对齐
-	do
-	{
-		sum += *buf++;                         // 依次累加，求得校验和
-		sum += *buf++;                         // 依次累加，求得校验和
-		sum += *buf++;                         // 依次累加，求得校验和
-		sum += *buf++;                         // 依次累加，求得校验和
-	}while( ( count -= 4 ) > (4-1) );
-
-	//4字节对齐
-	for (i = 0; i < count; i++)
-	{
-		sum += *buf++;
-	}
-
-	//如果有1 2 3字节的尾巴，则处理尾巴数据，按照lsb的格式
-	curlen = size % 4;
-	if((size & 0x03) != 0)
-	{
-		memcpy(&last, mem_base + size - curlen, curlen);
-		sum += last;	//加上尾巴补全的u32数据
-	}
-
-	printf("sum=%x\n", sum);
-	printf("src_sum=%x\n", src_sum);
-
-	if( sum == src_sum )
-		return 0;               // 校验成功
-	else
-		return -1;             // 校验失败
-}
-
 /*
  * Allocate and decompress a BMP image using gunzip().
  *
@@ -216,6 +167,7 @@ static int do_sunxi_bmp_display(cmd_tbl_t * cmdtp, int flag, int argc, char * co
 	return -1;
 }
 
+
 U_BOOT_CMD(
 	sunxi_bmp_show,	4,	1,	do_sunxi_bmp_display,
 	"manipulate BMP image data",
@@ -224,46 +176,23 @@ U_BOOT_CMD(
 	"parameters 2 : option para, the address where the bmp display\n"
 );
 
-/*
- * Subroutine:  sunxi_bmp_display
- *
- * Description: Show bmp file in device
- *
- * Inputs:	name of file that in bootloader
- *
- * Return:      None
- *
- */
 int sunxi_bmp_display(char *name)
 {
 #ifdef CONFIG_FPGA
     return 0;
 #else
-	sunxi_bmp_store_t bmp_info;
+        sunxi_bmp_store_t bmp_info;
 	char  bmp_name[32];
+	char *const bmp_argv[6] = { "fatload", "sunxi_flash", "0", "40000000", bmp_name, NULL };
+
 	memset(bmp_name, 0, 32);
 	strcpy(bmp_name, name);
-
-#ifndef USE_AW_FAT
-	char *const bmp_argv[6] = { "fatload", "sunxi_flash", "0", "40000000", bmp_name, NULL };
     if(do_fat_fsload(0, 0, 5, bmp_argv))
 	{
 	   printf("sunxi bmp info error : unable to open logo file %s\n", bmp_argv[4]);
 
 	   return -1;
     }
-#else
-//MIKEY
-//	char *const bmp_argv[4] = {"bootloader", bmp_name, "40000000", NULL};
-	char *const bmp_argv[4] = {"boot-res", bmp_name, "40000000", NULL};
-  	if(do_aw_fat_fsload(0, 0, 4, bmp_argv))
-	{
-	   printf("MIKEY: sunxi bmp info error : unable to open logo file %s\n", bmp_argv[1]);
-
-	   return -1;
-    }
-#endif
-
 	//bmp_info.buffer = (void *)SUNXI_DISPLAY_FRAME_BUFFER_ADDR;
 #if defined(CONFIG_SUNXI_LOGBUFFER)
 	bmp_info.buffer = (void *)(CONFIG_SYS_SDRAM_BASE + gd->ram_size - SUNXI_DISPLAY_FRAME_BUFFER_SIZE);
@@ -421,116 +350,4 @@ U_BOOT_CMD(
 	"no args\n"
 );
 
-static int sunxi_advert_verify_magic(unsigned long addr)
-{
-	u32 length = 0;
 
-	memcpy((u32 *)&advert_head, (u32 *)addr, sizeof(struct __advert_head));
-	if(strcmp((char *)advert_head.magic, ADVERT_MAGIC))
-	{
-		printf("advert magic not equal,%s\n", (char *)advert_head.magic);
-		return -1;
-	}
-
-	length = advert_head.length;
-	if((length = 0) || (length > 64*1024*1024))
-	{
-		printf("advert length=%d to big or to short\n", length);
-		return -1;
-	}
-
-	return 0;
-}
-
-static int sunxi_advert_verify_head(char *fatname, char *filename)
-{
-	char bmp_name[32];
-	char fat_name[32];
-
-	memset(bmp_name, 0, 32);
-	strcpy(bmp_name, filename);
-
-	memset(fat_name, 0, 32);
-	strcpy(fat_name, fatname);
-
-	char *const bmp_argv[4] = {fat_name, bmp_name, "40000000", NULL};
-	if(do_aw_fat_fsload(0, 0, 4, bmp_argv))
-	{
-		printf("sunxi bmp info error : unable to open file %s\n", bmp_argv[1]);
-		return -1;
-	}
-
-	return sunxi_advert_verify_magic(0x40000000);
-}
-
-int sunxi_advert_display(char *fatname, char *filename)
-{
-#ifndef USE_AW_FAT
-	printf("please define USE_AW_FAT before used\n");
-	return -1;
-#endif
-
-	if(sunxi_advert_verify_head(fatname, "advert.crc"))
-	{
-		printf("check advert magic failed\n");
-		return -1;
-	}
-
-	sunxi_bmp_store_t bmp_info;
-	char bmp_name[32];
-	char fat_name[32];
-
-	memset(bmp_name, 0, 32);
-	strcpy(bmp_name, filename);
-
-	memset(fat_name, 0, 32);
-	strcpy(fat_name, fatname);
-	char *const bmp_argv[4] = {fat_name, bmp_name, "40000000", NULL};
-	if(do_aw_fat_fsload(0, 0, 4, bmp_argv))
-	{
-		printf("sunxi bmp info error : unable to open logo file %s\n", bmp_argv[1]);
-		return -1;
-	}
-
-#if defined(CONFIG_SUNXI_LOGBUFFER)
-	bmp_info.buffer = (void *)(CONFIG_SYS_SDRAM_BASE + gd->ram_size - SUNXI_DISPLAY_FRAME_BUFFER_SIZE);
-#else
-	bmp_info.buffer = (void *)(SUNXI_DISPLAY_FRAME_BUFFER_ADDR);
-#endif
-
-	if(!check_sum((u32 *)0x40000000, advert_head.length, advert_head.check_sum))
-	{
-		debug("check_sum advert bmp ok\n");
-		if(!sunxi_bmp_decode(0x40000000, &bmp_info))
-		{
-			debug("decode bmp ok\n");
-			return sunxi_bmp_show(bmp_info);
-		}
-	}
-	return -1;
-}
-
-int sunxi_advert_disp_probe(void)
-{
-	int ret;
-	int advert_disp = 0;
-	ret = script_parser_fetch("boot_disp", "advert_disp", &advert_disp, 1);
-	if(!ret && advert_disp)
-	{
-		printf("adver need show\n");
-		return 0;
-	}
-	printf("adver not need show\n");
-	return -1;
-}
-
-int do_sunxi_advert(cmd_tbl_t * cmdtp, int flag, int argc, char * const argv[])
-{
-	return sunxi_advert_display("Reserve0", "advert.bmp");
-}
-
-U_BOOT_CMD(
-	advert,	1,	0,	do_sunxi_advert,
-	"show default advert",
-	"no args\n"
-);

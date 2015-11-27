@@ -53,6 +53,22 @@ extern int do_boota_linux (struct fastboot_boot_img_hdr *hdr);
 
 DECLARE_GLOBAL_DATA_PTR;
 
+void * memcpy2(void * dest,const void * src,__kernel_size_t n)
+{
+	if (src == dest)
+		return dest;
+	if (src < dest) {
+		if (src + n > dest) {
+			memcpy((void*) (dest + (dest - src)), dest, src + n - dest);
+			n = dest - src;
+		}
+		memcpy(dest, src, n);
+	} else {
+		memcpy(dest, src, n);
+	}
+	return dest;
+}
+
 int do_boota (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	ulong	addr;
@@ -94,8 +110,8 @@ int do_boota (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 #endif
 	//memmove((void*) fb_hdr->kernel_addr, (const void *)kaddr, fb_hdr->kernel_size);
 	//memmove((void*) fb_hdr->ramdisk_addr, (const void *)raddr, fb_hdr->ramdisk_size);
-	memcpy((void*) fb_hdr->kernel_addr, (const void *)kaddr, fb_hdr->kernel_size);
-	memcpy((void*) fb_hdr->ramdisk_addr, (const void *)raddr, fb_hdr->ramdisk_size);
+	memcpy2((void*) fb_hdr->kernel_addr, (const void *)kaddr, fb_hdr->kernel_size);
+	memcpy2((void*) fb_hdr->ramdisk_addr, (const void *)raddr, fb_hdr->ramdisk_size);
 
 	/* add code for signature */
 #ifdef CONFIG_SUNXI_SECURE_SYSTEM

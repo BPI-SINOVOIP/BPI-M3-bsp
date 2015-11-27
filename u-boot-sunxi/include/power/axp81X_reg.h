@@ -56,6 +56,7 @@
 #define   BOOT_POWER81X_ELDO2_VOL                       (0x1A)
 #define   BOOT_POWER81X_ELDO3_VOL                       (0x1B)
 #define   BOOT_POWER81X_FLDO1_VOL                       (0x1C)
+#define   BOOT_POWER81X_FLDO2_VOL						(0x1D)
 #define   BOOT_POWER81X_DC1OUT_VOL                  	(0x20)
 #define   BOOT_POWER81X_DC2OUT_VOL          			(0x21)
 #define   BOOT_POWER81X_DC3OUT_VOL          			(0x22)

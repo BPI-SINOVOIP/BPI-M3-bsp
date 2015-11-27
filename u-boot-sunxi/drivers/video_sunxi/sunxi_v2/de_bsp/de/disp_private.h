@@ -179,8 +179,6 @@ struct disp_lcd {
 	s32 (*gpio_set_value)(struct disp_lcd* lcd, u32 io_index, u32 value);
 	s32 (*gpio_set_direction)(struct disp_lcd *lcd, u32 io_index, u32 direction);//direction: intput(0), output(1)
 	s32 (*get_panel_info)(struct disp_lcd *lcd, disp_panel_para *info);
-	s32 (*get_tv_mode)(struct disp_lcd *lcd);
-	s32 (*set_tv_mode)(struct disp_lcd *lcd, disp_tv_mode tv_mode);
 };
 extern struct disp_lcd* disp_get_lcd(u32 channel_id);
 
@@ -199,7 +197,6 @@ struct disp_hdmi {
 	s32 (*check_support_mode)(struct disp_hdmi* hdmi, u8 mode);
 	s32 (*get_input_csc)(struct disp_hdmi* hdmi);
 	s32 (*set_func)(struct disp_hdmi* hdmi, disp_hdmi_func* func);
-	s32 (*hdmi_get_HPD_status)(struct disp_hdmi* hdmi);
 };
 
 extern struct disp_hdmi* disp_get_hdmi(u32 channel_id);

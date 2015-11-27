@@ -448,11 +448,19 @@ int bsp_hdmi_video(struct video_para *video)
 
 	if(video->is_hcts)
 	{
+		hdmi_write(0x00C0, video->is_hdmi ? 0x91 : 0x90 );
+		hdmi_write(0x00C1, 0x05);
+		hdmi_write(0x40C1, (ptbl[id].para[3] < 96) ? 0x10 : 0x1a);
+		hdmi_write(0x80C2, 0xff);
+		hdmi_write(0x40C0, 0xfd);
+		hdmi_write(0xC0C0, 0x40);
+		hdmi_write(0x00C1, 0x04);
 		hdmi_write(0x10010,0x45);
 		hdmi_write(0x10011,0x45);
 		hdmi_write(0x10012,0x52);
 		hdmi_write(0x10013,0x54);
 		hdmi_write(0x0040, hdmi_read(0x0040) | 0x80 );
+		hdmi_write(0x00C0, video->is_hdmi ? 0x95 : 0x94 );
 		hdmi_write(0x10010,0x52);
 		hdmi_write(0x10011,0x54);
 		hdmi_write(0x10012,0x41);
@@ -656,7 +664,7 @@ void bsp_hdmi_standby()
 
 void bsp_hdmi_hrst()
 {
-
+	hdmi_write(0x00C1, 0x04);
 }
 
 void bsp_hdmi_hdl()

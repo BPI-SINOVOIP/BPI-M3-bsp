@@ -36,6 +36,7 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+#ifndef CONFIG_NO_BOOT_STANDBY
 int boot_standby_action = 0;
 
 typedef int (* standby_func)(void);
@@ -51,7 +52,7 @@ static int board_try_boot_standby(void)
 
 	return boot_standby_func();
 }
-
+#endif
 extern int efex_test;
 static int board_probe_power_level(void)
 {
@@ -197,6 +198,7 @@ static int board_probe_bat_status(int standby_mode)
 	return bat_cal;
 }
 
+#ifndef CONFIG_NO_BOOT_STANDBY
 static int board_standby_status(int source_bat_cal)
 {
 	int   bat_cal, this_bat_cal;
@@ -387,6 +389,7 @@ __start_case_status__:
 	}
 	while(1);
 }
+#endif
 /*
 ************************************************************************************************************
 *
@@ -484,7 +487,8 @@ void board_status_probe(int standby_mode)
 	{
 		return ;
 	}
-	//启动条件判断，第四阶段，进入boot待机
+#ifndef CONFIG_NO_BOOT_STANDBY
+        //启动条件判断，第四阶段，进入boot待机
 	//负数：关机，其它：进入系统
 	ret = board_standby_status(ret);
 	debug("stage4 resule %d\n", ret);
@@ -492,7 +496,7 @@ void board_status_probe(int standby_mode)
 	{
 		do_shutdown(NULL, 0, 1, NULL);
 	}
-
+#endif
 	return ;
 }
 

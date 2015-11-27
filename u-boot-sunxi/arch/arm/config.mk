@@ -90,7 +90,11 @@ else
 ifdef CONFIG_CPUS_STANDBY
 LDSCRIPT := $(SRCTREE)/$(CPUDIR)/u-boot-cpus.lds
 else
+ifdef CONFIG_NO_BOOT_STANDBY
+LDSCRIPT := $(SRCTREE)/$(CPUDIR)/u-boot-nostandby.lds
+else
 LDSCRIPT := $(SRCTREE)/$(CPUDIR)/u-boot.lds
+endif
 endif
 endif
 

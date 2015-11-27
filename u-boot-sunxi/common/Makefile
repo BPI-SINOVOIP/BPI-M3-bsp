@@ -37,7 +37,6 @@ COBJS-y += s_record.o
 COBJS-$(CONFIG_SERIAL_MULTI) += serial.o
 COBJS-y += xyzModem.o
 # core command
-COBJS-y += cmd_boot.o
 COBJS-$(CONFIG_CMD_BOOTM) += cmd_bootm.o
 COBJS-$(CONFIG_CMD_BOOTA) += cmd_boota.o
 COBJS-y += cmd_help.o
@@ -66,7 +65,6 @@ COBJS-$(CONFIG_ENV_IS_NOWHERE) += env_nowhere.o
 # command
 #COBJS-y += cmd_sunxi_display.o
 COBJS-y += cmd_sunxi_flash.o
-COBJS-y += cmd_shutdown.o
 COBJS-y += cmd_fel.o
 COBJS-$(CONFIG_CMD_AMBAPP) += cmd_ambapp.o
 COBJS-$(CONFIG_SOURCE) += cmd_source.o
@@ -114,7 +112,6 @@ COBJS-$(CONFIG_CMD_CRAMFS) += cmd_cramfs.o
 COBJS-$(CONFIG_CMD_LDRINFO) += cmd_ldrinfo.o
 COBJS-$(CONFIG_CMD_LED) += cmd_led.o
 COBJS-$(CONFIG_CMD_LICENSE) += cmd_license.o
-COBJS-y += cmd_load.o
 COBJS-$(CONFIG_LOGBUFFER) += cmd_log.o
 COBJS-$(CONFIG_ID_EEPROM) += cmd_mac.o
 COBJS-$(CONFIG_CMD_MD5SUM) += cmd_md5sum.o
@@ -140,7 +137,6 @@ COBJS-$(CONFIG_CMD_OTP) += cmd_otp.o
 ifdef CONFIG_PCI
 COBJS-$(CONFIG_CMD_PCI) += cmd_pci.o
 endif
-COBJS-y += cmd_pcmcia.o
 COBJS-$(CONFIG_CMD_PORTIO) += cmd_portio.o
 COBJS-$(CONFIG_CMD_REGINFO) += cmd_reginfo.o
 COBJS-$(CONFIG_CMD_REISER) += cmd_reiser.o
@@ -167,13 +163,11 @@ endif
 COBJS-$(CONFIG_CMD_XIMG) += cmd_ximg.o
 COBJS-$(CONFIG_YAFFS2) += cmd_yaffs2.o
 COBJS-$(CONFIG_SUNXI_SECURE_SYSTEM) += cmd_sunxi_verify.o
-COBJS-$(CONFIG_SUNXI_SECURE_STORAGE) += cmd_secure_object.o
 
 # others
 COBJS-$(CONFIG_DDR_SPD) += ddr_spd.o
 COBJS-$(CONFIG_HWCONFIG) += hwconfig.o
 COBJS-$(CONFIG_CONSOLE_MUX) += iomux.o
-COBJS-y += flash.o
 COBJS-$(CONFIG_CMD_KGDB) += kgdb.o kgdb_stubs.o
 COBJS-$(CONFIG_KALLSYMS) += kallsyms.o
 COBJS-$(CONFIG_LCD) += lcd.o
@@ -184,25 +178,27 @@ COBJS-$(CONFIG_USB_KEYBOARD) += usb_kbd.o
 endif
 
 COBJS-$(CONFIG_FASTBOOT) += cmd_fastboot.o
-COBJS-y += cmd_svudata.o
-
-
 
 COBJS-y += console.o
-COBJS-y += memsize.o
 COBJS-y += stdio.o
 
+COBJS-y += memsize.o
 COBJS-$(CONFIG_NONCACHE_MEMORY) += sunxi_mem_alloc.o
 ifndef CONFIG_SUNXI_SPINOR_PLATFORM
 COBJS-y += cmd_sunxi_memtest.o
 COBJS-y += cmd_sunxi_bmp.o
+COBJS-y += cmd_boot.o
+COBJS-y += cmd_load.o
+COBJS-y += cmd_pcmcia.o
 COBJS-y += cmd_onekey_recovery.o
+COBJS-y += cmd_svudata.o
+COBJS-y += flash.o
+COBJS-y += cmd_shutdown.o
 COBJS-y += cmd_standby.o
 COBJS-y += cmd_burn.o
 COBJS-y += cmd_sunxi_signature.o
 COBJS-y += cmd_modify_sysconfig.o
 COBJS-y += cmd_recovery.o
-COBJS-y += cmd_aw_fat.o
 endif
 
 COBJS	:= $(sort $(COBJS-y))

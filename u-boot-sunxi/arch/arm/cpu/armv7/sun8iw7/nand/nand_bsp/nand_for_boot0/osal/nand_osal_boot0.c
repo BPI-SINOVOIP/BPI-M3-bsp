@@ -403,7 +403,8 @@ void NAND_RbInterrupt(void)
 */
 void* NAND_Malloc(unsigned int Size)
 {
-	return (void *)malloc(Size);
+//	return (void *)malloc(Size);
+        return (void *)CONFIG_SYS_SDRAM_BASE;
 }
 /*
 ************************************************************************************************************
@@ -423,7 +424,7 @@ void* NAND_Malloc(unsigned int Size)
 */
 void NAND_Free(void *pAddr, unsigned int Size)
 {
-    return free(pAddr);
+    //return free(pAddr);
 }
 
 void *NAND_IORemap(unsigned int base_addr, unsigned int size)

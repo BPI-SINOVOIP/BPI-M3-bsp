@@ -246,7 +246,7 @@ int sunxi_sprite_erase_private_key(void *buffer)
 	int i = 0 , len = 1024 * 1024;
 	sunxi_mbr_t  *mbr = (sunxi_mbr_t *)buffer;
 	char *fill_zero = NULL;
-	
+
 	for(i=0;i<mbr->PartCount;i++)
 	{
 		if( (!strcmp((const char *)mbr->array[i].name, SUNXI_SPRITE_PROTECT_PART)) || (mbr->array[i].keydata == 0x8000))
@@ -257,7 +257,7 @@ int sunxi_sprite_erase_private_key(void *buffer)
 			break;
 		}
 	}
-	
+
 	if(i >= mbr->PartCount)
 	{
 		printf("private part is not exit \n");

@@ -44,8 +44,12 @@
 void mmu_setup(void)
 {
 	u32 mmu_base;
+#ifdef CONFIG_ARCH_SUN8IW8P1
+	u32 *page_table = (u32 *)BOOT0_SYS_MMU_BASE;
+#else
 	u32 *page_table = (u32 *)CONFIG_SYS_SRAMA2_BASE;
-	int i;
+#endif
+        int i;
 	u32 reg;
 
 	page_table[0] = (3 << 10) | (15 << 5) | (1 << 3) | (0 << 2) | 0x2;
@@ -58,8 +62,12 @@ void mmu_setup(void)
 	/* flush tlb */
 	asm volatile("mcr p15, 0, %0, c8, c7, 0" : : "r" (0));
 	/* Copy the page table address to cp15 */
+#ifdef CONFIG_ARCH_SUN8IW8P1
+	mmu_base = BOOT0_SYS_MMU_BASE;
+#else
 	mmu_base = CONFIG_SYS_SRAMA2_BASE;
-	mmu_base |= (1 << 0) | (1 << 1) | (2 << 3);
+#endif
+        mmu_base |= (1 << 0) | (1 << 1) | (2 << 3);
 	asm volatile("mcr p15, 0, %0, c2, c0, 0"
 		     : : "r" (mmu_base) : "memory");
 	asm volatile("mcr p15, 0, %0, c2, c0, 1"

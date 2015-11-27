@@ -48,8 +48,11 @@ s32 bsp_disp_get_hdmi_registered(void);
 s32 bsp_disp_get_output_type(u32 disp);
 s32 bsp_disp_device_switch(int disp, disp_output_type output_type, disp_tv_mode mode);
 s32 bsp_disp_set_hdmi_func(disp_hdmi_func * func);
+s32 bsp_disp_set_tv_func(disp_tv_func * func);
 s32 bsp_disp_hdmi_get_hpd_status(u32 disp);
 s32 bsp_disp_hdmi_check_support_mode(u32 disp, disp_tv_mode mode);
+s32 bsp_disp_tv_get_hpd_status(u32 disp);
+
 //lcd
 s32 bsp_disp_lcd_set_panel_funs(char *name, disp_lcd_panel_fun * lcd_cfg);
 s32 bsp_disp_lcd_backlight_enable(u32 disp);

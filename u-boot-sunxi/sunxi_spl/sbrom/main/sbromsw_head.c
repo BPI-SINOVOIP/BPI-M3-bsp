@@ -39,7 +39,9 @@ const boot_file_head_t  sbromsw_head = {
 							   		      STAMP_VALUE,
 							   		      ALIGN_SIZE,
 							   		      sizeof( boot_file_head_t ),
-							   		      BOOT_PUB_HEAD_VERSION,
+							   		      {
+							   		      	0, 0, 0, 0
+							   		      },
 							   		      CONFIG_TOC0_RET_ADDR,
 							   		      CONFIG_TOC0_RUN_ADDR,
 							   		      EGON_VERSION,

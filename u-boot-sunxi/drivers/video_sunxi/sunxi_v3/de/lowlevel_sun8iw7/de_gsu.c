@@ -13,7 +13,7 @@
 #include "de_scaler.h"
 #include "de_scaler_table.h"
 
-#define	GSU_OFST 0x40000 //GSU0 offset based on RTMX
+#define VSU_OFST 0x20000		//VSU0 offset based on RTMX
 static volatile __gsu_reg_t *gsu_dev[DEVICE_NUM][UI_CHN_NUM];
 static de_reg_blocks gsu_glb_block[DEVICE_NUM][UI_CHN_NUM];
 static de_reg_blocks gsu_out_block[DEVICE_NUM][UI_CHN_NUM];
@@ -26,14 +26,17 @@ int de_gsu_init(unsigned int sel, unsigned int reg_base)
 	unsigned int gsu_base;
 	void *memory;
 	int vi_chno;
+	int gsu_offset;
 
 	chno=de_feat_is_support_scale(sel);
 	vi_chno = de_feat_get_num_vi_chns(sel);
 	chno = chno - vi_chno;
 
+	gsu_offset = VSU_OFST + vi_chno*0x20000;
+
 	for(j=0;j<chno;j++)
 	{
-		gsu_base = reg_base + (sel+1)*0x00100000 + GSU_OFST + j*0x10000;	//FIXME  display path offset should be defined
+		gsu_base = reg_base + (sel+1)*0x00100000 + gsu_offset + j*0x10000;	//FIXME  display path offset should be defined
 		__inf("sel %d, gsu_base[%d]=0x%x\n", sel, j, gsu_base);
 
 		memory = disp_sys_malloc(sizeof(__gsu_reg_t));
@@ -62,7 +65,6 @@ int de_gsu_init(unsigned int sel, unsigned int reg_base)
 		gsu_coeff_block[sel][j].size		= 0x40;
 		gsu_coeff_block[sel][j].dirty 		= 0;
 
-		
 		de_gsu_set_reg_base(sel, j, memory);
 	}
 
@@ -74,6 +76,7 @@ int de_gsu_update_regs(unsigned int sel)
 	int i,chno;
 
 	chno=de_feat_is_support_scale(sel);
+	chno = chno - de_feat_get_num_vi_chns(sel);
 
 	for(i=0;i<chno;i++)
 	{
@@ -252,11 +255,17 @@ int de_gsu_calc_scaler_para(de_rect64 crop, de_rect frame, de_rect *crop_fix,sca
 	unsigned long long tmp = 0;
 
 	tmp = (N2_POWER(crop.w,GSU_PHASE_FRAC_BITWIDTH));
-	do_div(tmp, frame.w);
+	if(frame.w)
+		do_div(tmp, frame.w);
+	else
+		tmp = 0;
 	para->hstep= (unsigned int)(tmp>>GSU_FB_FRAC_BITWIDTH);
 
 	tmp = (N2_POWER(crop.h,GSU_PHASE_FRAC_BITWIDTH));
-	do_div(tmp, frame.h);
+	if(frame.h)
+		do_div(tmp, frame.h);
+	else
+		tmp = 0;
 	para->vstep= (unsigned int)(tmp>>GSU_FB_FRAC_BITWIDTH);
 
 	para->hphase = ((crop.x & 0xffffffff)>>(32-GSU_PHASE_FRAC_BITWIDTH));

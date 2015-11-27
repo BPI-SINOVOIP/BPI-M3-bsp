@@ -45,7 +45,7 @@ __u32 NF_PG_SZ_WIDTH = 0;
 __u32 BOOT1_LAST_BLK_NUM = 0;
 __u32 page_with_bad_block = 0;
 
-
+extern  struct __NandStorageInfo_t  NandStorageInfo;
 
 __s32 NF_open( void )
 {
@@ -185,7 +185,15 @@ __s32 NF_read( __u32 sector_num, void *buffer, __u32 N )
 	__u32 start_sct;
 	__u32 i;
 	__u32 blk_num;
+	__u32 page_cnt_per_blk;
+	__u32 page_index;
 
+	residue = g_mod( NF_BLOCK_SIZE, NF_PAGE_SIZE, &page_cnt_per_blk );
+	if(residue!=0)
+	{
+		printf("page cnt cacl fail\n");
+		return NF_ERROR;
+	}
 	para.chip = 0;
 	start_sct = g_mod( sector_num, NF_BLOCK_SIZE >> NF_SCT_SZ_WIDTH, &blk_num );
 	para.block = blk_num;
@@ -193,13 +201,24 @@ __s32 NF_read( __u32 sector_num, void *buffer, __u32 N )
 		return NF_ERROR;
 	para.oobbuf = oob_buf;
 	residue = g_mod( N, scts_per_page, &page_nr );
-	for( i = 0; i < page_nr; i++ )
+
+	page_index = 0;
+	
+	for( i = 0; i < page_cnt_per_blk; i++ )
 	{
-		para.mainbuf = (__u8 *)buffer + NF_PAGE_SIZE * i;
+		if(page_nr==0)
+			break;
+		para.mainbuf = (__u8 *)buffer + NF_PAGE_SIZE * page_index;
 		para.page = start_page + i;
+		if(!Nand_Is_lsb_page(para.page))
+			continue;
 		if( NFB_BASE_PhyRead( &para ) == FAIL )
 			return NF_ERROR;
+		page_index++;
+		if(page_index==page_nr)
+			break;
 	}
+	page_index = 0;
 	if( residue != 0 )
 	{
 		__u8  *page_buf;
@@ -210,7 +229,15 @@ __s32 NF_read( __u32 sector_num, void *buffer, __u32 N )
 
 		page_buf = get_page_buf( );
 		para.mainbuf = page_buf;
-		para.page = page_nr;
+		for(i=0;i<page_cnt_per_blk;i++)
+		{
+			if(!Nand_Is_lsb_page(i))
+				continue;
+			page_index++;
+			if(page_index == page_nr+1)
+				break;
+		}
+		para.page = i;
 		if( NFB_BASE_PhyRead( &para ) == FAIL )
 			return NF_ERROR;
 		for( j = 0, p = (__u32 *)( (__u32)buffer + NF_PAGE_SIZE * page_nr ), word_nr = residue * NF_SECTOR_SIZE >> 2, q = (__u32 *)page_buf;
@@ -259,3 +286,16 @@ __s32 NF_read_status( __u32 blk_num )
 		return NF_GOOD_BLOCK;
 }
 
+__u32 load_uboot_in_one_block_judge(__u32 length)
+{	
+	__u32 lsb_page_type;
+	__u32 lsb_blk_size;
+	
+	lsb_page_type = NAND_Getlsbpage_type();
+	lsb_blk_size = NAND_GetLsbblksize();
+	
+	if((( length <=  NF_BLOCK_SIZE )&&(lsb_page_type==0))||(( length <=  lsb_blk_size )&&(lsb_page_type!=0)))
+		return 1;
+	else
+		return 0;
+}

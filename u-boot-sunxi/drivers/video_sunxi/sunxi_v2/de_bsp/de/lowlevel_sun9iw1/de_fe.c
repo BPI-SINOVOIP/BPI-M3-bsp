@@ -388,17 +388,17 @@ s32 DE_SCAL_Set_Init_Phase(u8 sel, __scal_scan_mod_t *in_scan, __scal_src_size_t
 
          if(in_scan->bottom == 0x0)
          {
-	         scal_dev[sel]->ch0_vertphase0.bits.phase = ch0_v_phase0 + ((in_h0>>in_scan->field)<<16)/(out_h0);
-             scal_dev[sel]->ch0_vertphase1.bits.phase = ch0_v_phase0;
-             scal_dev[sel]->ch1_vertphase0.bits.phase = ch12_v_phase0 + ((in_h1>>in_scan->field)<<16)/(out_h1);
-             scal_dev[sel]->ch1_vertphase1.bits.phase = ch12_v_phase0;
+	         scal_dev[sel]->ch0_vertphase0.bits.phase = ch0_v_phase0;
+             scal_dev[sel]->ch0_vertphase1.bits.phase = ch0_v_phase0 + ((in_h0>>in_scan->field)<<16)/(out_h0);
+             scal_dev[sel]->ch1_vertphase0.bits.phase = ch12_v_phase0;
+             scal_dev[sel]->ch1_vertphase1.bits.phase = ch12_v_phase0 + ((in_h1>>in_scan->field)<<16)/(out_h1);
          }
          else
          {
-             scal_dev[sel]->ch0_vertphase0.bits.phase = ch0_v_phase1 + ((in_h0>>in_scan->field)<<16)/(out_h0);
-             scal_dev[sel]->ch0_vertphase1.bits.phase = ch0_v_phase1;
-             scal_dev[sel]->ch1_vertphase0.bits.phase = ch12_v_phase1 + ((in_h1>>in_scan->field)<<16)/(out_h1);
-             scal_dev[sel]->ch1_vertphase1.bits.phase = ch12_v_phase1;
+             scal_dev[sel]->ch0_vertphase0.bits.phase = ch0_v_phase1;
+             scal_dev[sel]->ch0_vertphase1.bits.phase = ch0_v_phase1 + ((in_h0>>in_scan->field)<<16)/(out_h0);
+             scal_dev[sel]->ch1_vertphase0.bits.phase = ch12_v_phase1;
+             scal_dev[sel]->ch1_vertphase1.bits.phase = ch12_v_phase1 + ((in_h1>>in_scan->field)<<16)/(out_h1);
          }
      }
      else  //outinterlace disable

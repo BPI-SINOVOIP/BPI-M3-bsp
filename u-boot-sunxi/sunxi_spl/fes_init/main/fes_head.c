@@ -39,7 +39,9 @@ const boot0_file_head_t  fes1_head = {
 							   		      STAMP_VALUE,
 							   		      32,
 							   		      sizeof( boot_file_head_t ),
-							   		      BOOT_PUB_HEAD_VERSION,
+										  {
+											0, 0, 0, 0
+										  },
 							   		      CONFIG_FES1_RET_ADDR,
 							   		      CONFIG_FES1_RUN_ADDR,
 							   		      EGON_VERSION,

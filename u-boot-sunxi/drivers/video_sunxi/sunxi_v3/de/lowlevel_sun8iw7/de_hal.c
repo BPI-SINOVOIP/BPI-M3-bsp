@@ -1,15 +1,16 @@
 #include "de_hal.h"
 
+static unsigned char yv12_4k_en[VI_CHN_NUM][LAYER_MAX_NUM_PER_CHN]= {{0}};
 static int de_set_coarse(unsigned int sel, unsigned char chno, unsigned int fmt, unsigned int lcd_fps,
 						 unsigned int lcd_height, unsigned int de_freq_MHz, unsigned int ovl_w, unsigned int ovl_h,
 						 unsigned int vsu_outw, unsigned int vsu_outh, unsigned int *midyw, unsigned int *midyh,
-						 scaler_para *fix_ypara, scaler_para *fix_cpara)
+						 scaler_para *fix_ypara, scaler_para *fix_cpara, unsigned char yv12_4k_enable)
 {
 	int coarse_status;
 	unsigned int midcw, midch;
 
 	coarse_status= de_rtmx_set_coarse_fac(sel, chno, fmt, lcd_fps, lcd_height, de_freq_MHz, ovl_w, ovl_h,
-										  vsu_outw, vsu_outh, midyw, midyh, &midcw, &midch);
+										  vsu_outw, vsu_outh, midyw, midyh, &midcw, &midch, yv12_4k_enable);
 	de_vsu_recalc_scale_para(coarse_status, vsu_outw, vsu_outh, *midyw, *midyh, midcw, midch, fix_ypara, fix_cpara);
 
 	return 0;
@@ -24,12 +25,14 @@ static int de_calc_overlay_scaler_para(unsigned int screen_id, unsigned char chn
 	bool scaler_en;
 	unsigned char i,j,k,lay_en[CHN_NUM][LAYER_MAX_NUM_PER_CHN];
 	unsigned int midyw, midyh;
-	unsigned int lcd_fps = 60,lcd_height = 480,de_freq_MHz = 297;
+	unsigned int lcd_fps = 60, lcd_width = 1280, lcd_height = 480,de_freq_MHz = 297;
 	de_rect64 crop64[CHN_NUM][LAYER_MAX_NUM_PER_CHN];
 	de_rect frame[CHN_NUM][LAYER_MAX_NUM_PER_CHN];
-	static scaler_para para[CHN_NUM][LAYER_MAX_NUM_PER_CHN],cpara[VI_CHN_NUM][LAYER_MAX_NUM_PER_CHN];
+	static scaler_para para[CHN_NUM][LAYER_MAX_NUM_PER_CHN],cpara[VI_CHN_NUM][LAYER_MAX_NUM_PER_CHN],
+	p2p_para[VI_CHN_NUM][LAYER_MAX_NUM_PER_CHN];
 
 	unsigned int vi_chn = de_feat_get_num_vi_chns(screen_id);
+	unsigned int scaler_num = de_feat_is_support_scale(screen_id);
 	//init para
 	for (j=0;j<vi_chn;j++)
 		memset((void *)cpara[j],0x0,layno*sizeof(scaler_para));
@@ -50,10 +53,36 @@ static int de_calc_overlay_scaler_para(unsigned int screen_id, unsigned char chn
 			if(data[k].config.info.fb.flags){
 				memcpy(&crop64[j][i+1],&data[k].config.info.fb.crop,sizeof(disp_rect64));
 				de_rtmx_get_3d_in_single_size((de_3d_in_mode)data[k].config.info.fb.flags, &crop64[j][i]);
-				de_rtmx_get_3d_in_single_size((de_3d_in_mode)data[k].config.info.fb.flags, &crop64[j][i+1]);
-				de_rtmx_get_3d_out(frame[j][i], (de_3d_out_mode)data[k].config.info.out_trd_mode, &frame[j][i+1]);
+				if(data[k].config.info.b_trd_out) {
+					de_rtmx_get_3d_in_single_size((de_3d_in_mode)data[k].config.info.fb.flags, &crop64[j][i+1]);
+					de_rtmx_get_3d_out(frame[j][i], lcd_width, lcd_height, (de_3d_out_mode)data[k].config.info.out_trd_mode, &frame[j][i+1]);
+					lay_en[j][i+1] = data[k].config.enable;
+				}
+				else{
+					lay_en[j][i+1] = 0;
+				}
+				premul[j][i+1] = data[k].config.info.fb.pre_multiply;
+				k+=2;
+				i+=2;
+			}
+			else{
+				i++;
+				k++;
+			}
+		}
+	}
+
+	//for 4k video
+	for (j=0,k=0;j<vi_chn;j++){
+		for (i=0;i<layno;){
+			yv12_4k_en[j][i] = de_get_4k_flag(lay_en[j][i],fmt[k],crop64[j][i],frame[j][i],lcd_width,lcd_height);
+			if(yv12_4k_en[j][i]){
+				memcpy(&crop64[j][i+1],&data[k].config.info.fb.crop,sizeof(disp_rect64));
 				lay_en[j][i+1] = data[k].config.enable;
 				premul[j][i+1] = data[k].config.info.fb.pre_multiply;
+				yv12_4k_en[j][i+1] = yv12_4k_en[j][i];
+				de_4k_p2p_recalc(yv12_4k_en[j][i], lcd_width,lcd_height, &crop64[j][i], &frame[j][i], &p2p_para[j][i],
+				                 &crop64[j][i+1], &frame[j][i+1], &p2p_para[j][i+1]);
 				k+=2;
 				i+=2;
 			}
@@ -86,9 +115,16 @@ static int de_calc_overlay_scaler_para(unsigned int screen_id, unsigned char chn
 	for (j=0;j<chn;j++)
 	{
 		int gsu_sel = (j<vi_chn)?0:1;
-		pen[j] = de_rtmx_calc_chnrect(lay_en[j], layno, frame[j], crop[j], gsu_sel, para[j],
-							 layer[j], &bld_rect[j], &ovlw[j], &ovlh[j]);
+		if(yv12_4k_en[j][0]||yv12_4k_en[j][1]||yv12_4k_en[j][2]||yv12_4k_en[j][3]){
+			pen[j] = de_rtmx_calc_chnrect(lay_en[j], layno, frame[j], crop[j], gsu_sel, p2p_para[j],
+										  layer[j], &bld_rect[j], &ovlw[j], &ovlh[j]);
+		}
+		else{
+			pen[j] = de_rtmx_calc_chnrect(lay_en[j], layno, frame[j], crop[j], gsu_sel, para[j],
+										  layer[j], &bld_rect[j], &ovlw[j], &ovlh[j]);
+		}
 		premode[j] = de_rtmx_get_premul_ctl(layno,premul[j]);
+		__inf("ovl_rect[%d]=<%d,%d>\n", j,ovlw[j], ovlh[j]);
 		__inf("bld_rect[%d]=<%d,%d,%d,%d>\n", j,bld_rect[j].x, bld_rect[j].y, bld_rect[j].w, bld_rect[j].h);
 	}
 
@@ -104,15 +140,22 @@ static int de_calc_overlay_scaler_para(unsigned int screen_id, unsigned char chn
 		}
 		if(scaler_en)de_vsu_sel_ovl_scaler_para(lay_en[j], para[j], cpara[j], &ovl_para[j], &ovl_cpara[j]);
 
+		//recalculate overlay size, blending coordinate, blending size, layer coordinate
+		de_recalc_ovl_bld_for_scale(scaler_en, lay_en[j], layno, &ovl_para[j],
+						 layer[j], &bld_rect[j], &ovlw[j], &ovlh[j],
+						 0, lcd_width, lcd_height);
+
 		de_set_coarse(screen_id, j, fmt[j],lcd_fps, lcd_height, de_freq_MHz,
 					  ovlw[j], ovlh[j],bld_rect[j].w, bld_rect[j].h,
-					  &midyw, &midyh,&ovl_para[j], &ovl_cpara[j]);
+					  &midyw, &midyh,&ovl_para[j], &ovl_cpara[j],
+					  (yv12_4k_en[j][0]||yv12_4k_en[j][1]||yv12_4k_en[j][2]||yv12_4k_en[j][3]));
 		de_vsu_set_para(screen_id, j, scaler_en,fmt[j],midyw, midyh,
-						bld_rect[j].w, bld_rect[j].h, &ovl_para[j], &ovl_cpara[j]);
+						bld_rect[j].w, bld_rect[j].h, &ovl_para[j], &ovl_cpara[j],
+						(yv12_4k_en[j][0]||yv12_4k_en[j][1]||yv12_4k_en[j][2]||yv12_4k_en[j][3]));
 	}
 
 	//get ui overlay parameter for scaler
-	for (j=vi_chn;j<chn;j++)
+	for (j=vi_chn;j<scaler_num;j++)
 	{
 		scaler_en = 0x1;
 		if ((ovlw[j]==bld_rect[j].w) && (ovlh[j]==bld_rect[j].h))
@@ -120,6 +163,12 @@ static int de_calc_overlay_scaler_para(unsigned int screen_id, unsigned char chn
 			scaler_en = 0x0;
 		}
 		if(scaler_en)de_gsu_sel_ovl_scaler_para(lay_en[j], para[j], &ovl_para[j]);
+
+		//recalculate overlay size, blending coordinate, blending size, layer coordinate
+		de_recalc_ovl_bld_for_scale(scaler_en, lay_en[j], layno, &ovl_para[j],
+						 layer[j], &bld_rect[j], &ovlw[j], &ovlh[j],
+						 1, lcd_width, lcd_height);
+
 		de_gsu_set_para(screen_id, j, scaler_en,ovlw[j], ovlh[j],
 						bld_rect[j].w, bld_rect[j].h, &ovl_para[j]);
 	}
@@ -129,7 +178,6 @@ static int de_calc_overlay_scaler_para(unsigned int screen_id, unsigned char chn
 
 int de_al_lyr_apply(unsigned int screen_id, struct disp_layer_config_data *data, unsigned int layer_num)
 {
-	bool interlace_en;
 	unsigned char i,j,k,chn,vi_chn,layno;
 	unsigned char haddr[LAYER_MAX_NUM_PER_CHN][3];
 	unsigned char premul[CHN_NUM][LAYER_MAX_NUM_PER_CHN],format[CHN_NUM],premode[CHN_NUM],zoder[CHN_NUM]={0,1,2},pen[CHN_NUM];
@@ -153,8 +201,6 @@ int de_al_lyr_apply(unsigned int screen_id, struct disp_layer_config_data *data,
 		data1 ++;
 	}
 #endif
-	DE_INF("\n");
-	interlace_en = 0;
 	chn = de_feat_get_num_chns(screen_id);
 	vi_chn = de_feat_get_num_vi_chns(screen_id);
 	layno = LAYER_MAX_NUM_PER_CHN;
@@ -176,7 +222,7 @@ int de_al_lyr_apply(unsigned int screen_id, struct disp_layer_config_data *data,
 	}
 	chn_index = 0;
 	for(i=0; i<chn; i++) {
-		u32 min_zorder = chn + 1, min_zorder_chn = 0;
+		u32 min_zorder = 255, min_zorder_chn = 0;
 		bool find = false;
 		for(j=0; j<chn; j++) {
 			if((true == chn_used[j]) && (true != chn_zorder_cfg[j]
@@ -268,7 +314,10 @@ int de_al_lyr_apply(unsigned int screen_id, struct disp_layer_config_data *data,
 
 			//3d mode
 			if(data[k].config.info.fb.flags){
-				lay_cfg[k+1].en         = data[k].config.enable;
+				if(data[k].config.info.b_trd_out)
+					lay_cfg[k+1].en     = data[k].config.enable;
+				else
+					lay_cfg[k+1].en     = 0;
 				lay_cfg[k+1].alpha_mode = data[k].config.info.alpha_mode;
 				lay_cfg[k+1].alpha      = data[k].config.info.alpha_value;
 				lay_cfg[k+1].fcolor_en  = data[k].config.info.mode;
@@ -276,10 +325,53 @@ int de_al_lyr_apply(unsigned int screen_id, struct disp_layer_config_data *data,
 				lay_cfg[k+1].premul_ctl = premul[j][i];
 
 				lay_cfg[k+1].layer      = layer[j][i+1];
-				de_rtmx_get_3d_in(data[k].config.info.fb.format,(de_fb *)data[k].config.info.fb.size,(de_3d_in_mode)data[k].config.info.fb.flags,
-								  lay_cfg[k].laddr_t,data[k].config.info.fb.trd_right_addr,lay_cfg[k].pitch,lay_cfg[k+1].pitch,
-								  lay_cfg[k+1].laddr_t);
+				de_rtmx_get_3d_in(data[k].config.info.fb.format,crop[j][i+1],(de_fb *)data[k].config.info.fb.size,data[k].config.info.fb.align,
+				                  (de_3d_in_mode)data[k].config.info.fb.flags,lay_cfg[k].laddr_t,data[k].config.info.fb.trd_right_addr,
+				                  lay_cfg[k].pitch,lay_cfg[k+1].pitch,lay_cfg[k+1].laddr_t);
 
+				lay_cfg[k+1].top_bot_en = lay_cfg[k].top_bot_en;
+				lay_cfg[k+1].laddr_b[0] = lay_cfg[k].laddr_b[0];
+				lay_cfg[k+1].laddr_b[1] = lay_cfg[k].laddr_b[1];
+				lay_cfg[k+1].laddr_b[2] = lay_cfg[k].laddr_b[2];
+				data[k+1].flag = data[k].flag;
+				k+=2;
+				i+=2;
+			}
+			else{
+				i++;
+				k++;
+			}
+		}
+	}
+
+	//for 4k video
+	for(j=0,k=0;j<vi_chn;j++){
+		for(i=0;i<layno;){
+			if(yv12_4k_en[j][k]){
+				lay_cfg[k+1].en         = data[k].config.enable;
+				lay_cfg[k+1].alpha_mode = data[k].config.info.alpha_mode;
+				lay_cfg[k+1].alpha      = data[k].config.info.alpha_value;
+				lay_cfg[k+1].fcolor_en  = data[k].config.info.mode;
+				lay_cfg[k+1].premul_ctl = premul[j][i];
+
+				switch(data[k].config.info.fb.format){
+					case DE_FORMAT_YUV420_P:
+						lay_cfg[k].fmt = lay_cfg[k+1].fmt = DE_FORMAT_YUV422_P;break;
+					case DE_FORMAT_YUV420_SP_UVUV:
+						lay_cfg[k].fmt = lay_cfg[k+1].fmt = DE_FORMAT_YUV422_SP_UVUV;break;
+					case DE_FORMAT_YUV420_SP_VUVU:
+						lay_cfg[k].fmt = lay_cfg[k+1].fmt = DE_FORMAT_YUV422_SP_VUVU;break;
+					default:
+						lay_cfg[k].fmt = lay_cfg[k+1].fmt = DE_FORMAT_YUV422_P;__wrn("what's wrong!!!\n");break;
+				}
+				lay_cfg[k+1].layer      = layer[j][i+1];
+				lay_cfg[k+1].laddr_t[0] = lay_cfg[k].laddr_t[0]+DISPALIGN(lay_cfg[k].pitch[0],data[k].config.info.fb.align[0]);
+				lay_cfg[k+1].laddr_t[1] = lay_cfg[k].laddr_t[1];
+				lay_cfg[k+1].laddr_t[2] = lay_cfg[k].laddr_t[2];
+
+				lay_cfg[k+1].pitch[0]   = lay_cfg[k].pitch[0];
+				lay_cfg[k+1].pitch[1]   = lay_cfg[k].pitch[1];
+				lay_cfg[k+1].pitch[2]   = lay_cfg[k].pitch[2];
 				lay_cfg[k+1].top_bot_en = lay_cfg[k].top_bot_en;
 				lay_cfg[k+1].laddr_b[0] = lay_cfg[k].laddr_b[0];
 				lay_cfg[k+1].laddr_b[1] = lay_cfg[k].laddr_b[1];
@@ -297,16 +389,22 @@ int de_al_lyr_apply(unsigned int screen_id, struct disp_layer_config_data *data,
 
 	for (j=0,k=0;j<chn;j++)
 	{
-		if (LAYER_SIZE_DIRTY & data[k].flag)
-		{
-			de_rtmx_set_overlay_size(screen_id,j,ovlw[j],ovlh[j]);
+		for(i=0;i<layno;i++) {
+			if(LAYER_SIZE_DIRTY & data[k + i].flag) {
+				de_rtmx_set_overlay_size(screen_id,j,ovlw[j],ovlh[j]);
+				break;
+			}
 		}
 		for(i=0;i<layno;i++)
 		{
 			if(LAYER_ATTR_DIRTY & data[k].flag)
 			{
+				unsigned char yv_4k = 0;
+				if(j<vi_chn)
+					yv_4k = yv12_4k_en[j][i];
 				de_rtmx_set_lay_cfg(screen_id,j,i, &lay_cfg[k]);
-				de_rtmx_set_lay_laddr(screen_id,j,i,lay_cfg[k].fmt,crop[j][i], lay_cfg[k].pitch,(de_3d_in_mode)data[k].config.info.fb.flags,lay_cfg[k].laddr_t,haddr[i]);
+				de_rtmx_set_lay_laddr(screen_id,j,i,lay_cfg[k].fmt,yv_4k,crop[j][i], lay_cfg[k].pitch,
+				data[k].config.info.fb.align,(de_3d_in_mode)data[k].config.info.fb.flags,lay_cfg[k].laddr_t,haddr[i]);
 			}
 			if (LAYER_VI_FC_DIRTY & data[k].flag)
 			{
@@ -356,7 +454,7 @@ int de_al_lyr_apply(unsigned int screen_id, struct disp_layer_config_data *data,
 
 	//de_rtmx_set_colorkey(screen_id,);
 
-	de_rtmx_set_outitl(screen_id,interlace_en);
+
 
 	return 0;
 }
@@ -366,18 +464,28 @@ int de_al_mgr_apply(unsigned int screen_id, struct disp_manager_data *data)
 	struct disp_csc_config csc_cfg;
 	int color = (data->config.back_color.alpha << 24) | (data->config.back_color.red << 16)
 	| (data->config.back_color.green << 8) | (data->config.back_color.blue << 0);
-	__inf("color=0x%x, size=<%d,%d>\n", color, data->config.size.width, data->config.size.height);
-	de_rtmx_set_background_color(screen_id, color);
-	de_rtmx_set_blend_size(screen_id,data->config.size.width,data->config.size.height);
-	de_rtmx_set_display_size(screen_id, data->config.size.width,data->config.size.height);
-	de_rtmx_set_enable(screen_id, data->config.enable);
+
+	if(data->flag & MANAGER_BACK_COLOR_DIRTY)
+		de_rtmx_set_background_color(screen_id, color);
+	if(data->flag & MANAGER_SIZE_DIRTY) {
+		de_rtmx_set_blend_size(screen_id,data->config.size.width,data->config.size.height);
+		de_rtmx_set_display_size(screen_id, data->config.size.width,data->config.size.height);
+	}
+	if(data->flag & MANAGER_ENABLE_DIRTY) {
+		de_rtmx_set_enable(screen_id, data->config.enable);
+		de_rtmx_mux(screen_id, data->config.disp_device);
+		de_rtmx_set_outitl(screen_id,data->config.interlace);
+	}
 
 	//FIXME
 	csc_cfg.in_fmt = DISP_CSC_TYPE_RGB;
 	csc_cfg.in_mode = DISP_BT601;
 
 	csc_cfg.out_fmt = (DISP_CSC_TYPE_RGB == data->config.cs)?DE_RGB:DE_YUV;
-	csc_cfg.out_mode = DISP_BT601;
+	if((data->config.size.width < 1280) && (data->config.size.height < 720))
+	  csc_cfg.out_mode = DISP_BT601;
+	else
+	  csc_cfg.out_mode = DISP_BT709;
 	csc_cfg.out_color_range = data->config.color_range;
 	csc_cfg.brightness = 50;
 	csc_cfg.contrast = 50;
@@ -397,13 +505,7 @@ int de_al_mgr_sync(unsigned int screen_id)
 int de_al_mgr_update_regs(unsigned int screen_id)
 {
 	int ret = 0;
-	{
-		static u32 count = 0;
-		if(count < 10) {
-			count ++;
-			__inf("disp %d\n", screen_id);
-		}
-	}
+
 	de_rtmx_update_regs(screen_id);
 	de_vsu_update_regs(screen_id);
 	de_gsu_update_regs(screen_id);
@@ -417,6 +519,11 @@ int de_al_mgr_update_regs(unsigned int screen_id)
 int de_al_query_irq(unsigned int screen_id)
 {
 	return de_rtmx_query_irq(screen_id);
+}
+
+int de_al_enable_irq(unsigned int screen_id, unsigned en)
+{
+	return de_rtmx_enable_irq(screen_id, en);
 }
 
 int de_al_init(disp_bsp_init_para *para)

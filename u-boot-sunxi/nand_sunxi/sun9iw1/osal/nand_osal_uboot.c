@@ -70,7 +70,7 @@ int NAND_Print(const char * str, ...)
 	    printf(_buf);
 		return 0;
 	}
-
+    
 }
 
 int NAND_Print_DBG(const char * str, ...)
@@ -88,7 +88,7 @@ int NAND_Print_DBG(const char * str, ...)
 	    printf(_buf);
 		return 0;
 	}
-
+    
 }
 
 __s32 NAND_CleanFlushDCacheRegion(__u32 buff_addr, __u32 len)
@@ -149,7 +149,7 @@ __s32 NAND_AllocMemoryForDMADescs(__u32 *cpu_addr, __u32 *phy_addr)
 
 __s32 NAND_FreeMemoryForDMADescs(__u32 *cpu_addr, __u32 *phy_addr)
 {
-
+	
 #if 0
 
 	//void dma_free_coherent(struct device *dev, size_t size, void *cpu_addr, dma_addr_t handle);
@@ -188,7 +188,7 @@ __u32 _get_pll4_periph1_clk(void)
 
 	rval = 24000000 * n / (div1+1) / (div2+1);;
 	//printf("pll4 clock is %d Hz\n", rval);
-
+	
 	return rval; //24000000 * n / (div1+1) / (div2+1);
 #endif
 }
@@ -199,7 +199,7 @@ __s32 _get_ndfc_clk_v2(__u32 nand_index, __u32 *pdclk, __u32 *pcclk)
 	__u32 sclk_src, sclk_src_sel;
 	__u32 sclk_pre_ratio_n, sclk_ratio_m;
 	__u32 reg_val, sclk0, sclk1;
-
+	
 	if (nand_index == 0) {
 		sclk0_reg_adr = (0x06000400 + 0x0); //CCM_NAND0_CLK0_REG;
 		sclk1_reg_adr = (0x06000400 + 0x4); //CCM_NAND0_CLK1_REG;
@@ -208,7 +208,7 @@ __s32 _get_ndfc_clk_v2(__u32 nand_index, __u32 *pdclk, __u32 *pcclk)
 		sclk1_reg_adr = (0x06000400 + 0xC); //CCM_NAND1_CLK1_REG;
 	} else {
 		printf("_get_ndfc_clk_v2 error, wrong nand index: %d\n", nand_index);
-		return -1;
+		return -1;	
 	}
 
 	// sclk0
@@ -387,8 +387,8 @@ __s32 _change_ndfc_clk_v2(__u32 nand_index, __u32 dclk_src_sel, __u32 dclk, __u3
 	reg_val = get_wvalue(sclk1_reg_adr);
 	reg_val |= 0x1U<<31;
 	put_wvalue(sclk1_reg_adr, reg_val);
-
-
+	
+	
 	//printf("NAND_SetClk for nand index %d \n", nand_index);
 	if (nand_index == 0) {
 		//printf("Reg 0x06000400: 0x%x\n", *(volatile __u32 *)(0x06000400));
@@ -404,7 +404,7 @@ __s32 _change_ndfc_clk_v2(__u32 nand_index, __u32 dclk_src_sel, __u32 dclk, __u3
 __s32 _open_ndfc_ahb_gate_and_reset_v2(__u32 nand_index)
 {
 	__u32 reg_val=0;
-
+	
 	/*
 		1. release ahb reset and open ahb clock gate for ndfc version 2.
 	*/
@@ -442,7 +442,7 @@ __s32 _open_ndfc_ahb_gate_and_reset_v2(__u32 nand_index)
 		printf("_open_ndfc_ahb_gate_and_reset_v2, wrong nand index: %d\n", nand_index);
 		return -1;
 	}
-
+	
 	return 0;
 }
 
@@ -475,7 +475,7 @@ __s32 _cfg_ndfc_gpio_v2(__u32 nand_index)
 		printf("Reg 0x06000850: 0x%x\n", *(volatile __u32 *)(0x06000850));
 		printf("Reg 0x06000864: 0x%x\n", *(volatile __u32 *)(0x06000864));
 		printf("Reg 0x06000868: 0x%x\n", *(volatile __u32 *)(0x06000868));
-		printf("Reg 0x06000b08: 0x%x\n", *(volatile __u32 *)(0x06000b08));
+		printf("Reg 0x06000b08: 0x%x\n", *(volatile __u32 *)(0x06000b08));		
 	} else if(nand_index == 1) {
 		*(volatile __u32 *)(0x06000800 + 0x120) = 0x22222222;
 		*(volatile __u32 *)(0x06000800 + 0x124) = 0x22222222;
@@ -498,7 +498,7 @@ __s32 _cfg_ndfc_gpio_v2(__u32 nand_index)
 		printf("NAND_PIORequest error, wrong nand_index: 0x%x\n", nand_index);
 		return -1;
 	}
-
+	
 	return 0;
 }
 
@@ -506,24 +506,24 @@ int NAND_ClkRequest(__u32 nand_index)
 {
 	__s32 ret = 0;
 	__u32 ndfc_version = NAND_GetNdfcVersion();
-
+	
 	if (ndfc_version == 2) {
 		if ((nand_index != 0) && (nand_index != 1)) {
 			printf("NAND_ClkRequest, wrong nand index %d for ndfc version %d\n",
 					nand_index, ndfc_version);
 			return -1;
 		}
-
+		
 		// 1. release ahb reset and open ahb clock gate
 		_open_ndfc_ahb_gate_and_reset_v2(nand_index);
-
+		
 		// 2. configure ndfc's sclk0
 		ret = _change_ndfc_clk_v2(nand_index, 1, 10, 1, 10*2);
 		if (ret<0) {
 			printf("NAND_ClkRequest, set dclk failed!\n");
 			return -1;
 		}
-
+		
 	} else {
 		printf("NAND_ClkRequest, wrong ndfc version, %d\n", ndfc_version);
 		return -1;
@@ -559,31 +559,31 @@ int NAND_SetClk(__u32 nand_index, __u32 nand_clk0, __u32 nand_clk1)
 	__u32 ndfc_version = NAND_GetNdfcVersion();
 	__u32 dclk_src_sel, dclk, cclk_src_sel, cclk;
 	__s32 ret = 0;
-
+		
 	if (ndfc_version == 2) {
-
+		
 		if ((nand_index != 0) && (nand_index != 1)) {
 			printf("NAND_ClkRequest, wrong nand index %d for ndfc version %d\n",
 					nand_index, ndfc_version);
 			return -1;
 		}
-
+		
 		////////////////////////////////////////////////
 		dclk_src_sel = 1;
 		dclk = nand_clk0;
 		cclk_src_sel = 1;
 		cclk = nand_clk1;
 		////////////////////////////////////////////////
-
+	
 		ret = _change_ndfc_clk_v2(nand_index, dclk_src_sel, dclk, cclk_src_sel, cclk);
 		if (ret < 0) {
 			printf("NAND_SetClk, change ndfc clock failed\n");
 			return -1;
-		}
-
+		}		
+		
 	} else {
 		printf("NAND_SetClk, wrong ndfc version, %d\n", ndfc_version);
-		return -1;
+		return -1;		
 	}
 
 	return 0;
@@ -593,21 +593,21 @@ int NAND_GetClk(__u32 nand_index, __u32 *pnand_clk0, __u32 *pnand_clk1)
 {
 	__s32 ret;
 	__u32 ndfc_version = NAND_GetNdfcVersion();
-
+	
 	if (ndfc_version == 2) {
-
+		
 		//NAND_Print("NAND_GetClk for nand index %d \n", nand_index);
 		ret = _get_ndfc_clk_v2(nand_index, pnand_clk0, pnand_clk1);
 		if (ret < 0) {
 			printf("NAND_GetClk, failed!\n");
 			return -1;
 		}
-
+		
 	} else {
 		printf("NAND_SetClk, wrong ndfc version, %d\n", ndfc_version);
-		return -1;
+		return -1;		
 	}
-
+	
 	return 0;
 }
 
@@ -615,21 +615,21 @@ void NAND_PIORequest(__u32 nand_index)
 {
 	__s32 ret = 0;
 	__u32 ndfc_version = NAND_GetNdfcVersion();
-
+	
 	if (ndfc_version == 2) {
-
+		
 		NAND_Print("NAND_PIORequest for nand index %d \n", nand_index);
 		ret = _cfg_ndfc_gpio_v2(nand_index);
 		if (ret < 0) {
 			printf("NAND_PIORequest, failed!\n");
 			return;
 		}
-
+		
 	} else {
 		printf("NAND_PIORequest, wrong ndfc version, %d\n", ndfc_version);
-		return;
+		return;		
 	}
-
+	
 	return;
 }
 
@@ -637,63 +637,63 @@ __s32 NAND_PIOFuncChange_DQSc(__u32 nand_index, __u32 en)
 {
 	__u32 ndfc_version;
 	__u32 cfg;
-
+	
 	ndfc_version = NAND_GetNdfcVersion();
 	if (ndfc_version == 1) {
 		printf("NAND_PIOFuncChange_EnDQScREc: invalid ndfc version!\n");
 		return 0;
 	}
-
+	
 	if (ndfc_version == 2) {
-
+		
 		if (nand_index == 0) {
-			cfg = *(volatile __u32 *)(0x06000800 + 0x50);
+			cfg = *(volatile __u32 *)(0x06000800 + 0x50); 
 			cfg &= (~(0x7U<<8));
 			cfg |= (0x3U<<8);
 			*(volatile __u32 *)(0x06000800 + 0x50) = cfg;
 		} else {
-			cfg = *(volatile __u32 *)(0x06000800 + 0x128);
+			cfg = *(volatile __u32 *)(0x06000800 + 0x128); 
 			cfg &= (~(0x7U<<8));
 			cfg |= (0x3U<<8);
 			*(volatile __u32 *)(0x06000800 + 0x128) = cfg;
-		}
-	}
-
+		}		
+	}	
+	
 	return 0;
 }
 __s32 NAND_PIOFuncChange_REc(__u32 nand_index, __u32 en)
 {
 	__u32 ndfc_version;
 	__u32 cfg;
-
+	
 	ndfc_version = NAND_GetNdfcVersion();
 	if (ndfc_version == 1) {
 		printf("NAND_PIOFuncChange_EnDQScREc: invalid ndfc version!\n");
 		return 0;
 	}
-
+	
 	if (ndfc_version == 2) {
-
+		
 		if (nand_index == 0) {
-			cfg = *(volatile __u32 *)(0x06000800 + 0x50);
+			cfg = *(volatile __u32 *)(0x06000800 + 0x50); 
 			cfg &= (~(0x7U<<4));
 			cfg |= (0x3U<<4);
 			*(volatile __u32 *)(0x06000800 + 0x50) = cfg;
 		} else {
-			cfg = *(volatile __u32 *)(0x06000800 + 0x128);
+			cfg = *(volatile __u32 *)(0x06000800 + 0x128); 
 			cfg &= (~(0x7U<<4));
 			cfg |= (0x3U<<4);
 			*(volatile __u32 *)(0x06000800 + 0x128) = cfg;
-		}
-	}
-
+		}		
+	}	
+	
 	return 0;
 }
 
 void NAND_PIORelease(__u32 nand_index)
 {
 	*(volatile __u32 *)(0x06000800 + 0x308)  = temp_reg;
-	printf("Reg 0x06000b08: 0x%x\n", *(volatile __u32 *)(0x06000b08));
+	printf("Reg 0x06000b08: 0x%x\n", *(volatile __u32 *)(0x06000b08));		
 	return;
 }
 
@@ -792,10 +792,10 @@ __u32 NAND_GetNdfcDmaMode(void)
 	/*
 		0: General DMA;
 		1: MBUS DMA
-
-		Only support MBUS DMA!!!!
+		
+		Only support MBUS DMA!!!!		
 	*/
-	return 1;
+	return 1; 	
 }
 
 int NAND_PhysicLockInit(void)
@@ -828,7 +828,7 @@ __u32 NAND_GetPlatform(void)
 	return 80;
 }
 
-unsigned int dma_chan = 0;
+unsigned int dma_chan = 0;	
 
 /* request dma channel and set callback function */
 int nand_request_dma(void)
@@ -972,7 +972,7 @@ int NAND_GetVoltage(void)
 int NAND_ReleaseVoltage(void)
 {
 	int ret = 0;
-
+	
 
 	return ret;
 
@@ -987,7 +987,7 @@ int NAND_IS_Secure_sys(void)
 {
 	int mode;
 
-	mode = sunxi_get_securemode();
+	mode = sunxi_get_securemode();	
 	if(mode==0) //normal mode,could change clock
 		return 0;
 	else if(mode==1)//secure boot,could change clock

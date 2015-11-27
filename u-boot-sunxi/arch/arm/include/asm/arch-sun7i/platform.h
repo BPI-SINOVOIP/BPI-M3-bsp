@@ -152,7 +152,6 @@
 #define AVG_BASE			(0x01ea0000)//128k
 #define CSDM_BASE			(0x03f50000)//64K
 #define DDR_BASE			(0x40000000)//2G
-#define R_CIR_BASE			(0x01c21800)
 #define BROM_BASE			(0xffff0000)//32K
 
 #endif

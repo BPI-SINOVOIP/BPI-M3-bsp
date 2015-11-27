@@ -29,6 +29,7 @@ static de_reg_blocks bld_attr_block[DEVICE_NUM];//0x00~0x40
 static de_reg_blocks bld_ctl_block[DEVICE_NUM]; //0x80~0x9c
 static de_reg_blocks bld_ck_block[DEVICE_NUM];  //0xb0~0xec
 static de_reg_blocks bld_out_block[DEVICE_NUM]; //0xfc
+static u32 de_base = 0;
 
 extern int de_calc_ovl_coord(unsigned int frame_coord, unsigned int scale_step, int vsu_sel);
 int de_rtmx_trimcoord(de_rect *frame, de_rect *crop, unsigned int outw, unsigned int outh, int xratio, int yratio);
@@ -135,6 +136,7 @@ int de_rtmx_init(unsigned int sel, unsigned int reg_base)
 	int ch_index = 0;
 
 	__inf("sel %d, reg_base=0x%x\n", sel, reg_base);
+	de_base = reg_base;
 
 	if(sel > de_feat_get_num_devices())
 		__wrn("sel %d out of range\n", sel);
@@ -365,15 +367,27 @@ int de_rtmx_query_irq(unsigned int sel)
 	int base = glb_ctl_block[sel].off;
 	unsigned int irq_flag;
 
-	irq_flag = readl((void *)(base + 0x04));
+	irq_flag = disp_readl((void *)(base + 0x04));
 	if(irq_flag & 0x1) {
-		writel(irq_flag, (void *)(base + 0x04));
+		disp_writel(irq_flag, (void *)(base + 0x04));
 		return 1;
 	}
 
 	return 0;
 }
 
+int de_rtmx_enable_irq(unsigned int sel, unsigned int en)
+{
+	int base = glb_ctl_block[sel].off;
+	unsigned int irq_flag;
+
+	irq_flag = disp_readl((void *)(base + 0x0)) ;
+	irq_flag &= (~(0x1<<4));
+	irq_flag |= (en&0x1) << 4;
+	disp_writel(irq_flag, (void *)(base + 0x0));
+
+	return 0;
+}
 
 //*********************************************************************************************************************
 // function       : de_rtmx_set_lay_cfg(unsigned int sel, unsigned int chno, unsigned int layno, __lay_para_t *cfg)
@@ -524,8 +538,8 @@ int de_rtmx_set_lay_haddr(unsigned int sel, unsigned int chno, unsigned int layn
 // return         :
 //                  success
 //*********************************************************************************************************************
-int de_rtmx_set_lay_laddr(unsigned int sel, unsigned int chno, unsigned int layno, unsigned char fmt,
-						  de_rect crop, unsigned int *size, de_3d_in_mode trdinmode, unsigned int *addr, unsigned char *haddr)
+int de_rtmx_set_lay_laddr(unsigned int sel, unsigned int chno, unsigned int layno, unsigned char fmt, unsigned char yv12_4k_en, de_rect crop,
+                          unsigned int *size, unsigned int *align, de_3d_in_mode trdinmode, unsigned int *addr, unsigned char *haddr)
 {
 	long long addr_off[3];
 	unsigned int pitch[3];
@@ -549,12 +563,15 @@ int de_rtmx_set_lay_laddr(unsigned int sel, unsigned int chno, unsigned int layn
 	else if	 (fmt<=DE_FORMAT_YUV411_SP_VUVU){ycnt = 1;ucnt=2; x1=x0/4;y1=y0;}
 	else									{ycnt = 4;}
 
-	pitch[0] = size[0]*ycnt;
-	pitch[1] = size[1]*ucnt;
-	pitch[2] = size[2]*ucnt;
+	pitch[0] = DISPALIGN(size[0]*ycnt,align[0]);
+	pitch[1] = DISPALIGN(size[1]*ucnt,align[1]);
+	pitch[2] = DISPALIGN(size[2]*ucnt,align[2]);
 
+	if(yv12_4k_en){
+		pitch[0] = pitch[0]<<1;
+	}
 	if(trdinmode == DE_3D_SRC_MODE_LI)
-		addr_off[0] = addr[0]+ de_rtmx_get_li_addr_offset(size[0],x0,y0,ycnt);
+		addr_off[0] = addr[0]+ de_rtmx_get_li_addr_offset(size[0],align[0],x0,y0,ycnt);
 	else
 		addr_off[0] = addr[0]+pitch[0]*y0+x0*ycnt;//Y/ARGB
 
@@ -570,8 +587,8 @@ int de_rtmx_set_lay_laddr(unsigned int sel, unsigned int chno, unsigned int layn
 	else
 	{
 		if(trdinmode == DE_3D_SRC_MODE_LI){
-			addr_off[1] = addr[1]+ de_rtmx_get_li_addr_offset(size[1],x1,y1,ucnt);
-			addr_off[2] = addr[2]+ de_rtmx_get_li_addr_offset(size[2],x1,y1,ucnt);
+			addr_off[1] = addr[1]+ de_rtmx_get_li_addr_offset(size[1],align[1],x1,y1,ucnt);
+			addr_off[2] = addr[2]+ de_rtmx_get_li_addr_offset(size[2],align[2],x1,y1,ucnt);
 		}
 		else{
 			addr_off[1] = addr[1]+pitch[1]*y1+x1*ucnt;//UV/U
@@ -636,8 +653,8 @@ int de_rtmx_get_3d_in_single_size(de_3d_in_mode inmode, de_rect64 *size)
 	return 0;
 }
 
-int de_rtmx_get_3d_in(unsigned char fmt, de_fb *size, de_3d_in_mode trdinmode, unsigned int *addr, unsigned int *trd_addr,
-					  unsigned int *pitch, unsigned int *pitchr, unsigned int *lay_laddr)
+int de_rtmx_get_3d_in(unsigned char fmt, de_rect crop, de_fb *size, unsigned int *align, de_3d_in_mode trdinmode,
+                      unsigned int *addr, unsigned int *trd_addr, unsigned int *pitch, unsigned int *pitchr, unsigned int *lay_laddr)
 {
 	unsigned int ycnt,ucnt,data_type;
 	unsigned int image_w0,image_w1,image_w2,image_h0,image_h1,image_h2;
@@ -658,32 +675,57 @@ int de_rtmx_get_3d_in(unsigned char fmt, de_fb *size, de_3d_in_mode trdinmode, u
 	else if	 (fmt<=DE_FORMAT_YUV411_SP_VUVU){ycnt = 1;data_type=0x1;ucnt=2;}
 	else									{ycnt = 4;data_type=0x0;}
 
-	image_w0 = size[0].w;
-	image_w1 = size[1].w;
-	image_w2 = size[2].w;
-
-	image_h0 = size[0].h;
-	image_h1 = size[1].h;
-	image_h2 = size[2].h;
+	switch(fmt){
+		case DE_FORMAT_YUV420_P:
+		case DE_FORMAT_YUV420_SP_VUVU:
+		case DE_FORMAT_YUV420_SP_UVUV:
+			image_w0 = crop.w;
+			image_w2 = image_w1 = crop.w>>1;
+			image_h0 = crop.h;
+			image_h2 = image_h1 = crop.h>>1;
+			break;
+		case DE_FORMAT_YUV422_P:
+		case DE_FORMAT_YUV422_SP_VUVU:
+		case DE_FORMAT_YUV422_SP_UVUV:
+			image_w0 = crop.w;
+			image_w2 = image_w1 = crop.w>>1;
+			image_h0 = crop.h;
+			image_h2 = image_h1 = image_h0;
+			break;
+		case DE_FORMAT_YUV411_P:
+		case DE_FORMAT_YUV411_SP_VUVU:
+		case DE_FORMAT_YUV411_SP_UVUV:
+			image_w0 = crop.w;
+			image_w2 = image_w1 = crop.w>>2;
+			image_h0 = crop.h;
+			image_h2 = image_h1 = image_h0;
+			break;
+		default:
+			image_w0 = crop.w;
+			image_w2 = image_w1 = image_w0;
+			image_h0 = crop.h;
+			image_h2 = image_h1 = image_h0;
+			break;
+	}
 
 	if(data_type == 0x2) //planar
 	{
 		if((trdinmode == DE_3D_SRC_MODE_TB))
 		{
-			pitchr[0]=pitch[0] = image_w0;
-			pitchr[1]=pitch[1] = image_w1;
-			pitchr[2]=pitch[2] = image_w2;
+			pitchr[0]=pitch[0] = DISPALIGN(size[0].w,align[0]);
+			pitchr[1]=pitch[1] = DISPALIGN(size[1].w,align[1]);
+			pitchr[2]=pitch[2] = DISPALIGN(size[2].w,align[2]);
 
-			lay_laddr[0] = image_w0*(image_h0>>1) + addr[0];
-			lay_laddr[1] = image_w1*(image_h1>>1) + addr[1];
-			lay_laddr[2] = image_w2*(image_h2>>1) + addr[2];
+			lay_laddr[0] = pitch[0]*image_h0 + addr[0];
+			lay_laddr[1] = pitch[1]*image_h1 + addr[1];
+			lay_laddr[2] = pitch[2]*image_h2 + addr[2];
 
 		}
 		else if((trdinmode == DE_3D_SRC_MODE_FP))
 		{
-			pitchr[0]=pitch[0] = image_w0;
-			pitchr[1]=pitch[1] = image_w1;
-			pitchr[2]=pitch[2] = image_w2;
+			pitchr[0]=pitch[0] = DISPALIGN(size[0].w,align[0]);
+			pitchr[1]=pitch[1] = DISPALIGN(size[1].w,align[1]);
+			pitchr[2]=pitch[2] = DISPALIGN(size[2].w,align[2]);
 
 			lay_laddr[0] = trd_addr[0];
 			lay_laddr[1] = trd_addr[1];
@@ -692,30 +734,30 @@ int de_rtmx_get_3d_in(unsigned char fmt, de_fb *size, de_3d_in_mode trdinmode, u
 		}
 		else if((trdinmode == DE_3D_SRC_MODE_SSF) || (trdinmode == DE_3D_SRC_MODE_SSH))
 		{
-			pitchr[0]=pitch[0] = image_w0;
-			pitchr[1]=pitch[1] = image_w1;
-			pitchr[2]=pitch[2] = image_w2;
-
-			lay_laddr[0] = (image_w0>>1) + addr[0];
-			lay_laddr[1] = (image_w1>>1) + addr[1];
-			lay_laddr[2] = (image_w2>>1) + addr[2];
-		}
-		else if((trdinmode == DE_3D_SRC_MODE_LI))
-		{
-			pitchr[0]=pitch[0] = image_w0<<1;
-			pitchr[1]=pitch[1] = image_w1<<1;
-			pitchr[2]=pitch[2] = image_w2<<1;
+			pitchr[0]=pitch[0] = DISPALIGN(size[0].w,align[0]);
+			pitchr[1]=pitch[1] = DISPALIGN(size[1].w,align[1]);
+			pitchr[2]=pitch[2] = DISPALIGN(size[2].w,align[2]);
 
 			lay_laddr[0] = image_w0 + addr[0];
 			lay_laddr[1] = image_w1 + addr[1];
 			lay_laddr[2] = image_w2 + addr[2];
+		}
+		else if((trdinmode == DE_3D_SRC_MODE_LI))
+		{
+			pitchr[0]=pitch[0] = (DISPALIGN(size[0].w,align[0]))<<1;
+			pitchr[1]=pitch[1] = (DISPALIGN(size[1].w,align[1]))<<1;
+			pitchr[2]=pitch[2] = (DISPALIGN(size[2].w,align[2]))<<1;
+
+			lay_laddr[0] = DISPALIGN(size[0].w,align[0]) + addr[0];
+			lay_laddr[1] = DISPALIGN(size[1].w,align[1]) + addr[1];
+			lay_laddr[2] = DISPALIGN(size[2].w,align[2]) + addr[2];
 		}
 	}
 	else if(data_type == 0x0)//interleaved
 	{
 		if((trdinmode == DE_3D_SRC_MODE_FP))
 		{
-			pitchr[0]=pitch[0] = image_w0;
+			pitchr[0]=pitch[0] = DISPALIGN(size[0].w,align[0]);
 			pitchr[1]=pitch[1] = 0;
 			pitchr[2]=pitch[2] = 0;
 
@@ -725,32 +767,32 @@ int de_rtmx_get_3d_in(unsigned char fmt, de_fb *size, de_3d_in_mode trdinmode, u
 		}
 		else if((trdinmode == DE_3D_SRC_MODE_TB))
 		{
-			pitchr[0]=pitch[0] = image_w0;
+			pitchr[0]=pitch[0] = DISPALIGN(size[0].w,align[0]);
 			pitchr[1]=pitch[1] = 0;
 			pitchr[2]=pitch[2] = 0;
 
-			lay_laddr[0] = image_w0*(image_h0>>1)*ycnt + addr[0];
+			lay_laddr[0] = pitch[0]*image_h0*ycnt + addr[0];
 			lay_laddr[1] = 0;
 			lay_laddr[2] = 0;
 		}
 		else if((trdinmode == DE_3D_SRC_MODE_SSF)||(trdinmode == DE_3D_SRC_MODE_SSH))
 		{
 
-			pitchr[0]=pitch[0] = image_w0;
+			pitchr[0]=pitch[0] = DISPALIGN(size[0].w,align[0]);
 			pitchr[1]=pitch[1] = 0;
 			pitchr[2]=pitch[2] = 0;
 
-			lay_laddr[0] = (image_w0>>1)*ycnt + addr[0];
+			lay_laddr[0] = image_w0*ycnt + addr[0];
 			lay_laddr[1] = 0;
 			lay_laddr[2] = 0;
 		}
 		else if((trdinmode == DE_3D_SRC_MODE_LI))
 		{
-			pitchr[0]=pitch[0] = (image_w0<<1);
+			pitchr[0]=pitch[0] = (DISPALIGN(size[0].w,align[0]))<<1;
 			pitchr[1]=pitch[1] = 0;
 			pitchr[2]=pitch[2] = 0;
 
-			lay_laddr[0] = image_w0*ycnt + addr[0];
+			lay_laddr[0] = (DISPALIGN(size[0].w,align[0]))*ycnt + addr[0];
 			lay_laddr[1] = 0;
 			lay_laddr[2] = 0;
 		}
@@ -759,28 +801,28 @@ int de_rtmx_get_3d_in(unsigned char fmt, de_fb *size, de_3d_in_mode trdinmode, u
 	{
 		if((trdinmode == DE_3D_SRC_MODE_SSF) || (trdinmode == DE_3D_SRC_MODE_SSH))
 		{
-			pitchr[0]=pitch[0] = image_w0;
-			pitchr[1]=pitch[1] = image_w1;
+			pitchr[0]=pitch[0] = DISPALIGN(size[0].w,align[0]);
+			pitchr[1]=pitch[1] = DISPALIGN(size[1].w,align[1]);
 			pitchr[2]=pitch[2] = 0;
 
-			lay_laddr[0] = (image_w0>>1) + addr[0];
-			lay_laddr[1] = ((image_w1>>1)*ucnt) + addr[1];
+			lay_laddr[0] = image_w0 + addr[0];
+			lay_laddr[1] = (image_w1*ucnt) + addr[1];
 			lay_laddr[2] = 0;
 		}
 		else if(trdinmode == DE_3D_SRC_MODE_TB)
 		{
-			pitchr[0]=pitch[0] = image_w0;
-			pitchr[1]=pitch[1] = image_w1;
+			pitchr[0]=pitch[0] = DISPALIGN(size[0].w,align[0]);
+			pitchr[1]=pitch[1] = DISPALIGN(size[1].w,align[1]);
 			pitchr[2]=pitch[2] = 0;
 
-			lay_laddr[0] = image_w0*(image_h0>>1) + addr[0];
-			lay_laddr[1] = image_w1*(image_h1>>1)*ucnt + addr[1];
+			lay_laddr[0] = pitch[0]*image_h0 + addr[0];
+			lay_laddr[1] = pitch[1]*image_h1*ucnt + addr[1];
 			lay_laddr[2] = 0;
 		}
 		else if(trdinmode == DE_3D_SRC_MODE_FP)
 		{
-			pitchr[0]=pitch[0] = image_w0;
-			pitchr[1]=pitch[1] = image_w1;
+			pitchr[0]=pitch[0] = DISPALIGN(size[0].w,align[0]);
+			pitchr[1]=pitch[1] = DISPALIGN(size[1].w,align[1]);
 			pitchr[2]=pitch[2] = 0;
 
 			lay_laddr[0] = trd_addr[0];
@@ -789,12 +831,12 @@ int de_rtmx_get_3d_in(unsigned char fmt, de_fb *size, de_3d_in_mode trdinmode, u
 		}
 		else if(trdinmode == DE_3D_SRC_MODE_LI)
 		{
-			pitchr[0]=pitch[0] = image_w0<<1;
-			pitchr[1]=pitch[1] = image_w1<<1;
+			pitchr[0]=pitch[0] = (DISPALIGN(size[0].w,align[0]))<<1;
+			pitchr[1]=pitch[1] = (DISPALIGN(size[1].w,align[1]))<<1;
 			pitchr[2]=pitch[2] = 0;
 
-			lay_laddr[0] = addr[0] + image_w0;
-			lay_laddr[1] = addr[1] + image_w1*ucnt;
+			lay_laddr[0] = addr[0] + DISPALIGN(size[1].w,align[1]);
+			lay_laddr[1] = addr[1] + (DISPALIGN(size[1].w,align[1]))*ucnt;
 			lay_laddr[2] = 0;
 		}
 	}
@@ -802,16 +844,16 @@ int de_rtmx_get_3d_in(unsigned char fmt, de_fb *size, de_3d_in_mode trdinmode, u
 	return 0;
 }
 
-int de_rtmx_get_li_addr_offset( unsigned int size, unsigned int x, unsigned int y, unsigned int cnt)
+int de_rtmx_get_li_addr_offset( unsigned int size, unsigned int align, unsigned int x, unsigned int y, unsigned int cnt)
 {
 	unsigned int offset;
 
-	offset = size*(y>>1) + x*cnt;
+	offset = DISPALIGN(size,align)*(y>>1) + x*cnt;
 
 	return offset;
 }
 
-int de_rtmx_get_3d_out(de_rect frame0, de_3d_out_mode trdoutmode, de_rect *frame1)
+int de_rtmx_get_3d_out(de_rect frame0, unsigned int scn_w, unsigned int scn_h, de_3d_out_mode trdoutmode, de_rect *frame1)
 {
 	switch(trdoutmode)
 	{
@@ -822,7 +864,7 @@ int de_rtmx_get_3d_out(de_rect frame0, de_3d_out_mode trdoutmode, de_rect *frame
 		case DE_3D_OUT_MODE_SSF:
 		case DE_3D_OUT_MODE_SSH:
 		{
-			frame1->x = frame0.x + frame0.w;
+			frame1->x = frame0.x + scn_w;
 			frame1->y = frame0.y;
 			frame1->w = frame0.w;
 			frame1->h = frame0.h;
@@ -832,14 +874,14 @@ int de_rtmx_get_3d_out(de_rect frame0, de_3d_out_mode trdoutmode, de_rect *frame
 		case DE_3D_OUT_MODE_FP:
 		{
 			frame1->x = frame0.x;
-			frame1->y = frame0.y + frame0.h;
+			frame1->y = frame0.y + (scn_h >> 1);
 			frame1->w = frame0.w;
 			frame1->h = frame0.h;
 			break;
 		}
 		case DE_3D_OUT_MODE_LI://enable remapping
 		{
-			frame1->x = frame0.x + frame0.w;
+			frame1->x = frame0.x + scn_w;
 			frame1->y = frame0.y;
 			frame1->w = frame0.w;
 			frame1->h = frame0.h;
@@ -848,7 +890,7 @@ int de_rtmx_get_3d_out(de_rect frame0, de_3d_out_mode trdoutmode, de_rect *frame
 		case DE_3D_OUT_MODE_LIRGB://enable remapp
 		{
 			frame1->x = frame0.x;
-			frame1->y = frame0.y + frame0.h;
+			frame1->y = frame0.y + scn_h;
 			frame1->w = frame0.w;
 			frame1->h = frame0.h;
 			break;
@@ -902,6 +944,7 @@ int de_rtmx_set_lay_fcolor(unsigned int sel, unsigned int chno, unsigned int lay
 int de_rtmx_set_overlay_size(unsigned int sel, unsigned int chno, unsigned int w, unsigned int h)
 {
 	int vi_chno = de_feat_get_num_vi_chns(sel);
+
 	if (chno >= vi_chno)
 	{
 		de200_rtmx[sel].ui_ovl[chno-vi_chno]->ui_ovl_size.bits.ovl_width = w==0?0:w-1;
@@ -924,7 +967,7 @@ static int de_rtmx_get_coarse_fac(unsigned int ovl_w, unsigned int ovl_h,unsigne
 						   unsigned int lcd_fps, unsigned int lcd_height, unsigned int de_freq_MHz,
 						   unsigned int *yhm, unsigned int *yhn, unsigned int *yvm, unsigned int *yvn,
 						   unsigned int *chm, unsigned int *chn, unsigned int *cvm, unsigned int *cvn,
-						   unsigned int *midyw, unsigned int *midyh, unsigned int *midcw, unsigned int *midch)
+						   unsigned int *midyw, unsigned int *midyh, unsigned int *midcw, unsigned int *midch, unsigned char yv12_4k_en)
 {
 	unsigned int format,wshift, hshift,status;
 	unsigned int tmpyhm, tmpyhn, tmpyvm, tmpyvn;
@@ -984,10 +1027,46 @@ static int de_rtmx_get_coarse_fac(unsigned int ovl_w, unsigned int ovl_h,unsigne
 	ovl_h = ovl_h & (~((1<<hshift)-1));
 
 	status = 0x0;
+
+	if(yv12_4k_en)
+	{
+		*yhm  = 0;
+		*yhn  = 0;
+		*chm  = 0;
+		*chn  = 0;
+		*midyw = ovl_w;
+		*midcw = ovl_w>>1;
+		*yvm  = 0;
+		*yvn  = 0;
+		*cvm  = 0;
+		*cvn  = 0;
+		*midyh = ovl_h;
+		*midch = ovl_h;
+
+		return status;
+	}
+
 	//horizontal Y channel
 	if(ovl_w > 8*vsu_outw)
 	{
 		tmpyhn = 8*vsu_outw;
+		tmpyhn = tmpyhn & (~((1<<wshift)-1));
+		tmpyhm = ovl_w;
+		*yhm   = tmpyhm;
+		*yhn   = tmpyhn;
+		*chm   = *yhm;
+		*chn   = *yhn;
+
+		//actually fetch horizontal pixel Y channel
+		*midyw = tmpyhn;
+
+		//actually fetch horizontal pixel C channel
+		*midcw = tmpyhn>>wshift;
+		status = 0x1;
+	}
+	else if(ovl_w > 2048)
+	{
+		tmpyhn = ovl_w>>1;
 		tmpyhn = tmpyhn & (~((1<<wshift)-1));
 		tmpyhm = ovl_w;
 		*yhm   = tmpyhm;
@@ -1018,10 +1097,10 @@ static int de_rtmx_get_coarse_fac(unsigned int ovl_w, unsigned int ovl_h,unsigne
 // 	update_speed_ability = lcd_width*de_freq_MHz*125/(ovl_w*lcd_freq_MHz);
 
 	//how many overlay line can be fetched during scanning one lcd line(consider 80% dram efficiency)
-	tmp = ovl_w*lcd_height*lcd_fps;
+	tmp = lcd_height*lcd_fps*(ovl_w>vsu_outw?ovl_w:vsu_outw); //2014-7-25
 	if(tmp!=0)
 	{
-		update_speed_ability = ((unsigned long long)de_freq_MHz*125000000);
+		update_speed_ability = ((unsigned long long)de_freq_MHz*80000000); //2014-7-25
 		do_div(update_speed_ability,tmp);//FIXME
 	}
 	else
@@ -1036,8 +1115,9 @@ static int de_rtmx_get_coarse_fac(unsigned int ovl_w, unsigned int ovl_h,unsigne
 	//vertical Y channel
 	if(update_speed_ability < required_speed_ability)	//if ability < required, use coarse scale
 	{
-		__inf("\n");
-		tmpyvn = tmp==0?0:(de_freq_MHz*vsu_outh*1250000)/tmp;
+		unsigned long long tmp2 = update_speed_ability*vsu_outh;
+		do_div(tmp2, 100);
+		tmpyvn = tmp==0?0:(unsigned int)tmp2;
 		tmpyvn = tmpyvn & (~((1<<hshift)-1));
 		tmpyvm = ovl_h;
 		*yvm   = tmpyvm;
@@ -1054,7 +1134,6 @@ static int de_rtmx_get_coarse_fac(unsigned int ovl_w, unsigned int ovl_h,unsigne
 	}
 	else if(ovl_h > 4*vsu_outh)	//to save dram bandwidth when scale down factor more than 4.
 	{
-		__inf("\n");
 		tmpyvn = 4*vsu_outh;
 		tmpyvn = tmpyvn & (~((1<<hshift)-1));
 		tmpyvm = ovl_h;
@@ -1072,7 +1151,6 @@ static int de_rtmx_get_coarse_fac(unsigned int ovl_w, unsigned int ovl_h,unsigne
 	}
 	else
 	{
-		__inf("\n");
 		*yvm  = 0;
 		*yvn  = 0;
 		*cvm  = 0;
@@ -1100,28 +1178,29 @@ static int de_rtmx_get_coarse_fac(unsigned int ovl_w, unsigned int ovl_h,unsigne
 //*********************************************************************************************************************
 int de_rtmx_set_coarse_fac(unsigned int sel, unsigned char chno, unsigned int fmt, unsigned int lcd_fps, unsigned int lcd_height, unsigned int de_freq_MHz,
 						   unsigned int ovl_w, unsigned int ovl_h,unsigned int vsu_outw, unsigned int vsu_outh,
-						   unsigned int *midyw, unsigned int *midyh, unsigned int *midcw, unsigned int *midch)
+						   unsigned int *midyw, unsigned int *midyh, unsigned int *midcw, unsigned int *midch, unsigned char yv12_4k_en)
 {
 	unsigned int yhm,yhn,yvm,yvn,chm,chn,cvm,cvn;
+	int status;
 
-	de_rtmx_get_coarse_fac(ovl_w, ovl_h,vsu_outw, vsu_outh, fmt, lcd_fps, lcd_height, de_freq_MHz,
-						   &yhm, &yhn, &yvm, &yvn, &chm, &chn, &cvm, &cvn, midyw, midyh, midcw, midch);
+	status = de_rtmx_get_coarse_fac(ovl_w, ovl_h,vsu_outw, vsu_outh, fmt, lcd_fps, lcd_height, de_freq_MHz,
+						   &yhm, &yhn, &yvm, &yvn, &chm, &chn, &cvm, &cvn, midyw, midyh, midcw, midch, yv12_4k_en);
 
 	de200_rtmx[sel].vi_ovl[chno]->vi_hori_ds[0].bits.m = yhm;
 	de200_rtmx[sel].vi_ovl[chno]->vi_hori_ds[0].bits.n = yhn;
 
-	de200_rtmx[sel].vi_ovl[chno]->vi_hori_ds[1].bits.m = yvm;
-	de200_rtmx[sel].vi_ovl[chno]->vi_hori_ds[1].bits.n = yvn;
+	de200_rtmx[sel].vi_ovl[chno]->vi_hori_ds[1].bits.m = chm;
+	de200_rtmx[sel].vi_ovl[chno]->vi_hori_ds[1].bits.n = chn;
 
-	de200_rtmx[sel].vi_ovl[chno]->vi_vert_ds[0].bits.m = chm;
-	de200_rtmx[sel].vi_ovl[chno]->vi_vert_ds[0].bits.n = chn;
+	de200_rtmx[sel].vi_ovl[chno]->vi_vert_ds[0].bits.m = yvm;
+	de200_rtmx[sel].vi_ovl[chno]->vi_vert_ds[0].bits.n = yvn;
 
 	de200_rtmx[sel].vi_ovl[chno]->vi_vert_ds[1].bits.m = cvm;
 	de200_rtmx[sel].vi_ovl[chno]->vi_vert_ds[1].bits.n = cvn;
 
 	vi_size_block[sel][chno].dirty = 1;
 
-	return 0;
+	return status;
 }
 
 int de_rtmx_set_pf_en(unsigned int sel, unsigned char *pen)
@@ -1322,6 +1401,8 @@ int de_rtmx_calc_chnrect(unsigned char *lay_en, int laynum, de_rect *frame, de_r
 		{
 			RcOvl=de_rtmx_extend_rect(RcOvl, layer[i]);
 			RcBld=de_rtmx_extend_rect(RcBld, frame[i]);
+			__inf("ovl_rect=<%d,%d,%d,%d>\n", RcOvl.x, RcOvl.y, RcOvl.w, RcOvl.h);
+			__inf("bld_rect=<%d,%d,%d,%d>\n", RcBld.x, RcBld.y, RcBld.w, RcBld.h);
 		}
 	}
 
@@ -1454,5 +1535,21 @@ int de_rtmx_get_premul_ctl(int laynum, unsigned char *premul)
 	}
 
 	return pipe_mode;
+}
+
+int de_rtmx_mux(unsigned int sel, unsigned int tcon_index)
+{
+	u32 reg_val;
+	if(sel == tcon_index) {
+		reg_val = disp_readl(de_base + 0x10);
+		reg_val &= ~0x1;
+		disp_writel(reg_val, de_base + 0x10);
+	} else {
+		reg_val = disp_readl(de_base + 0x10);
+		reg_val |= 0x1;
+		disp_writel(reg_val, de_base + 0x10);
+	}
+
+	return 0;
 }
 

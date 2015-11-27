@@ -307,19 +307,6 @@ s32 lcd_parse_panel_para(u32 screen_id, disp_panel_para * info)
     {
         info->lcd_hv_sync_polarity = value;
     }
-
-	 ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_hv_syuv_seq", &value, 1);
-	 if(ret == 0)
-	 {
-		 info->lcd_hv_syuv_seq = value;
-	 }
-
-	 ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_hv_syuv_fdly", &value, 1);
-	 if(ret == 0)
-	 {
-		 info->lcd_hv_syuv_fdly = value;
-	 }
-
     ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_gamma_en", &value, 1);
     if(ret == 0)
     {
@@ -1536,83 +1523,6 @@ s32 disp_lcd_get_panel_info(struct disp_lcd *lcd, disp_panel_para* info)
 	return 0;
 }
 
-s32 disp_lcd_get_tv_mode(struct disp_lcd *lcd)
-{
-   u32 channel_id;
-   s32 tv_mode = -1;
-   struct disp_lcd_private_data *lcdp = disp_lcd_get_priv(lcd);
-
-   if((NULL == lcd) || (NULL == lcdp)) {
-       DE_WRN("NULL hdl!\n");
-       return DIS_FAIL;
-   }
-   channel_id = lcd->channel_id;
-   if(NULL != lcdp->lcd_panel_fun.lcd_user_defined_func) {
-       tv_mode = lcdp->lcd_panel_fun.lcd_user_defined_func(channel_id, 0, 0, 0);
-   } else {
-       printf("lcd_user_defined_func for get cvbs mode is null!!!\n");
-   }
-
-   return tv_mode;
-}
-
-s32 disp_lcd_set_tv_mode(struct disp_lcd *lcd, disp_tv_mode tv_mode)
-{
-    disp_panel_para* info;
-    u32 channel_id;
-    s32 ret = -1;
-    struct disp_lcd_private_data *lcdp = disp_lcd_get_priv(lcd);
-
-    if((NULL == lcd) || (NULL == lcdp)) {
-        DE_WRN("NULL hdl!\n");
-        return DIS_FAIL;
-    }
-    channel_id = lcd->channel_id;
-    info = &(lcdp->panel_info);
-    if(DISP_TV_MOD_PAL == tv_mode) {
-        info->lcd_if = 0;
-        info->lcd_x = 720;
-        info->lcd_y = 576;
-        info->lcd_hv_if = LCD_HV_IF_CCIR656_2CYC;
-        info->lcd_dclk_freq = 27;
-        info->lcd_ht = 864;
-        info->lcd_hbp = 139;
-        info->lcd_hspw = 2;
-        info->lcd_vt = 625;
-        info->lcd_vbp = 22;
-        info->lcd_vspw = 2;
-        info->lcd_hv_syuv_fdly = LCD_HV_SRGB_FDLY_3LINE;
-        info->lcd_hv_syuv_seq = LCD_HV_SYUV_SEQ_UYUV;
-        if(NULL != lcdp->lcd_panel_fun.lcd_user_defined_func) {
-           lcdp->lcd_panel_fun.lcd_user_defined_func(channel_id, 1, (unsigned int)tv_mode, 0);
-        } else {
-           printf("lcd_user_defined_func for cvbs is null!!!\n");
-        }
-        ret = 0;
-    } else if(DISP_TV_MOD_NTSC == tv_mode) {
-        info->lcd_if = 0;
-        info->lcd_x = 720;
-        info->lcd_y = 480;
-        info->lcd_hv_if = LCD_HV_IF_CCIR656_2CYC;
-        info->lcd_dclk_freq = 27;
-        info->lcd_ht = 858;
-        info->lcd_hbp = 118;
-        info->lcd_hspw = 2;
-        info->lcd_vt = 525;
-        info->lcd_vbp = 18;
-        info->lcd_vspw = 2;
-        info->lcd_hv_syuv_fdly = LCD_HV_SRGB_FDLY_2LINE;
-        info->lcd_hv_syuv_seq = LCD_HV_SYUV_SEQ_UYUV;
-        if(NULL != lcdp->lcd_panel_fun.lcd_user_defined_func) {
-			lcdp->lcd_panel_fun.lcd_user_defined_func(channel_id, 1, (unsigned int)tv_mode, 0);
-        } else {
-			printf("lcd_user_defined_func for cvbs is null!!!\n");
-        }
-        ret = 0;
-    }
-    return ret;
-}
-
 extern void sync_event_proc(u32 screen_id);
 #if defined(__LINUX_PLAT__)
 s32 disp_lcd_event_proc(int irq, void *parg)
@@ -2074,8 +1984,6 @@ s32 disp_init_lcd(__disp_bsp_init_para * para)
 		lcd->gpio_set_direction = disp_lcd_gpio_set_direction;
 		lcd->gpio_set_value = disp_lcd_gpio_set_value;
 		lcd->get_panel_info = disp_lcd_get_panel_info;
-		lcd->get_tv_mode = disp_lcd_get_tv_mode;
-		lcd->set_tv_mode = disp_lcd_set_tv_mode;
 
 		lcd->init(lcd);
 	}

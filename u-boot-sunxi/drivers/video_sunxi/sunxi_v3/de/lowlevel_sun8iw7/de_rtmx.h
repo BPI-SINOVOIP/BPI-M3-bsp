@@ -257,18 +257,18 @@ int de_rtmx_set_bld_reg_base(unsigned int sel, void *base);
 int de_rtmx_set_overlay_reg_base(unsigned int sel, unsigned int chno, void *base);
 int de_rtmx_set_lay_cfg(unsigned int sel, unsigned int chno, unsigned int layno, __lay_para_t *cfg);
 int de_rtmx_set_lay_haddr(unsigned int sel, unsigned int chno, unsigned int layno, unsigned char top_bot_en, unsigned char *haddr_t,unsigned char *haddr_b);
-int de_rtmx_set_lay_laddr(unsigned int sel, unsigned int chno, unsigned int layno, unsigned char fmt,
-						  de_rect crop, unsigned int *size, de_3d_in_mode trdinmode, unsigned int *addr, unsigned char *haddr);
-int de_rtmx_get_3d_in(unsigned char fmt, de_fb *size, de_3d_in_mode trdinmode, unsigned int *addr, unsigned int *trd_addr,
-					  unsigned int *pitch, unsigned int *pitchr, unsigned int *lay_laddr);
+int de_rtmx_set_lay_laddr(unsigned int sel, unsigned int chno, unsigned int layno, unsigned char fmt, unsigned char yv12_4k_en, de_rect crop,
+                          unsigned int *size, unsigned int *align, de_3d_in_mode trdinmode, unsigned int *addr, unsigned char *haddr);
+int de_rtmx_get_3d_in(unsigned char fmt, de_rect crop, de_fb *size, unsigned int *align, de_3d_in_mode trdinmode,
+                      unsigned int *addr, unsigned int *trd_addr, unsigned int *pitch, unsigned int *pitchr, unsigned int *lay_laddr);
 int de_rtmx_get_3d_in_single_size(de_3d_in_mode inmode, de_rect64 *size);
-int de_rtmx_get_3d_out(de_rect frame0, de_3d_out_mode trdoutmode, de_rect *frame1);
-int de_rtmx_get_li_addr_offset( unsigned int size, unsigned int x, unsigned int y, unsigned int cnt);
+int de_rtmx_get_3d_out(de_rect frame0, unsigned int scn_w, unsigned int scn_h, de_3d_out_mode trdoutmode, de_rect *frame1);
+int de_rtmx_get_li_addr_offset( unsigned int size, unsigned int align, unsigned int x, unsigned int y, unsigned int cnt);
 int de_rtmx_set_lay_fcolor(unsigned int sel, unsigned int chno, unsigned int layno, unsigned char en, unsigned char fmt, unsigned int color);
 int de_rtmx_set_overlay_size(unsigned int sel, unsigned int chno, unsigned int w, unsigned int h);
 int de_rtmx_set_coarse_fac(unsigned int sel, unsigned char chno, unsigned int fmt, unsigned int lcd_fps, unsigned int lcd_height, unsigned int de_freq_MHz,
 						   unsigned int ovl_w, unsigned int ovl_h,unsigned int vsu_outw, unsigned int vsu_outh,
-						   unsigned int *midyw, unsigned int *midyh, unsigned int *midcw, unsigned int *midch);
+						   unsigned int *midyw, unsigned int *midyh, unsigned int *midcw, unsigned int *midch, unsigned char yv12_4k_en);
 int de_rtmx_set_pf_en(unsigned int sel, unsigned char *pen);
 int de_rtmx_set_pipe_cfg(unsigned int sel, unsigned char pno, unsigned int color, de_rect bldrc);
 int de_rtmx_set_route(unsigned int sel, unsigned char pno, unsigned int zoder);
@@ -287,5 +287,8 @@ int de_rtmx_set_dbuff_rdy(unsigned int sel);
 int de_rtmx_set_enable(unsigned int sel, unsigned int en);
 int de_rtmx_set_display_size(unsigned int sel, unsigned int width, unsigned int height);
 int de_rtmx_query_irq(unsigned int sel);
+int de_rtmx_enable_irq(unsigned int sel, unsigned int en);
+
+int de_rtmx_mux(unsigned int sel, unsigned int tcon_index);
 
 #endif

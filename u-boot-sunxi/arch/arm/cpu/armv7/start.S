@@ -120,7 +120,7 @@ __int_vector_start__:
 .globl  __int_vector_end__
 __int_vector_end__:
 	.word  __int_vector_end - _start
-
+#ifndef CONFIG_NO_BOOT_STANDBY
 .globl  _standby_start__
 _standby_start__:
 	.word  _standby_start - _start
@@ -132,7 +132,7 @@ _standby_end__:
 .globl  _standby_start_lma__
 _standby_start_lma__:
 	.word  _standby_start_lma - _start
-
+#endif
 #if defined(CONFIG_CPUS_STANDBY)
 .globl  _standby_new_start__
 _standby_new_start__:
@@ -416,7 +416,7 @@ jump_2_ram:
 	mov	r1, r6		/* dest_addr */
 	/* jump to it ... */
 	mov	pc, lr
-	
+
 #if defined(CONFIG_CPUS_STANDBY)
 .globl	boot_standby_new_relocate
 boot_standby_new_relocate:
@@ -427,17 +427,17 @@ boot_standby_new_relocate:
 
 	add r2, r2, r4
 	add r3, r3, r4
-	
-	// relocate code
+
+	/* relocate code */
 	sub r2, r2, r1
 	sub r3, r3, r1
-	
+
 copy_standby_new_loop:
 	ldmia   r2!, {r6-r7}
 	stmia   r0!, {r6-r7}
 	cmp     r2, r3
 	blo     copy_standby_new_loop
-	
+
 	mov pc, lr
 #endif
 

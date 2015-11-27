@@ -190,7 +190,9 @@ int sunxi_board_shutdown(void)
 	tick_printf("power off\n");
 	axp_set_hardware_poweroff_vol();
 	axp_set_power_off();
-
+#if defined(CONFIG_ARCH_SUN8IW7P1)
+	power_off();
+#endif
 	return 0;
 }
 /*
@@ -257,7 +259,7 @@ int sunxi_board_run_fel(void)
 */
 int sunxi_board_run_fel_eraly(void)
 {
-#if defined(CONFIG_SUN6I) || defined(CONFIG_ARCH_SUN8IW3P1) || defined(CONFIG_ARCH_SUN8IW5P1)|| defined(CONFIG_ARCH_SUN7I)
+#if defined(CONFIG_SUN6I) || defined(CONFIG_ARCH_SUN8IW3P1) || defined(CONFIG_ARCH_SUN8IW5P1)|| defined(CONFIG_ARCH_SUN7I)||defined(CONFIG_ARCH_SUN8IW8P1)
 	*((volatile unsigned int *)(SUNXI_RUN_EFEX_ADDR)) = SUNXI_RUN_EFEX_FLAG;
 #elif defined(CONFIG_ARCH_SUN9IW1P1) || defined(CONFIG_ARCH_SUN8IW7P1) || defined(CONFIG_ARCH_SUN8IW6P1)
 	sunxi_set_fel_flag();
@@ -424,7 +426,7 @@ void fastboot_partition_init(void)
 *					  必须保证空间足够
 ************************************************************************************************************
 */
-#ifndef CONFIG_SUNXI_SPINOR_PLATFORM
+#ifndef CONFIG_SUNXI_SPINOR_PLATFORM 
 static int sunxi_str_replace(char *dest_buf, char *goal, char *replace)
 {
 	char tmp[128];
@@ -624,7 +626,6 @@ static void check_debug_mode(void)
 *
 ************************************************************************************************************
 */
-
 int check_android_misc(void)
 {
 	int   mode;
@@ -646,10 +647,10 @@ int check_android_misc(void)
 		sprintf(delaytime, "%d", 3);
 		setenv("bootdelay", delaytime);
 	}
-        //if enter debug mode,set loglevel = 8
-        check_debug_mode();
+    //if enter debug mode,set loglevel = 8
+    check_debug_mode();
 
-        memset(boot_commond, 0x0, 128);
+   memset(boot_commond, 0x0, 128);
 	strcpy(boot_commond, getenv("bootcmd"));
 	printf("base bootcmd=%s\n", boot_commond);
 	//判断存储介质
@@ -662,81 +663,46 @@ int check_android_misc(void)
 	{
 		printf("bootcmd set setargs_nand\n");
 	}
-	//判断是否存在按键进入其它模式
 	misc_message = (struct bootloader_message *)misc_args;
 	memset(misc_args, 0x0, 2048);
 	memset(misc_fill, 0xff, 2048);
 	mode = detect_other_boot_mode();
-
-	misc_offset = sunxi_partition_get_offset_byname("misc");
-	//先判断上一次系统是否有写入数据到pmu寄存器
-	pmu_value = axp_probe_pre_sys_mode();
-	if(pmu_value == PMU_PRE_FASTBOOT_MODE)
+	if(mode == ANDROID_NULL_MODE)
 	{
-		puts("PMU : ready to enter fastboot mode\n");
-		strcpy(misc_message->command, "bootloader");
-	}
-	else if(pmu_value == PMU_PRE_RECOVERY_MODE)
-	{
-		puts("PMU : ready to enter recovery mode\n");
-		strcpy(misc_message->command, "boot-recovery");
-	}
-//get the part --"misc"
-	else
-	{
-		debug("misc_offset = %x\n",misc_offset);
-		if(!misc_offset)
+		pmu_value = axp_probe_pre_sys_mode();
+		if(pmu_value == PMU_PRE_FASTBOOT_MODE)
 		{
-			printf("no misc partition is found\n");
+			puts("PMU : ready to enter fastboot mode\n");
+			strcpy(misc_message->command, "bootloader");
+		}
+		else if(pmu_value == PMU_PRE_RECOVERY_MODE)
+		{
+			puts("PMU : ready to enter recovery mode\n");
+			strcpy(misc_message->command, "boot-recovery");
 		}
 		else
 		{
-			printf("misc partition found\n");
-			sunxi_flash_read(misc_offset, 2048/512, misc_args); //read misc partition data
+			misc_offset = sunxi_partition_get_offset_byname("misc");
+			debug("misc_offset = %x\n",misc_offset);
+			if(!misc_offset)
+			{
+				printf("no misc partition is found\n");
+			}
+			else
+			{
+				printf("misc partition found\n");
+				sunxi_flash_read(misc_offset, 2048/512, misc_args); //read misc partition data
+			}
 		}
 	}
-	if((misc_message->command[0] == 0x00) ||(misc_message->command[0] == 0xff))
+	else if(mode == ANDROID_RECOVERY_MODE)
 	{
-		printf("misc_message->command = %x \n",misc_message->command[0]);
-		if(mode == USER_SELECT_MODE) //说明探测阶段有按键按下
-		{
-			printf("enter user_select_mode\n");
-		#if 0
-			//如果misc分区没有上次系统写入数据，并且检测到有按键按下，那么进入图片显示菜单
-			user_select_current_status = FASTBOOT_MODE;
-			show_user_select_menu_ui(); //显示当前模式的ui
-			while(status != POWERON_KEY_PRESSED)//图片显示菜单
-			{
-				status = sunxi_probe_key_pressed();
-				if(( status == KEY_PRESSED))
-				{
-					debug("key_ststus = 0x%x\n ",status);
-					user_mode_status_update(status);     	//更新菜单的选项
-					show_user_select_menu_ui(); 				//显示当前模式的ui
-				}
-			}
-			if(user_select_current_status == RECOVERY_MODE )
-			{
-				printf("misc_message->command = boot-recovery\n");
-				strcpy(misc_message->command, "boot-recovery");
-			}
-			else if(user_select_current_status == FASTBOOT_MODE)
-			{
-				printf("misc_message->command = bootloader\n");
-				strcpy(misc_message->command, "bootloader");
-			}
-		#endif
-		}
-		else if(mode == ANDROID_RECOVERY_MODE)
-		{
-			strcpy(misc_message->command, "boot-recovery");
-		}
-		else if( mode == ANDROID_FASTBOOT_MODE)
-		{
-			strcpy(misc_message->command, "bootloader");
-		}
+		strcpy(misc_message->command, "boot-recovery");
 	}
-
+	else if( mode == ANDROID_FASTBOOT_MODE)
+	{
+		strcpy(misc_message->command, "bootloader");
+	}
 	//最终统一判断命令
 	if(!loglel_change_flag)   //add by young,if you want to enter debug_mode ,so do enter boot_normal
 	{
@@ -796,107 +762,9 @@ int check_android_misc(void)
 	setenv("bootcmd", boot_commond);
 
 	printf("to be run cmd=%s\n", boot_commond);
-#if 0
-	misc_message = (struct bootloader_message *)misc_args;
-	if(mode == ANDROID_NULL_MODE)
-	{
-		misc_offset = sunxi_partition_get_offset_byname("misc");
-		if(!misc_offset)
-		{
-			int pmu_value;
-
-			puts("no misc partition is found\n");
-			pmu_value = axp_probe_pre_sys_mode();
-			if(pmu_value == PMU_PRE_FASTBOOT_MODE)
-			{
-				puts("ready to enter fastboot mode\n");
-				setenv("bootcmd", "run boot_fastboot");
-
-				return 0;
-			}
-			else
-			{
-				printf("to be run cmd=%s\n", boot_commond);
-				setenv("bootcmd", boot_commond);
-
-				return 0;
-			}
-		}
-		memset(misc_fill, 0xff, 2048);
-#ifdef DEBUG
-		tick_printf("misc_offset  : %d\n", (int )misc_offset);
-#endif
-		sunxi_flash_read(misc_offset, 2048/512, misc_args);
-	}
-	else if(mode == ANDROID_RECOVERY_MODE)
-	{
-		strcpy(misc_message->command, "boot-recovery");
-	}
-	else if(mode == ANDROID_FASTBOOT_MODE)
-	{
-		strcpy(misc_message->command, "bootloader");
-	}
-#ifdef DEBUG
-	{
-		uint *dump_value;
-
-		dump_value = *(uint *)misc_message->command;
-		if(dump_value != 0xffffffff)
-			printf("misc.command  : %s\n", misc_message->command);
-		else
-			printf("misc.command  : NULL\n");
-
-		dump_value = *(uint *)misc_message->status;
-		if(dump_value != 0xffffffff)
-			printf("misc.status  : %s\n", misc_message->status);
-		else
-			printf("misc.status  : NULL\n");
-
-		dump_value = *(uint *)misc_message->recovery;
-		if(dump_value != 0xffffffff)
-			printf("misc.recovery  : %s\n", misc_message->recovery);
-		else
-			printf("misc.recovery  : NULL\n");
-	}
-#endif
-	//判断命令
-	if(!strcmp(misc_message->command, "efex"))
-	{
-		/* there is a recovery command */
-		puts("find efex cmd\n");
-		sunxi_flash_write(misc_offset, 2048/512, misc_fill);
-		sunxi_board_run_fel();
-
-		return 0;
-	}
-
-	if(!strcmp(misc_message->command, "boot-resignature"))
-	{
-		puts("find boot-resignature cmd\n");
-		sunxi_flash_write(misc_offset, 2048/512, misc_fill);
-		sunxi_oem_op_lock(SUNXI_LOCKING, NULL, 1);
-	}
-	else if(!strcmp(misc_message->command, "boot-recovery"))
-	{
-		puts("Recovery detected, will boot recovery\n");
-		sunxi_str_replace(boot_commond, "boot_normal", "boot_recovery");
-		/* android recovery will clean the misc */
-	}
-	else if(!strcmp(misc_message->command, "bootloader"))
-	{
-		puts("Fastboot detected, will boot fastboot\n");
-		sunxi_str_replace(boot_commond, "boot_normal", "boot_fastboot");
-		if(misc_offset)
-			sunxi_flash_write(misc_offset, 2048/512, misc_fill);
-	}
-
-	setenv("bootcmd", boot_commond);
-
-	printf("to be run cmd=%s\n", boot_commond);
-#endif
 	return 0;
-}
 
+}
 #endif
 /*
 ************************************************************************************************************
@@ -927,6 +795,11 @@ int board_late_init(void)
 #ifdef  CONFIG_ARCH_HOMELET
 	update_user_data();
 #endif
+
+#ifdef CONFIG_USE_UBOOT_SERIALNO
+	extern int sunxi_set_serial_num(void);
+	sunxi_set_serial_num();
+#endif
 	return 0;
 }
 /*
@@ -945,6 +818,7 @@ int board_late_init(void)
 *
 ************************************************************************************************************
 */
+
 int check_uart_input(void)
 {
 	int c = 0;
@@ -974,6 +848,7 @@ int check_uart_input(void)
 	else if(c == 's')		//shell mode
 	{
 		gd->force_shell = 1;
+                gd->debug_mode = 1;
 	}
 	return 0;
 }
@@ -1216,6 +1091,7 @@ int check_update_key(void)
 	}
 }
 
+#ifndef CONFIG_SUNXI_SPINOR_PLATFORM
 /*
 ************************************************************************************************************
 *
@@ -1388,7 +1264,7 @@ void respond_physical_key_action(void)
 {
 	int key_value;
 	key_value = gd->key_pressd_value;
-
+	
 	if (key_value == USB_RECOVERY_KEY_VALUE)
 	{
 		printf("[box recovery] set to one key usb recovery\n");
@@ -1400,6 +1276,7 @@ void respond_physical_key_action(void)
 		//setenv("bootcmd", "sprite_recovery");
 	}
 }
+#endif
 
 #ifdef CONFIG_ARCH_SUN9IW1P1
 #define UART_GATE_CTRL  (0x06000400 + 0x194)
@@ -1623,5 +1500,84 @@ int change_to_debug_mode(void)
     }
 //if enter debug mode ,set system can print message
     loglel_change_flag = 1;
+    return 0;
+}
+
+#ifdef CONFIG_READ_LOGO_FOR_KERNEL
+/*
+************************************************************************************************************
+*
+*                                             function
+*
+*    name          :	sunxi_read_bootlogo
+*
+*    parmeters     :
+*
+*    return        : -1 :fail   0:success
+*
+*    note          :	guoyingyang@allwinnertech.com
+*
+*
+************************************************************************************************************
+*/
+void sunxi_read_bootlogo(char *part_name)
+{
+    int ret = 0;
+    u32 rblock = 0;
+    u32 start_block = 0;
+    uint addr;
+#if defined(CONFIG_SUNXI_LOGBUFFER)
+    addr = (uint)(CONFIG_SYS_SDRAM_BASE + gd->ram_size - SUNXI_DISPLAY_FRAME_BUFFER_SIZE);
+#else
+    addr = (uint)(SUNXI_DISPLAY_FRAME_BUFFER_ADDR);
+#endif
+    printf("addr = %x \n",addr);
+    start_block = sunxi_partition_get_offset_byname((const char *)part_name);
+    if(start_block == 0 )
+        return ;
+    rblock = sunxi_partition_get_size_byname((const char *)part_name);
+    ret = sunxi_flash_read(start_block, rblock, (void *)addr);
+    if(ret != 0)
+    {
+        gd->fb_base = addr ;
+        printf("sunxi_read_bootlogo: read bootlogo partition successful \n");
+    }
+    else
+    {
+        gd->fb_base = 0;
+        printf("sunxi_read_bootlogo: read bootlogo partition fail \n");
+    }
+    return;
+}
+#endif
+
+/*
+************************************************************************************************************
+*
+*                                             function
+*
+*    name          :	get_debugmode_flag
+*
+*    parmeters     :
+*
+*    return        : 
+*
+*    note          :	guoyingyang@allwinnertech.com
+*
+*
+************************************************************************************************************
+*/
+int get_debugmode_flag(void)
+{
+    int debug_mode = 0;
+    if(uboot_spare_head.boot_data.work_mode != WORK_MODE_BOOT)
+    {
+    	gd->debug_mode = 1;
+        return 0;
+    }
+    if(!script_parser_fetch("platform", "debug_mode",&debug_mode, 1))
+        gd->debug_mode = debug_mode;
+    else
+        gd->debug_mode = 1;
     return 0;
 }

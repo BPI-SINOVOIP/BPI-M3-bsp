@@ -34,6 +34,7 @@ __u32 NAND_GetNdfcVersion(void);
 void * NAND_Malloc(unsigned int Size);
 void NAND_Free(void *pAddr, unsigned int Size);
 static __u32 boot_mode;
+static __u32 gpio_hdl;
 
 int NAND_set_boot_mode(__u32 boot)
 {
@@ -155,9 +156,9 @@ __u32 _Getpll6Clk(void)
 	//div_m = ((reg_val >> 0) & 0x3) + 1;
 
 	clock = 24000000 * factor_n * factor_k/2;
-	NAND_Print("pll6 clock is %d Hz\n", clock);
-	if(clock != 600000000)
-		printf("pll6 clock rate error, %d!!!!!!!\n", clock);
+	//NAND_Print("pll6 clock is %d Hz\n", clock);
+	//if(clock != 600000000)
+		//printf("pll6 clock rate error, %d!!!!!!!\n", clock);
 
 	return clock;
 }
@@ -192,11 +193,11 @@ __s32 _get_ndfc_clk_v1(__u32 nand_index, __u32 *pdclk)
 	sclk0 = (sclk_src >> sclk_pre_ratio_n) / (sclk_ratio_m+1);
 
 	if (nand_index == 0) {
-		NAND_Print("Reg 0x01c20080: 0x%x\n", *(volatile __u32 *)(0x01c20080));
+		//NAND_Print("Reg 0x01c20080: 0x%x\n", *(volatile __u32 *)(0x01c20080));
 	} else {
-		NAND_Print("Reg 0x01c20084: 0x%x\n", *(volatile __u32 *)(0x01c20084));
+		//NAND_Print("Reg 0x01c20084: 0x%x\n", *(volatile __u32 *)(0x01c20084));
 	}
-	NAND_Print("NDFC%d:  sclk0(2*dclk): %d MHz\n", nand_index, sclk0);
+	//NAND_Print("NDFC%d:  sclk0(2*dclk): %d MHz\n", nand_index, sclk0);
 
 	*pdclk = sclk0/2;
 
@@ -283,11 +284,11 @@ __s32 _change_ndfc_clk_v1(__u32 nand_index, __u32 dclk_src_sel, __u32 dclk)
 	reg_val |= 0x1U<<31;
 	put_wvalue(sclk0_reg_adr, reg_val);
 
-	NAND_Print("NAND_SetClk for nand index %d \n", nand_index);
+	//NAND_Print("NAND_SetClk for nand index %d \n", nand_index);
 	if (nand_index == 0) {
-		NAND_Print("Reg 0x01c20080: 0x%x\n", *(volatile __u32 *)(0x01c20080));
+		//NAND_Print("Reg 0x01c20080: 0x%x\n", *(volatile __u32 *)(0x01c20080));
 	} else {
-		NAND_Print("Reg 0x01c20084: 0x%x\n", *(volatile __u32 *)(0x01c20084));
+		//NAND_Print("Reg 0x01c20084: 0x%x\n", *(volatile __u32 *)(0x01c20084));
 	}
 
 	return 0;
@@ -457,6 +458,7 @@ int NAND_GetClk(__u32 nand_index, __u32 *pnand_clk0, __u32 *pnand_clk1)
 
 void NAND_PIORequest(__u32 nand_index)
 {
+#if 0
 	__s32 ret = 0;
 	__u32 ndfc_version = NAND_GetNdfcVersion();
 
@@ -473,7 +475,11 @@ void NAND_PIORequest(__u32 nand_index)
 		printf("NAND_PIORequest, wrong ndfc version, %d\n", ndfc_version);
 		return;
 	}
-
+#else
+	gpio_hdl = gpio_request_ex("nand0_para", NULL);
+	if(!gpio_hdl)
+		   printf("NAND_PIORequest, failed!\n");
+#endif
 	return;
 }
 
@@ -536,6 +542,11 @@ __s32 NAND_PIOFuncChange_REc(__u32 nand_index, __u32 en)
 
 void NAND_PIORelease(__u32 nand_index)
 {
+	int ret;
+	
+	ret = gpio_release(gpio_hdl, 1);
+	if(ret)
+		printf("nand gpio release fail\n");
 	return;
 }
 

@@ -758,7 +758,7 @@ typedef struct
 	tcon1_io_tri_reg_t			tcon1_io_tri;			//0x0f4
 	tcon_ecc_fifo_reg_t			tcon_ecfifo_ctl;		//0x0f8
 	tcon_debug_reg_t			tcon_debug;				//0x0fc
-	tcon_ceu_ctl_reg_t			tcon_ceu_ctl;			//0x110
+	tcon_ceu_ctl_reg_t			tcon_ceu_ctl;			//0x100
 	tcon_reservd_reg_t			tcon_reg104[3];			//0x104~0x10c
 	tcon_ceu_coef_mul_reg_t		tcon_ceu_coef_rr;		//0x110
 	tcon_ceu_coef_mul_reg_t		tcon_ceu_coef_rg;		//0x114

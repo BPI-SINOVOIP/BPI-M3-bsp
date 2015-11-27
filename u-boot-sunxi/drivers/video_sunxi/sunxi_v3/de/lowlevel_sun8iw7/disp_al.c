@@ -1,6 +1,16 @@
 #include "disp_al.h"
 #include "de_hal.h"
 
+struct disp_al_private_data
+{
+	u32 output_type[DEVICE_NUM];
+	u32 output_mode[DEVICE_NUM];//indicate mode for tv/hdmi, lcd_if for lcd
+	u32 output_cs[DEVICE_NUM];//index according to device
+	u32 tcon_index[DEVICE_NUM];
+};
+
+static struct disp_al_private_data al_priv;
+
 int disp_al_layer_apply(unsigned int disp, struct disp_layer_config_data *data, unsigned int layer_num)
 {
 	return de_al_lyr_apply(disp, data, layer_num);
@@ -18,6 +28,9 @@ int disp_al_manager_exit(unsigned int disp)
 
 int disp_al_manager_apply(unsigned int disp, struct disp_manager_data *data)
 {
+	if(data->flag & MANAGER_ENABLE_DIRTY)
+		al_priv.output_cs[data->config.disp_device] = data->config.cs;
+
 	return de_al_mgr_apply(disp, data);
 }
 
@@ -36,6 +49,16 @@ int disp_al_manager_query_irq(unsigned int disp)
 	return de_al_query_irq(disp);
 }
 
+int disp_al_manager_enable_irq(unsigned int disp)
+{
+	return de_al_enable_irq(disp, 1);
+}
+
+int disp_al_manager_disable_irq(unsigned int disp)
+{
+	return de_al_enable_irq(disp, 0);
+}
+
 int disp_al_enhance_apply(unsigned int disp, struct disp_enhance_config *config)
 {
 	return de_enhance_apply(disp, config);
@@ -51,6 +74,11 @@ int disp_al_enhance_sync(unsigned int disp)
 	return de_enhance_sync(disp);
 }
 
+int disp_al_enhance_tasklet(unsigned int disp)
+{
+	return 0;
+}
+
 int disp_al_capture_init(unsigned int disp)
 {
 	return de_clk_enable(DE_CLK_WB);
@@ -63,11 +91,6 @@ int disp_al_capture_exit(unsigned int disp)
 
 int disp_al_capture_sync(u32 disp)
 {
-	static u32 count = 0;
-		if(count < 10) {
-			count ++;
-			__inf("disp %d\n", disp);
-		}
 	WB_EBIOS_Update_Regs(disp);
 	WB_EBIOS_Writeback_Enable(disp, 1);
 	return 0;
@@ -75,17 +98,6 @@ int disp_al_capture_sync(u32 disp)
 
 int disp_al_capture_apply(unsigned int disp, struct disp_capture_config *cfg)
 {
-	static u32 count = 0;
-		if(count < 10) {
-			count ++;
-			__inf("disp %d\n", disp);
-		}
-		__inf("disp%d, in_fmt=%d, in_stride<%d,%d,%d>, window<%d,%d,%d,%d>, out_fmt=%d, out_stride<%d,%d,%d>,crop<%d,%d,%d,%d>, addr<0x%llx,0x%llx,0x%llx>\n",
-			disp, cfg->in_frame.format, cfg->in_frame.size[0].width, cfg->in_frame.size[1].width, cfg->in_frame.size[2].width,
-			cfg->in_frame.crop.x, cfg->in_frame.crop.y, cfg->in_frame.crop.width, cfg->in_frame.crop.height,
-			cfg->out_frame.format,  cfg->out_frame.size[0].width, cfg->out_frame.size[1].width, cfg->out_frame.size[2].width,
-			cfg->out_frame.crop.x, cfg->out_frame.crop.y, cfg->out_frame.crop.width,
-			cfg->out_frame.crop.height, cfg->out_frame.addr[0], cfg->out_frame.addr[1], cfg->out_frame.addr[2]);
 	return WB_EBIOS_Apply(disp, cfg);
 }
 
@@ -96,42 +108,26 @@ int disp_al_capture_get_status(unsigned int disp)
 
 int disp_al_smbl_apply(unsigned int disp, struct disp_smbl_info *info)
 {
-	static u32 count = 0;
-		if(count < 10) {
-			count ++;
-			__inf("disp %d\n", disp);
-		}
 	return de_smbl_apply(disp, info);
 }
 
 int disp_al_smbl_update_regs(unsigned int disp)
 {
-	static u32 count = 0;
-		if(count < 10) {
-			count ++;
-			__inf("disp %d\n", disp);
-		}
 	return de_smbl_update_regs(disp);
 }
 
 int disp_al_smbl_sync(unsigned int disp)
 {
-	static u32 count = 0;
-		if(count < 10) {
-			count ++;
-			__inf("disp %d\n", disp);
-		}
-	return de_smbl_sync(disp);
+	return 0;
+}
+
+int disp_al_smbl_tasklet(unsigned int disp)
+{
+	return 0;
 }
 
 int disp_al_smbl_get_status(unsigned int disp)
 {
-	static u32 count = 0;
-		if(count < 10) {
-			count ++;
-			__inf("disp %d\n", disp);
-		}
-
 	return de_smbl_get_status(disp);
 }
 
@@ -177,13 +173,16 @@ int disp_al_lcd_get_clk_info(u32 screen_id, struct lcd_clk_info *info, disp_pane
 	return 0;
 }
 
-int disp_al_lcd_cfg(u32 screen_id, disp_panel_para * panel)
+int disp_al_lcd_cfg(u32 screen_id, disp_panel_para * panel, panel_extend_para *extend_panel)
 {
 	struct lcd_clk_info info;
 
+	al_priv.output_type[screen_id] = (u32)DISP_OUTPUT_TYPE_LCD;
+	al_priv.output_mode[screen_id] = (u32)panel->lcd_if;
+	al_priv.tcon_index[screen_id] = 1;
+
 	tcon_init(screen_id);
 	disp_al_lcd_get_clk_info(screen_id, &info, panel);
-	DE_INF("lcd %d clk_div=%d!\n", screen_id, info.tcon_div);
 	tcon0_set_dclk_div(screen_id, info.tcon_div);
 	if(0 != tcon1_cfg_ex(screen_id, panel))
 		DE_WRN("lcd cfg fail!\n");
@@ -204,6 +203,7 @@ int disp_al_lcd_enable(u32 screen_id, disp_panel_para * panel)
 int disp_al_lcd_disable(u32 screen_id, disp_panel_para * panel)
 {
 	tcon1_close(screen_id);
+	tcon_exit(screen_id);
 
 	return 0;
 }
@@ -214,6 +214,22 @@ int disp_al_lcd_query_irq(u32 screen_id, __lcd_irq_id_t irq_id, disp_panel_para 
 {
 	int ret = 0;
 	ret = tcon_irq_query(screen_id, LCD_IRQ_TCON1_VBLK);
+
+	return ret;
+}
+
+int disp_al_lcd_enable_irq(u32 screen_id, __lcd_irq_id_t irq_id, disp_panel_para * panel)
+{
+	int ret = 0;
+	ret = tcon_irq_enable(screen_id, LCD_IRQ_TCON1_VBLK);
+
+	return ret;
+}
+
+int disp_al_lcd_disable_irq(u32 screen_id, __lcd_irq_id_t irq_id, disp_panel_para * panel)
+{
+	int ret = 0;
+	ret = tcon_irq_disable(screen_id, LCD_IRQ_TCON1_VBLK);
 
 	return ret;
 }
@@ -260,15 +276,11 @@ int disp_al_lcd_io_cfg(u32 screen_id, u32 enable, disp_panel_para * panel)
 int disp_al_lcd_get_cur_line(u32 screen_id, disp_panel_para * panel)
 {
 	return tcon_get_cur_line(screen_id, 1);
-
-	return 0;
 }
 
 int disp_al_lcd_get_start_delay(u32 screen_id, disp_panel_para * panel)
 {
 	return tcon_get_start_delay(screen_id, 1);
-
-	return 0;
 }
 
 /* hdmi */
@@ -288,15 +300,159 @@ int disp_al_hdmi_disable(u32 screen_id)
 
 int disp_al_hdmi_cfg(u32 screen_id, disp_video_timings *video_info)
 {
+	al_priv.output_type[screen_id] = (u32)DISP_OUTPUT_TYPE_HDMI;
+	al_priv.output_mode[screen_id] = (u32)video_info->vic;
+	al_priv.tcon_index[screen_id] = 1;
+
+	tcon_init(screen_id);
+	tcon1_set_timming(screen_id, video_info);
+	if(al_priv.output_cs[screen_id] != 0)//YUV output
+		tcon1_hdmi_color_remap(screen_id,1);
+	else
+		tcon1_hdmi_color_remap(screen_id,0);
+
+	return 0;
+}
+
+/* tv */
+int disp_al_tv_enable(u32 screen_id)
+{
+	tcon1_open(screen_id);
+	return 0;
+}
+
+int disp_al_tv_disable(u32 screen_id)
+{
+	tcon1_close(screen_id);
+	tcon_exit(screen_id);
+
+	return 0;
+}
+
+int disp_al_tv_cfg(u32 screen_id, disp_video_timings *video_info)
+{
+	al_priv.output_type[screen_id] = (u32)DISP_OUTPUT_TYPE_TV;
+	al_priv.output_mode[screen_id] = (u32)video_info->tv_mode;
+	al_priv.tcon_index[screen_id] = 1;
+
+
 	tcon_init(screen_id);
 	tcon1_set_timming(screen_id, video_info);
 
 	return 0;
 }
 
+int disp_al_vdevice_cfg(u32 screen_id, disp_video_timings *video_info, disp_vdevice_interface_para *para)
+{
+	struct lcd_clk_info clk_info;
+	disp_panel_para info;
+
+	al_priv.output_type[screen_id] = (u32)DISP_OUTPUT_TYPE_LCD;
+	al_priv.output_mode[screen_id] = (u32)para->intf;
+	al_priv.tcon_index[screen_id] = 0;
+
+	memset(&info, 0, sizeof(disp_panel_para));
+	info.lcd_if = para->intf;
+	info.lcd_x = video_info->x_res;
+	info.lcd_y = video_info->y_res;
+	info.lcd_hv_if = (disp_lcd_hv_if)para->sub_intf;
+	info.lcd_dclk_freq = video_info->pixel_clk;
+	info.lcd_ht = video_info->hor_total_time;
+	info.lcd_hbp = video_info->hor_back_porch + video_info->hor_sync_time;
+	info.lcd_hspw = video_info->hor_sync_time;
+	info.lcd_vt = video_info->ver_total_time;
+	info.lcd_vbp = video_info->ver_back_porch + video_info->ver_sync_time;
+	info.lcd_vspw = video_info->ver_sync_time;
+	info.lcd_hv_syuv_fdly = para->fdelay;
+	if(LCD_HV_IF_CCIR656_2CYC == info.lcd_hv_if)
+		info.lcd_hv_syuv_seq = para->sequence;
+	else
+		info.lcd_hv_srgb_seq = para->sequence;
+	tcon_init(screen_id);
+	disp_al_lcd_get_clk_info(screen_id, &clk_info, &info);
+	clk_info.tcon_div = 11;//fixme
+	tcon0_set_dclk_div(screen_id, clk_info.tcon_div);
+
+	if(0 != tcon0_cfg(screen_id, &info))
+		DE_WRN("lcd cfg fail!\n");
+	else
+		DE_INF("lcd cfg ok!\n");
+
+	return 0;
+}
+
+int disp_al_vdevice_enable(u32 screen_id)
+{
+	disp_panel_para panel;
+
+	memset(&panel, 0, sizeof(disp_panel_para));
+	panel.lcd_if = LCD_IF_HV;
+	tcon0_open(screen_id, &panel);
+
+	return 0;
+}
+
+int disp_al_vdevice_disable(u32 screen_id)
+{
+	tcon0_close(screen_id);
+	tcon_exit(screen_id);
+
+	return 0;
+}
+
+/* screen_id: used for index of manager */
+int disp_al_device_get_cur_line(u32 screen_id)
+{
+	u32 tcon_index = 1;
+
+	return tcon_get_cur_line(screen_id, tcon_index);
+}
+
+int disp_al_device_get_start_delay(u32 screen_id)
+{
+	u32 tcon_index = 1;
+
+	return tcon_get_start_delay(screen_id, tcon_index);
+}
+
+int disp_al_device_query_irq(u32 screen_id)
+{
+	int ret = 0;
+	int irq_id = 0;
+
+	irq_id = LCD_IRQ_TCON1_VBLK;
+	ret = tcon_irq_query(screen_id, irq_id);
+
+	return ret;
+}
+
+int disp_al_device_enable_irq(u32 screen_id)
+{
+	int ret = 0;
+	int irq_id = 0;
+
+	irq_id = LCD_IRQ_TCON1_VBLK;
+	ret = tcon_irq_enable(screen_id, irq_id);
+
+	return ret;
+}
+
+int disp_al_device_disable_irq(u32 screen_id)
+{
+	int ret = 0;
+	int irq_id = 0;
+
+	irq_id = LCD_IRQ_TCON1_VBLK;
+	ret = tcon_irq_disable(screen_id, irq_id);
+
+	return ret;
+}
+
 int disp_init_al(disp_bsp_init_para * para)
 {
 	int i;
+
+	memset(&al_priv, 0, sizeof(struct disp_al_private_data));
 	de_al_init(para);
 	de_enhance_init(para);
 	de_ccsc_init(para);

@@ -21,12 +21,15 @@
 #include <stdarg.h>
 #include <common.h>
 #include <asm/arch/uart.h>
+#include <private_boot0.h>
 
 #define  MASK_LOW4      0xf
 #define  NEGATIVE       1
 #define  POSITIVE       0
 #define  HEX_x          'x'
 #define  HEX_X          'X'
+
+int debug_mode = 1;
 /*
 ******************************************************************************************************************
 *
@@ -265,6 +268,8 @@ int printf(const char *fmt, ...)
 	uint i;
 	char printbuffer[384];
 
+        if(!debug_mode)
+            return 0;
 	va_start(args, fmt);
 
 	/* For this to work, printbuffer must be larger than
@@ -277,4 +282,3 @@ int printf(const char *fmt, ...)
 	puts(printbuffer);
 	return i;
 }
-

@@ -88,8 +88,7 @@ typedef	struct	global_data {
 	int             limit_cur;
 	int             limit_pcvol;
 	int             limit_pccur;
-	int				power_main_id;
-	int				power_slave_id;
+
 	char            *script_mod_buf;
 	int             script_main_key_count;
 	int             force_shell;
@@ -99,6 +98,7 @@ typedef	struct	global_data {
     uint            force_download_uboot;
     int             securemode;
 	uint            vbus_status;		//0: 未知；1：存在；2：不存在
+        uint            debug_mode;
 #endif
 	void		**jt;		/* jump table */
 	char		env_buf[32];	/* buffer for getenv() before reloc. */

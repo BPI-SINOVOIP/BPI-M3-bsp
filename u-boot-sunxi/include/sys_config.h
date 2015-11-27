@@ -132,6 +132,10 @@ extern char *sw_cfg_get_str(const char *script_buf, const char *main_key, const 
 
 /* script operations */
 extern int script_parser_init(char *script_buf);
+#ifdef CONFIG_SMALL_MEMSIZE
+extern void save_config(void);
+extern void reload_config(void);
+#endif
 extern int script_parser_exit(void);
 extern unsigned script_get_length(void);
 extern uint script_parser_fetch_subkey_start(char *main_name);

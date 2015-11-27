@@ -141,7 +141,6 @@
 #define CONFIG_CMD_MEMORY
 #define CONFIG_SUNXI_DISPLAY
 #define CONFIG_SUN5I_DISPLAY
-#define POWER_CONFIG_SUNXI_I2C	//axp communication bus
 
 #define CONFIG_SUNXI_AXP
 #define CONFIG_SUNXI_AXP15

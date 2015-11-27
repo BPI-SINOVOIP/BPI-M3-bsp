@@ -25,6 +25,8 @@ VERSION = 2011
 PATCHLEVEL = 09
 SUBLEVEL =
 EXTRAVERSION = -rc1
+OTA_TEST_NAME=ota_test
+
 ifneq "$(SUBLEVEL)" ""
 U_BOOT_VERSION = $(VERSION).$(PATCHLEVEL).$(SUBLEVEL)$(EXTRAVERSION)
 else
@@ -51,7 +53,7 @@ SHELL := $(shell if [ -x "$$BASH" ]; then echo $$BASH; \
 	else if [ -x /bin/bash ]; then echo /bin/bash; \
 	else echo sh; fi; fi)
 
-export	HOSTARCH HOSTOS SHELL
+export	HOSTARCH HOSTOS SHELL OTA_TEST_NAME
 
 # Deal with colliding definitions from tcsh etc.
 VENDOR=
@@ -233,6 +235,7 @@ LIBS += fs/cramfs/libcramfs.o fs/fat/libfat.o fs/fdos/libfdos.o fs/jffs2/libjffs
 	fs/reiserfs/libreiserfs.o fs/ext2/libext2fs.o fs/yaffs2/libyaffs2.o \
 	fs/ubifs/libubifs.o fs/aw_fs/libawfat.o
 LIBS += disk/libdisk.o
+LIBS += drivers/smc/libsmc.o
 endif
 LIBS += net/libnet.o
 LIBS += drivers/bios_emulator/libatibiosemu.o
@@ -261,7 +264,6 @@ LIBS += drivers/power/libpower.o
 LIBS += drivers/spi/libspi.o
 LIBS += drivers/spinor/libspinor.o
 LIBS += drivers/audio/libaudio.o
-LIBS += drivers/smc/libsmc.o
 ifeq ($(CPU),mpc83xx)
 LIBS += drivers/qe/libqe.o
 LIBS += arch/powerpc/cpu/mpc8xxx/lib8xxx.o
@@ -332,8 +334,9 @@ LIBS += drivers/video_sunxi/sunxi_v2/de_bsp/de/lowlevel_sun9iw1/libedp
 LIBS += drivers/video_sunxi/sunxi_v2/de_bsp/de/lowlevel_sun9iw1/libdsi
 endif
 
+ifndef CONFIG_NO_BOOT_STANDBY
 LIBS += $(STANDBYDIR)/libstandby.o
-
+endif
 ifdef CONFIG_CPUS_STANDBY
 LIBS += $(STANDBYDIR)/../box_standby/libboxstandby.o
 LIBS += $(STANDBYDIR)/../box_standby/cpus_pm/libcpus_pm.o
@@ -484,24 +487,55 @@ spl_lib: $(TIMESTAMP_FILE) $(VERSION_FILE) depend
 fes:    spl_lib depend
 		$(MAKE) -C sunxi_spl/fes_init all
 		@$(TOPDIR)/tools/gen_check_sum sunxi_spl/fes_init/fes1.bin fes1_$(CONFIG_TARGET_NAME).bin > /dev/null
-		@cp -v fes1_$(CONFIG_TARGET_NAME).bin $(TOPDIR)/../sunxi-pack/chips/$(CONFIG_TARGET_NAME)/bin/fes1_$(CONFIG_TARGET_NAME).bin
+		@cp -v fes1_$(CONFIG_TARGET_NAME).bin $(TOPDIR)/../../tools/pack/chips/$(CONFIG_TARGET_NAME)/bin/fes1_$(CONFIG_TARGET_NAME).bin
 
 boot0:  spl_lib depend
 		$(MAKE) -C sunxi_spl/boot0 all
+ifdef CONFIG_STORAGE_MEDIA_NAND
 		@$(TOPDIR)/tools/gen_check_sum sunxi_spl/boot0/boot0_nand.bin boot0_nand_$(TARGET).bin > /dev/null
-		@cp -v boot0_nand_$(CONFIG_TARGET_NAME).bin $(TOPDIR)/../sunxi-pack/chips/$(CONFIG_TARGET_NAME)/bin/boot0_nand_$(CONFIG_TARGET_NAME).bin
+		@if [ -z "$(findstring $(OTA_TEST_NAME), $(SUNXI_MODE))" ]; then \
+			cp -v boot0_nand_$(CONFIG_TARGET_NAME).bin $(TOPDIR)/../../tools/pack/chips/$(CONFIG_TARGET_NAME)/bin/boot0_nand_$(CONFIG_TARGET_NAME).bin; \
+		else \
+			cp -v boot0_nand_$(CONFIG_TARGET_NAME).bin $(TOPDIR)/../../tools/pack/chips/$(CONFIG_TARGET_NAME)/bin/boot0_nand_$(CONFIG_TARGET_NAME)-$(SUNXI_MODE).bin; \
+		fi
+endif
+ifdef CONFIG_STORAGE_MEDIA_MMC
 		@$(TOPDIR)/tools/gen_check_sum sunxi_spl/boot0/boot0_sdcard.bin boot0_sdcard_$(TARGET).bin > /dev/null
-		@cp -v boot0_sdcard_$(CONFIG_TARGET_NAME).bin $(TOPDIR)/../sunxi-pack/chips/$(CONFIG_TARGET_NAME)/bin/boot0_sdcard_$(CONFIG_TARGET_NAME).bin
-
+		@if [ -z "$(findstring $(OTA_TEST_NAME), $(SUNXI_MODE))" ]; then \
+			cp -v boot0_sdcard_$(CONFIG_TARGET_NAME).bin $(TOPDIR)/../../tools/pack/chips/$(CONFIG_TARGET_NAME)/bin/boot0_sdcard_$(CONFIG_TARGET_NAME).bin; \
+		else \
+			cp -v boot0_sdcard_$(CONFIG_TARGET_NAME).bin $(TOPDIR)/../../tools/pack/chips/$(CONFIG_TARGET_NAME)/bin/boot0_sdcard_$(CONFIG_TARGET_NAME)-$(SUNXI_MODE).bin; \
+		fi
+endif
+ifdef CONFIG_STORAGE_MEDIA_SPINOR
+		@$(TOPDIR)/tools/gen_check_sum sunxi_spl/boot0/boot0_spinor.bin boot0_spinor_$(TARGET).bin > /dev/null
+		@if [ -z "$(findstring $(OTA_TEST_NAME), $(SUNXI_MODE))" ]; then \
+			cp -v boot0_spinor_$(CONFIG_TARGET_NAME).bin $(TOPDIR)/../../tools/pack/chips/$(CONFIG_TARGET_NAME)/bin/boot0_spinor_$(CONFIG_TARGET_NAME).bin; \
+		else \
+			cp -v boot0_spinor_$(CONFIG_TARGET_NAME).bin $(TOPDIR)/../../tools/pack/chips/$(CONFIG_TARGET_NAME)/bin/boot0_spinor_$(CONFIG_TARGET_NAME)-$(SUNXI_MODE).bin; \
+		fi
+endif
 sboot:  spl_lib depend
 		$(MAKE) -C sunxi_spl/sbrom all
 		@$(TOPDIR)/tools/gen_check_sum sunxi_spl/sbrom/sboot.bin sboot_$(CONFIG_TARGET_NAME).bin > /dev/null
-		@cp -v sboot_$(CONFIG_TARGET_NAME).bin $(TOPDIR)/../sunxi-pack/chips/$(CONFIG_TARGET_NAME)/bin/sboot_$(CONFIG_TARGET_NAME).bin
+		@if [ -z "$(findstring $(OTA_TEST_NAME), $(SUNXI_MODE))" ]; then \
+			cp -v sboot_$(CONFIG_TARGET_NAME).bin $(TOPDIR)/../../tools/pack/chips/$(CONFIG_TARGET_NAME)/bin/sboot_$(CONFIG_TARGET_NAME).bin; \
+		else \
+			cp -v sboot_$(CONFIG_TARGET_NAME).bin $(TOPDIR)/../../tools/pack/chips/$(CONFIG_TARGET_NAME)/bin/sboot_$(CONFIG_TARGET_NAME)-$(SUNXI_MODE).bin; \
+		fi
 
 ifeq ($(CONFIG_SUNXI_SECURE_SYSTEM),y)
-spl:    fes boot0 sboot
+ifeq ($(SUNXI_MODE),$(OTA_TEST_NAME))
+spl:    boot0 sboot
 else
+spl:    fes boot0 sboot
+endif
+else
+ifeq ($(SUNXI_MODE),$(OTA_TEST_NAME))
 spl:    fes boot0
+else
+spl:    boot0
+endif
 endif
 
 $(OBJS):	depend

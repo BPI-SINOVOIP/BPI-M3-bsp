@@ -59,7 +59,7 @@ typedef struct _boot_dram_para_t
     unsigned int		dram_tpr12;
     unsigned int		dram_tpr13;
 
-}boot_dram_para_t;
+}__dram_para_t;
 
 #endif
 

@@ -567,6 +567,30 @@ int axp81_probe_charge_current(void)
 *
 ************************************************************************************************************
 */
+int axp_open_LED(void)
+{
+        uchar led_status;
+
+        axp_i2c_read(AXP81X_ADDR, 0x32, &led_status);
+        led_status &= (~0x08);
+        led_status |= 0x30;
+        axp_i2c_write(AXP81X_ADDR, 0x32, led_status);
+
+        return 0;
+}
+
+int axp_close_LED(void)
+{
+        uchar led_status;
+
+        axp_i2c_read(AXP81X_ADDR, 0x32, &led_status);
+        led_status &= (~0x08);
+        led_status &= 0xc7;
+        axp_i2c_write(AXP81X_ADDR, 0x32, led_status);
+
+        return 0;
+}
+
 int axp81_set_vbus_cur_limit(int current)
 {
 	uchar reg_value;

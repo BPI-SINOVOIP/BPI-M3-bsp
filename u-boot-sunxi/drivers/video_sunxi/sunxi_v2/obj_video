@@ -37,8 +37,7 @@ SUNXI_VIDEO_OBJ = sunxi_v2/dev_disp.o \
 					sunxi_v2/de_bsp/lcd/panels/panels.o sunxi_v2/de_bsp/lcd/panels/default_panel.o sunxi_v2/de_bsp/lcd/panels/tft720x1280.o sunxi_v2/de_bsp/lcd/panels/lp907qx.o\
 					sunxi_v2/de_bsp/hdmi/aw/hdmi_core.o sunxi_v2/de_bsp/hdmi/aw/hdmi_edid.o sunxi_v2/de_bsp/hdmi/aw/hdmi_interface.o sunxi_v2/de_bsp/hdmi/drv_hdmi.o\
 					sunxi_v2/de_bsp/hdmi/aw/hdmi_hal.o sunxi_v2/de_bsp/lcd/panels/starry768x1024.o sunxi_v2/de_bsp/lcd/panels/sl698ph_720p.o\
-					sunxi_v2/de_bsp/lcd/panels/lp079x01.o sunxi_v2/de_bsp/lcd/panels/B116XAN03.o\
-					sunxi_v2/de_bsp/tv/gm7121.o sunxi_v2/de_bsp/lcd/panels/gm7121_cvbs.o
+					sunxi_v2/de_bsp/lcd/panels/lp079x01.o sunxi_v2/de_bsp/lcd/panels/B116XAN03.o
 
 endif
 
@@ -56,8 +55,7 @@ SUNXI_VIDEO_OBJ = sunxi_v2/dev_disp.o\
 					sunxi_v2/de_bsp/lcd/lcd_panel_cfg.o  sunxi_v2/de_bsp/lcd/dev_lcd.o sunxi_v2/de_bsp/lcd/lcd_source_interface.o\
 					sunxi_v2/de_bsp/lcd/panels/panels.o sunxi_v2/de_bsp/lcd/panels/default_panel.o sunxi_v2/de_bsp/lcd/panels/tft720x1280.o sunxi_v2/de_bsp/lcd/panels/lp907qx.o\
 					sunxi_v2/de_bsp/lcd/panels/starry768x1024.o sunxi_v2/de_bsp/lcd/panels/sl698ph_720p.o\
-					sunxi_v2/de_bsp/lcd/panels/lp079x01.o sunxi_v2/de_bsp/lcd/panels/B116XAN03.o\
-					sunxi_v2/de_bsp/tv/gm7121.o sunxi_v2/de_bsp/lcd/panels/gm7121_cvbs.o
+					sunxi_v2/de_bsp/lcd/panels/lp079x01.o sunxi_v2/de_bsp/lcd/panels/B116XAN03.o
 
 endif
 
@@ -76,7 +74,6 @@ SUNXI_VIDEO_OBJ = sunxi_v2/dev_disp.o\
 					sunxi_v2/de_bsp/lcd/panels/panels.o sunxi_v2/de_bsp/lcd/panels/default_panel.o sunxi_v2/de_bsp/lcd/panels/tft720x1280.o sunxi_v2/de_bsp/lcd/panels/lp907qx.o\
 					sunxi_v2/de_bsp/lcd/panels/starry768x1024.o sunxi_v2/de_bsp/lcd/panels/sl698ph_720p.o\
 					sunxi_v2/de_bsp/lcd/panels/lp079x01.o sunxi_v2/de_bsp/lcd/panels/B116XAN03.o\
-					sunxi_v2/de_bsp/tv/gm7121.o sunxi_v2/de_bsp/lcd/panels/gm7121_cvbs.o
 
 endif
 ifeq ($(CONFIG_ARCH_SUN8IW7P1),y)
@@ -94,6 +91,5 @@ SUNXI_VIDEO_OBJ = sunxi_v2/dev_disp.o\
 					sunxi_v2/de_bsp/lcd/panels/panels.o sunxi_v2/de_bsp/lcd/panels/default_panel.o sunxi_v2/de_bsp/lcd/panels/tft720x1280.o sunxi_v2/de_bsp/lcd/panels/lp907qx.o\
 					sunxi_v2/de_bsp/lcd/panels/starry768x1024.o sunxi_v2/de_bsp/lcd/panels/sl698ph_720p.o\
 					sunxi_v2/de_bsp/lcd/panels/lp079x01.o  sunxi_v2/de_bsp/lcd/panels/B116XAN03.o\
-					sunxi_v2/de_bsp/tv/gm7121.o sunxi_v2/de_bsp/lcd/panels/gm7121_cvbs.o
 
 endif

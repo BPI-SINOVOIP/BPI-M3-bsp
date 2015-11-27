@@ -29,7 +29,7 @@
 #include <asm/arch/usb.h>
 
 DECLARE_GLOBAL_DATA_PTR;
-#ifndef CONFIG_SUNXI_SPINOR_PLATFORM
+#ifndef CONFIG_NO_BOOT_STANDBY
 extern int boot_standby_action;
 /*
 ************************************************************************************************************
@@ -182,6 +182,9 @@ int usb_probe_vbus_type(void)
 
 
 
+extern int axp_open_LED(void);
+extern int axp_close_LED(void);
+
 void power_limit_init(void)
 {
 	int battery_exist = 0;
@@ -192,7 +195,7 @@ void power_limit_init(void)
 	do
 	{
 		#ifdef CONFIG_ARCH_HOMELET
-			break;	
+			break;
 		#endif
 		axp_power_get_dcin_battery_exist(&dcin_exist, &battery_exist);//判断电池是否存在
 		if(battery_exist >= 0)
@@ -228,18 +231,21 @@ void power_limit_init(void)
 	{
 		axp_set_vbus_limit_dc();
 		puts("normal dc exist, limit to dc\n");
+		axp_open_LED();
 
 		return ;
 	}
 
 	if(dcin_exist == AXP_VBUS_EXIST)		//如果VBUS电源存在
 	{
+#if 0
 		vbus_type = usb_probe_vbus_type();
 
 		if(vbus_type == 1)					//属于dc类型电源
 		{
 			axp_set_vbus_limit_dc();    //dp_dm 拉高
 			puts("vbus dc exist, limit to dc\n");
+			axp_open_LED();
 		}
 		else
 		{
@@ -247,12 +253,13 @@ void power_limit_init(void)
 			axp_set_charge_current(600);
 			puts("vbus pc exist, limit to pc\n");
 		}
-
+#endif
 		return ;
 	}
 
 	axp_set_vbus_limit_dc();				//只有电池存在
 	puts("only battery exist, limit to dc\n");
+	axp_close_LED();
 
 	return ;
 }

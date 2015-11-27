@@ -308,7 +308,7 @@ int update_user_data(void)
 		return 0;	
 	}
 #endif
-		
+
 	part_size = sunxi_partition_get_size_byname(PART_NAME);
 	if (part_size > 0) {
 		part_offset = sunxi_partition_get_offset_byname(PART_NAME);
@@ -317,15 +317,15 @@ int update_user_data(void)
 			printf("read flash error\n");
 			return 0;
 		}
-		
+	
 		user_data_head = (USER_DATA_HEAR *)user_data_buffer;
 		user_data_p = (USER_PRIVATE_DATA *)(user_data_buffer + sizeof(USER_DATA_HEAR));
-	
+
 		if (strncmp(user_data_head->magic_name, MAGIC, 5)) { 				//校验数据是否有效
 			printf("the user data'magic is bad\n");
 			return 0;
 		}
-	
+
 		if (user_data_head->count > 0) {
 			for (i = 0; i < USER_DATA_NUM; i++) {
 				user_data_p = (USER_PRIVATE_DATA *)(user_data_buffer + sizeof(USER_DATA_HEAR));

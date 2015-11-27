@@ -372,6 +372,8 @@ int tick_printf(const char *fmt, ...)
 	char printbuffer[CONFIG_SYS_PBSIZE-12];
 	char printbuffer_with_timestamp[CONFIG_SYS_PBSIZE];
 
+        if(!gd->debug_mode)
+            return 0;
 	va_start(args, fmt);
 
 	/* For this to work, printbuffer must be larger than
@@ -394,6 +396,8 @@ int printf(const char *fmt, ...)
 	uint i;
 	char printbuffer[CONFIG_SYS_PBSIZE];
 
+        if(!gd->debug_mode)
+            return 0;
 	va_start(args, fmt);
 
 	/* For this to work, printbuffer must be larger than

@@ -358,20 +358,6 @@ s32 bsp_disp_get_output_type(u32 screen_id)
 	return output_type;
 }
 
-s32 bsp_disp_get_lcd_output_type(u32 screen_id)
-{
-   struct disp_lcd *lcd = disp_get_lcd(screen_id);
-   u32 output_type = DISP_OUTPUT_TYPE_NONE;
-
-   if(lcd) {
-       output_type = lcd->type;
-   } else {
-       DE_WRN("get lcd%d output type fail\n", screen_id);
-   }
-
-   return output_type;
-}
-
 s32 bsp_disp_get_screen_width(u32 screen_id)
 {
 	struct disp_manager *mgr;
@@ -799,9 +785,6 @@ s32 bsp_disp_lcd_set_panel_funs(char *name, disp_lcd_panel_fun * lcd_cfg)
 					gdisp.lcd_registered[screen_id] = 1;
 					DE_INF("panel driver %s register\n", name);
 				}
-				if(!strcmp("gm7121", drv_name)) {
-					lcd->type = DISP_OUTPUT_TYPE_TV;
-				}
 			}
 		}
 	}
@@ -920,25 +903,6 @@ s32 bsp_disp_lcd_gpio_set_direction(u32 screen_id, u32 io_index, u32 direction)
 	}
 
 	return DIS_FAIL;
-}
-
-s32 bsp_disp_lcd_get_tv_mode(u32 screen_id)
-{
-   struct disp_lcd *lcd = disp_get_lcd(screen_id);
-   if(lcd && lcd->get_tv_mode) {
-       return lcd->get_tv_mode(lcd);
-   }
-   return DIS_FAIL;
-}
-
-s32 bsp_disp_lcd_set_tv_mode(u32 screen_id, disp_tv_mode tv_mode)
-{
-   struct disp_lcd *lcd = disp_get_lcd(screen_id);
-   if(lcd && lcd->set_tv_mode) {
-       return lcd->set_tv_mode(lcd, tv_mode);
-   }
-   return DIS_FAIL;
-
 }
 
 s32 bsp_disp_get_lcd_registered(u32 screen_id)
@@ -1088,19 +1052,6 @@ s32 bsp_disp_set_hdmi_func(u32 screen_id, disp_hdmi_func * func)
 		gdisp.init_para.start_process();
 	}
 	return ret;
-}
-
-s32 bsp_disp_hdmi_get_hpd_status(u32 screen_id)
-{
-	struct disp_hdmi *hdmi;
-	hdmi = disp_get_hdmi(screen_id);
-	if (!hdmi) {
-	    DE_WRN("get hdmi%d failed!\n", screen_id);
-	    return DIS_FAIL;
-	}
-	if (hdmi->hdmi_get_HPD_status)
-	    return hdmi->hdmi_get_HPD_status(hdmi);
-	return DIS_FAIL;
 }
 
 #endif

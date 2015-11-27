@@ -192,6 +192,13 @@ s32 disp_set_hdmi_func(disp_hdmi_func * func)
 }
 #endif
 
+#if defined(SUPPORT_TV)
+s32 disp_set_tv_func(disp_tv_func * func)
+{
+	return bsp_disp_set_tv_func(func);
+}
+#endif
+
 
 
 extern s32 bsp_disp_delay_ms(u32 ms);
@@ -199,7 +206,51 @@ extern s32 bsp_disp_delay_ms(u32 ms);
 extern s32 bsp_disp_delay_us(u32 us);
 
 extern __s32 Hdmi_init(void);
-extern int  gm7121_module_init(void);
+extern int sunxi_board_shutdown(void);
+
+s32 drv_disp_check_spec(void)
+{
+	unsigned int lcd_used = 0;
+	unsigned int lcd_x = 0, lcd_y = 0;
+	int ret = 0;
+	int value = 0;
+	int limit_w = 0xffff, limit_h = 0xffff;
+
+#if defined(CONFIG_ARCH_SUN8IW6)
+	limit_w = 2048;
+	limit_h = 1536;
+#endif
+	ret = disp_sys_script_get_item("lcd0_para", "lcd_used", &value, 1);
+	if(ret == 1)
+	{
+	  lcd_used = value;
+	}
+
+	if(1 == lcd_used) {
+		ret = disp_sys_script_get_item("lcd0_para", "lcd_x", &value, 1);
+	  if(ret == 1)
+	  {
+	      lcd_x = value;
+	  }
+
+	  ret = disp_sys_script_get_item("lcd0_para", "lcd_y", &value, 1);
+	  if(ret == 1)
+	  {
+	      lcd_y = value;
+	  }
+
+		if(((lcd_x > limit_w) && (lcd_y > limit_h))
+			|| ((lcd_x > limit_h) && (lcd_y > limit_w))) {
+			printf("fatal err: cannot support lcd with resolution(%d*%d) larger than %d*%d, the system will shut down!\n",
+				lcd_x, lcd_y,limit_w,limit_h);
+			sunxi_board_shutdown();
+		}
+
+	}
+
+	return 0;
+}
+
 s32 drv_disp_init(void)
 {
 #ifdef CONFIG_FPGA
@@ -208,6 +259,7 @@ s32 drv_disp_init(void)
   disp_bsp_init_para para;
   int disp, num_screens;
 
+	drv_disp_check_spec();
 	sunxi_pwm_init();
 	disp_sys_clk_init();
 
@@ -254,10 +306,14 @@ s32 drv_disp_init(void)
 #if defined(SUPPORT_HDMI)
 	Hdmi_init();
 #endif
+#if defined(SUPPORT_TV)
+	tv_init();
+#endif
+
 	bsp_disp_open();
 
 	lcd_init();
-	gm7121_module_init();
+	//gm7121_module_init();
 
 	init_flag = 1;
 
@@ -484,6 +540,15 @@ long disp_ioctl(void *hd, unsigned int cmd, void *arg)
 	case DISP_HDMI_SUPPORT_MODE:
 		ret = bsp_disp_hdmi_check_support_mode(ubuffer[0], ubuffer[1]);
 		break;
+#if defined (CONFIG_ARCH_SUN8IW7)
+	case DISP_TV_GET_HPD_STATUS:
+	if(DISPLAY_NORMAL == suspend_status) {
+		ret = bsp_disp_tv_get_hpd_status(ubuffer[0]);
+	}	else {
+		ret = 0;
+	}
+	break;
+#endif
 
 #if 0
 	case DISP_CMD_HDMI_SET_SRC:

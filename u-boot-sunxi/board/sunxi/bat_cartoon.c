@@ -170,7 +170,7 @@ int battery_charge_cartoon_rate(int rate)
 		{
 			flush_cache((uint)bat_bmp_store[rate].buffer, bat_bmp_store[rate].x * bat_bmp_store[rate].y * bat_bmp_store[rate].bit/4);
 			board_display_framebuffer_change(bat_bmp_store[rate].buffer);
-#if (defined CONFIG_ARCH_SUN9IW1P1) || (defined CONFIG_ARCH_SUN8IW5P1) || (defined CONFIG_ARCH_SUN8IW8P1)
+#if (defined CONFIG_ARCH_SUN9IW1P1) || (defined CONFIG_ARCH_SUN8IW5P1) || (defined CONFIG_ARCH_SUN8IW8P1)||(defined CONFIG_ARCH_SUN8IW7P1)
 			board_display_framebuffer_set(bat_bmp_store[rate].x, bat_bmp_store[rate].y, bat_bmp_store[rate].bit, bat_bmp_store[rate].buffer);
 			board_display_layer_para_set();
 #endif
@@ -202,7 +202,7 @@ int battery_charge_cartoon_reset(void)
 #ifdef CONFIG_FPGA
     return 0;
 #else
-#if (defined CONFIG_ARCH_SUN9IW1P1) || (defined CONFIG_ARCH_SUN8IW5P1) || (defined CONFIG_ARCH_SUN8IW8P1)
+#if (defined CONFIG_ARCH_SUN9IW1P1) || (defined CONFIG_ARCH_SUN8IW5P1) || (defined CONFIG_ARCH_SUN8IW8P1)||(defined CONFIG_ARCH_SUN8IW7P1)
 	disp_layer_info *layer_para;
 
 	layer_para = (disp_layer_info *)gd->layer_para;
@@ -245,7 +245,7 @@ int battery_charge_cartoon_degrade(int alpha_step)
 #else
 	int  alpha, delay_time;
 
-#if (defined CONFIG_ARCH_SUN9IW1P1) || (defined CONFIG_ARCH_SUN8IW5P1) || (defined CONFIG_ARCH_SUN8IW8P1)
+#if (defined CONFIG_ARCH_SUN9IW1P1) || (defined CONFIG_ARCH_SUN8IW5P1) || (defined CONFIG_ARCH_SUN8IW8P1) || (defined CONFIG_ARCH_SUN8IW7P1)
 	disp_layer_info *layer_para;
 
 	layer_para = (disp_layer_info *)gd->layer_para;
@@ -268,7 +268,7 @@ int battery_charge_cartoon_degrade(int alpha_step)
 		board_display_layer_para_set();
 		__msdelay(delay_time);
 
-#if (defined CONFIG_ARCH_SUN9IW1P1) || (defined CONFIG_ARCH_SUN8IW5P1) || (defined CONFIG_ARCH_SUN8IW8P1)
+#if (defined CONFIG_ARCH_SUN9IW1P1) || (defined CONFIG_ARCH_SUN8IW5P1) || (defined CONFIG_ARCH_SUN8IW8P1)||(defined CONFIG_ARCH_SUN8IW7P1)
 		layer_para->alpha_value = alpha;
 #else
 		layer_para->alpha_val = alpha;

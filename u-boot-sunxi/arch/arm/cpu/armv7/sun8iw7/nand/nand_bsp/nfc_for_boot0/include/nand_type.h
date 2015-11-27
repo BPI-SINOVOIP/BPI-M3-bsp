@@ -313,7 +313,7 @@ struct __NandDriverGlobal_t
 #define NAND_READ_UNIQUE_ID	    (1<<9)			    //nand falsh support READ UNIQUE_ID
 #define NAND_PAGE_ADR_NO_SKIP	(1<<10)			    //nand falsh page adr no skip is requiered
 #define NAND_DIE_SKIP           (1<<11)             //nand flash die adr skip
-
+#define NAND_LSB_PAGE_TYPE		 (0xff<<12)			//nand flash lsb page type....
 
 //define the mask for the nand flash operation status
 #define NAND_OPERATE_FAIL       (1<<0)              //nand flash program/erase failed mask

@@ -403,24 +403,24 @@ int sun9i_cluster_power_set(unsigned int cluster, u32 enable)
 }
 
 #if 1
-static int a15_power_onoff(int pwr_en)
+static int a15_power_onoff(special_gpio_cfg a15_power_gpio)
 {
 	normal_gpio_set_t pwr_en_gpio;
-	if(pwr_en)
+	if(a15_power_gpio.mul_sel == 1)
 	{
 		printf("enbale a15 power\n");
-		pwr_en_gpio.port = (pwr_en >> 24) & 0xff;
-		pwr_en_gpio.port_num = (pwr_en >> 16) & 0xff;
-		pwr_en_gpio.mul_sel = (pwr_en >> 8) & 0xff;
+		pwr_en_gpio.port = a15_power_gpio.port;
+		pwr_en_gpio.port_num = a15_power_gpio.port_num;
+		pwr_en_gpio.mul_sel = a15_power_gpio.mul_sel;
 		pwr_en_gpio.pull = 0xff;
 		pwr_en_gpio.drv_level = 0xff;
-		if(((pwr_en & 0xff) == 0xff) && (pwr_en_gpio.mul_sel == 1))
+		if(a15_power_gpio.data != 0)
 		{
 			pwr_en_gpio.data = 1;
 		}
 		else
 		{
-			pwr_en_gpio.data = pwr_en & 0xff;
+			pwr_en_gpio.data = 0;
 		}
 
 		if(boot_set_one_gpio(&pwr_en_gpio, 1))
@@ -428,13 +428,13 @@ static int a15_power_onoff(int pwr_en)
 			printf("a15 external power enabel failed\n");
 			return -1;
 		}
-		__msdelay(3);
+		__msdelay(2);
 		return 0;
 	}
 	return 0;
 }
 
-void switch_to_a15(int pwr_en)
+void switch_to_a15(special_gpio_cfg a15_power_gpio)
 {
 	u32 addr = 0;
 	u32 ret = 0;
@@ -446,7 +446,7 @@ void switch_to_a15(int pwr_en)
 
 	//printf("before  cpu id is %d \n",ret);
 	//save_runtime_context((u32 *)0x08100000);
-	a15_power_onoff(pwr_en);
+	a15_power_onoff(a15_power_gpio);
 
 	asm volatile("mov r0, #0x08100000 "::);
 	asm volatile("blx %0"::"r" (save_runtime_context));
@@ -462,7 +462,6 @@ void switch_to_a15(int pwr_en)
 		/*resumed cpu can go to this addr if you set func addr to this reg*/
 		addr = (u32)jump_to_resume;
 		writel(addr, R_CPU_SOFT_ENTRY_REG);
-
 		sun9i_cluster_power_set(1,1);
 		sun9i_cpu_power_set(1, 0, 1);
 		asm("wfi": : : "memory","cc");

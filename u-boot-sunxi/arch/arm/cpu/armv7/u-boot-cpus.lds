@@ -45,19 +45,19 @@ SECTIONS
 		__int_vector_start = .;
 		CPUDIR/start.o (.text*)
 		__int_vector_end = .;
-		*(EXCLUDE_FILE(STANDBYDIR/libstandby.o STANDBYDIR/../box_standby/cpus_pm/libcpus_pm.o).text)
+		*(EXCLUDE_FILE(STANDBYDIR/../box_standby/cpus_pm/libcpus_pm.o).text)
 	}
 
 	. = ALIGN(16);
 	.rodata :
 	{
-		*(EXCLUDE_FILE(STANDBYDIR/libstandby.o STANDBYDIR/../box_standby/cpus_pm/libcpus_pm.o).rodata*)
+		*(EXCLUDE_FILE(STANDBYDIR/../box_standby/cpus_pm/libcpus_pm.o).rodata*)
 	}
 
 	. = ALIGN(16);
 	.data :
 	{
-		*(EXCLUDE_FILE(STANDBYDIR/libstandby.o STANDBYDIR/../box_standby/cpus_pm/libcpus_pm.o).data)
+		*(EXCLUDE_FILE(STANDBYDIR/../box_standby/cpus_pm/libcpus_pm.o).data)
 	}
 
 	. = ALIGN(4);
@@ -89,15 +89,6 @@ SECTIONS
 		STANDBYDIR/../box_standby/cpus_pm/libcpus_pm.o (.text .data .bss .rodata)
 		_standby_new_end = .;
 	}
-	_standby_start_lma = .;
-	.boot_standby STANDBY_ADDR :
-	AT ( ADDR (.boot_standby_new_addr) + SIZEOF (.boot_standby_new_addr) )
-	{
-		_standby_start = .;
-		STANDBYDIR/libstandby.o (.text .data .bss .rodata)
-		_standby_end = .;
-	}
-
 	.bss __rel_dyn_start (OVERLAY) : {
 		__bss_start = .;
 		*(.bss)

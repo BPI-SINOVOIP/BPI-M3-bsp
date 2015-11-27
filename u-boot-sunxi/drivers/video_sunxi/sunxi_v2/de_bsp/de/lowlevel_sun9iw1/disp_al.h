@@ -58,8 +58,6 @@ typedef struct {
     u32 color_range;              //0:16~255, 1:0~255, 2:16~235
     u32 tcon_index;                //0:for panel; 1:for hdmi
     u32 support_4k;
-    u32 b_out_interlace;
-    u32 b_in_interlace;
 }__disp_al_hdmi_info_t;
 
 typedef struct {

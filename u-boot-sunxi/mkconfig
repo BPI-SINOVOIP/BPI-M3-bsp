@@ -154,6 +154,9 @@ for i in ${TARGETS} ; do
 	echo "#define CONFIG_${i}" >>config.h ;
 done
 
+if [ "x${SUNXI_MODE}" = "x${OTA_TEST_NAME}" ] ; then
+	echo "#define SUNXI_OTA_TEST" >> config.h
+fi
 cat << EOF >> config.h
 #define CONFIG_BOARDDIR board/$BOARDDIR
 #include <config_cmd_defaults.h>

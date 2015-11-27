@@ -487,7 +487,7 @@ int NAND_LogicInit(int boot_mode)
 		return ret;
 	}
 
-	if((boot_mode==0)&&(nand_mbr.PartCount!= 0)&&(mbr_burned_flag ==0))
+	if((!boot_mode)&&(nand_mbr.PartCount!= 0)&&(mbr_burned_flag ==0))
 	{
 		printf("burn nand partition table! mbr tbl: 0x%x, part_count:%d\n", (__u32)(&nand_mbr), nand_mbr.PartCount);
 		result = nand_info_init(nand_info, 0, 8, (uchar *)&nand_mbr);
@@ -504,44 +504,7 @@ int NAND_LogicInit(int boot_mode)
 		printf("NB1 : nand_info_init fail\n");
 		return -5;
 	}
-#if defined(CONFIG_ARCH_HOMELET)
-	if(boot_mode == 1)
-	{
-		nftl_num = get_phy_partition_num(nand_info);
-		printf("boot_mode 1: nftl num: %d \n", nftl_num);
-		if((nftl_num<1)||(nftl_num>5))
-		{
-			printf("NB1 : nftl num: %d error \n", nftl_num);
-			return -1;
-		}
 
-        nand_partition_num = 0;
-		//for(i=0; i<nftl_num-1; i++)
-		for(i=0; i<1; i++)
-		{
-		    nand_partition_num++;
-			printf(" init nftl: %d \n", i);
-			result = nftl_build_one(nand_info, i);
-		}
-	}
-	else if(boot_mode==2)
-	{
-		nftl_num = get_phy_partition_num(nand_info);
-		printf("boot_mode 2: nftl num: %d \n", nftl_num);
-		if((nftl_num<1)||(nftl_num>5))
-		{
-			printf("NB1 : nftl num: %d error \n", nftl_num);
-			return -1;
-		}
-
-        nand_partition_num = 0;
-		for(i=0; i<nftl_num; i++)
-		{
-		    nand_partition_num++;
-			printf(" init nftl: %d \n", i);
-			result = nftl_build_one(nand_info, i);
-		}
-#else
 	if(boot_mode)
 	{
 		nftl_num = get_phy_partition_num(nand_info);
@@ -559,7 +522,6 @@ int NAND_LogicInit(int boot_mode)
 			printf(" init nftl: %d \n", i);
 			result = nftl_build_one(nand_info, i);
 		}
-#endif
 	}
 	else
 	{

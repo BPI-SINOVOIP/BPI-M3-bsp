@@ -22,7 +22,7 @@ __s32 Hdmi_hal_set_display_mode(__u32 hdmi_mode)
 {
 	__inf("Hdmi_hal_set_display_mode = %x\n",hdmi_mode);
 	if(hdmi_mode != get_video_mode()) {
-		video_config(hdmi_mode);
+		set_video_mode(hdmi_mode);
 	}
 	return 0;
 }
@@ -130,14 +130,7 @@ __s32 Hdmi_hal_mode_support(__u32 mode)
 //0:rgb, 1:yuv
 __s32 Hmdi_hal_get_input_csc(void)
 {
-#if defined(CONFIG_ARCH_SUN8IW7)
-		return 0;
-#endif
-
-	if((get_cts_enable() == 1) &&(GetIsYUV() == 0))
-		return 0;
-	else
-		return 1;
+	return get_csc_type();
 }
 
 #ifndef __UBOOT_PLAT__
