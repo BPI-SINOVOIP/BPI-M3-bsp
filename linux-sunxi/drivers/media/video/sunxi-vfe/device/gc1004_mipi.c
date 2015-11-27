@@ -122,7 +122,7 @@ static inline struct sensor_info *to_state(struct v4l2_subdev *sd)
 
 static struct regval_list sensor_default_regs[] = 
 {
-#if 1
+#if 1   // MIPI  2 lane
 	{0xfe, 0x80},
 	{0xfe, 0x80},
 	{0xfe, 0x80},
@@ -130,16 +130,16 @@ static struct regval_list sensor_default_regs[] =
 	{0xf6, 0x00}, //up down
 	{0xfc, 0xc6},
 	{0xf7, 0x33}, //pll enable
-	{0xf8, 0x08}, //Pll mode 2
+	{0xf8, 0x07}, //Pll mode 2    PCLK=48MHz
 	{0xf9, 0x2e}, //[0] pll enable
 	{0xfa, 0x00}, //div
 	{0xfe, 0x00},
 	{0x03, 0x02},
 	{0x04, 0xee},
 	{0x05, 0x01},
-	{0x06, 0xae},
+	{0x06, 0x74},
 	{0x07, 0x00},
-	{0x08, 0x50},
+	{0x08, 0x08},
 	{0x0d, 0x02}, //height
 	{0x0e, 0xe8},
 	{0x0f, 0x05}, //widths
@@ -151,9 +151,9 @@ static struct regval_list sensor_default_regs[] =
 	{0x19, 0x06},
 	{0x1a, 0x01},
 	{0x1b, 0x4f},
-	{0x1c, 0x21},
+	{0x1c, 0x41},
 	{0x1d, 0xe0},//f0
-	{0x1e, 0x7c}, //fe The dark stripes
+	{0x1e, 0xfc}, //fe The dark stripes
 	{0x1f, 0x08}, //08//comv_r
 	{0x20, 0xa9},
 	{0x21, 0x0f}, //2f//20//rsg
@@ -186,6 +186,7 @@ static struct regval_list sensor_default_regs[] =
 	{0x5e, 0x00},
 	{0x66, 0x20},
 	{0xfe, 0x02},
+	{0x40, 0x37},
 	{0x49, 0x23},
 	{0xa4, 0x00},
 	{0xfe, 0x00},
@@ -195,9 +196,9 @@ static struct regval_list sensor_default_regs[] =
 	{0xb5, 0x40},
 	{0xfe, 0x00},
 	{0xfe, 0x03},
-	{0x01, 0x07},
+	{0x01, 0x87},
 	{0x02, 0x33},
-	{0x03, 0x13},
+	{0x03, 0x13},   
 	{0x04, 0x02},
 	{0x05, 0x00},
 	{0x06, 0xa4},
@@ -206,7 +207,7 @@ static struct regval_list sensor_default_regs[] =
 	{0x12, 0x40},
 	{0x13, 0x06},
 	{0x21, 0x03},
-	{0x15, 0x00},  //0x02
+	{0x15, 0x70},  //0x02
 	{0x22, 0x03},
 	{0x23, 0x04},
 	{0x24, 0x10},
@@ -236,9 +237,9 @@ static struct regval_list sensor_default_regs[] =
 {0x03, 0x03},
 {0x04, 0x00},
 {0x05, 0x01},
-{0x06, 0x77},
+{0x06, 0x74},
 {0x07, 0x00},
-{0x08, 0x1e},
+{0x08, 0x06},
 {0x0d, 0x02}, //height
 {0x0e, 0xe8},
 {0x0f, 0x05}, //widths
@@ -252,7 +253,7 @@ static struct regval_list sensor_default_regs[] =
 {0x1b, 0x4f},
 {0x1c, 0x41},
 {0x1d, 0xe0},//f0
-{0x1e, 0x7c}, //fe The dark stripes
+{0x1e, 0xfc}, //fe The dark stripes
 {0x1f, 0x08}, //08//comv_r
 {0x20, 0xa9}, //A vertical bar on the right
 {0x21, 0x2f}, //2f//20//rsg
@@ -303,6 +304,7 @@ static struct regval_list sensor_default_regs[] =
 ///////////////////////////////////////////
 
 {0xfe, 0x02},
+{0x40, 0x37},
 {0x49, 0x23},
 {0xa4, 0x00},
 {0xfe, 0x00},
@@ -320,21 +322,28 @@ static struct regval_list sensor_default_regs[] =
 ///////////////////////////////////////////
 ////////////	 MIPI	/////////////////////
 ///////////////////////////////////////////
-{0xfe, 0x03},
-{0x01, 0x03},
-{0x02, 0x11},
-{0x03, 0x03},   //0x13
-{0x04, 0x01},
-{0x05, 0x00},
-{0x06, 0xa4},
-{0x10, 0x90},
-{0x11, 0x2b},
-{0x12, 0x40},
-{0x13, 0x06},
-{0x15, 0x00},   //0x02
-
-{0xfe, 0x00},
-
+{0xfe,0x03},                  
+{0x01,0x83},                  
+{0x02,0x11},                  
+{0x03,0x13},                  
+{0x04,0x01},                  
+{0x05,0x00},                  
+{0x06,0xa4},                  
+{0x10,0x90},                  
+{0x11,0x2b},                  
+{0x12,0x40},                  
+{0x13,0x06},                  
+{0x21,0x10},//03              
+{0x15,0x00},                  
+{0x22,0x03},                  
+{0x23,0x20},//04              
+{0x24,0x02},//10              
+{0x25,0x10},                  
+{0x26,0x05},                  
+{0x29,0x03},                  
+{0x2a,0x0a},                  
+{0x2b,0x04},                  
+{0xfe,0x00},                  
 #endif
 	
 };
@@ -473,7 +482,7 @@ static int sensor_s_gain(struct v4l2_subdev *sd, int gain_val)
 	unsigned char tmp;
 	struct sensor_info *info = to_state(sd);
 	//	printk("gc2235 sensor gain value is %d\n",gain_val);
-	gain_val = gain_val * 6;
+	gain_val = gain_val * 4;  //6
 
 	sensor_write(sd, 0xfe, 0x00);
 	sensor_write(sd, 0xb1, 0x01);
@@ -571,6 +580,36 @@ static int sensor_s_gain(struct v4l2_subdev *sd, int gain_val)
 	return 0;
 }
 
+static short u32Ratio_last = 0;
+static int sensor_s_blk(struct v4l2_subdev *sd)
+{
+	unsigned char rdval1, rdval2, rdval3, rdval4;
+	unsigned short u32NCurrent, u32SCurrent, u32Ratio_this; 
+	
+	sensor_read(sd, 0x56, &rdval1);
+	sensor_read(sd, 0xd6, &rdval2);
+
+	sensor_read(sd, 0x46, &rdval3);
+	sensor_read(sd, 0xc6, &rdval4);
+	
+	u32NCurrent = rdval1 | (rdval2<<8);
+	u32SCurrent = rdval3 | (rdval4<<8);
+	
+	u32Ratio_this =( (u32NCurrent * 10 + u32SCurrent*11) * 32/ (21*u32NCurrent));	  //k=1.1
+	
+	if(u32Ratio_this > 30)	 u32Ratio_this = 30;
+	 
+	if(u32Ratio_this != u32Ratio_last)
+	{
+	   sensor_write(sd, 0x66, u32Ratio_this&0xff);
+	}
+	
+	 u32Ratio_last = u32Ratio_this;
+	
+	return 0;
+}
+
+
 static int gc1004_sensor_vts;
 static int sensor_s_exp_gain(struct v4l2_subdev *sd, struct sensor_exp_gain *exp_gain)
 {
@@ -591,6 +630,7 @@ static int sensor_s_exp_gain(struct v4l2_subdev *sd, struct sensor_exp_gain *exp
   
   sensor_s_exp(sd,exp_val);
   sensor_s_gain(sd,gain_val);
+  sensor_s_blk(sd);
 
   sensor_write(sd, 0x08, 0x36); //fix 30fps
 
@@ -890,14 +930,14 @@ static struct sensor_win_size sensor_win_sizes[] = {
         .height     = HD720_HEIGHT,
         .hoffset    = 0,
         .voffset    = 0,
-        .hts        = 982,
-        .vts        = 814,
-        .pclk       = 24*1000*1000,
-        .mipi_bps	= 222*1000*1000,//216
+        .hts        = 2096,//982,
+        .vts        = 764,//814,
+        .pclk       = 48*1000*1000,
+        .mipi_bps	= 192*1000*1000,// 1lane mipi_bps=384*1000*1000
         .fps_fixed  = 1,
         .bin_factor = 1,
         .intg_min   = 1<<4,
-        .intg_max   = 814<<4,//
+        .intg_max   = 764<<4,// 814
         .gain_min   = 1<<4,
         .gain_max   = 16<<4,
         .regs       = sensor_default_regs,

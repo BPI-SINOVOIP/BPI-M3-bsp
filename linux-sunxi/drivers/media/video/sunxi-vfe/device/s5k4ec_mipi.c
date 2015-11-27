@@ -1802,7 +1802,7 @@ static struct regval_list sensor_default_regs[] = {
 //This register is for FACTORY ONLY.
 //If you change it without prior notification
 //YOU are RESPONSIBLE for the FAILURE that will happen in the future
-//For subsampling Size	
+//For subsampling Size
 {0x0028, 0x7000},	
 {0x002A,0x18BC},
 {0x0F12,0x0004},
@@ -2059,8 +2059,8 @@ static struct regval_list sensor_default_regs[] = {
 // 08.AF Setting
 //==================================================================================
 
-//AF interface setting	
-{0x0028, 0x7000},	
+//AF interface setting
+{0x0028, 0x7000},                                                                  
 {0x002A, 0x01FC},
 {0x0F12, 0x0000},  //#REG_TC_IPRM_LedGpio
 {0x002A, 0x1720},  
@@ -2166,7 +2166,7 @@ static struct regval_list sensor_default_regs[] = {
 {0x0F12, 0x00E0},  //#afd_usParam_11_
 
 {0x002A, 0x1748},
-{0x0F12, 0x0001},	
+{0x0F12, 0x0001},
 
 {0x002A, 0x070A},
 {0x0F12, 0x0000},  //#skl_af_bValidateCapture
@@ -2371,44 +2371,44 @@ static struct regval_list sensor_default_regs[] = {
 {0x0F12, 0x00CA},	//awbb_GridCoeff_R_2
 {0x0F12, 0x009D},	//awbb_GridCoeff_B_2
 
-// Indoor Grid Offset
+// Indoor Grid Offset			
 {0x002A, 0x13A4}, 
-{0x0F12, 0x0000},	
-{0x0F12, 0x0000},	
-{0x0F12, 0x0000},	
-{0x0F12, 0x0000},	
-{0x0F12, 0x0000},	
-{0x0F12, 0x0000},	
-{0x0F12, 0x0000},	
-{0x0F12, 0x0000},	
-{0x0F12, 0x0000},	
-{0x0F12, 0x0000},	
-{0x0F12, 0x0000},	
-{0x0F12, 0x0000},	
-{0x0F12, 0x0000},	
-{0x0F12, 0x0000},	
-{0x0F12, 0x0000},	
-{0x0F12, 0x0000},	
-{0x0F12, 0x0000},	
-{0x0F12, 0x0000},	
-{0x0F12, 0x0000},	
-{0x0F12, 0x0000},	
-{0x0F12, 0x0000},	
-{0x0F12, 0x0000},	
-{0x0F12, 0x0000},	
-{0x0F12, 0x0000},	
-{0x0F12, 0x0000},	
-{0x0F12, 0x0000},	
-{0x0F12, 0x0000},	
-{0x0F12, 0x0000},	
-{0x0F12, 0x0000},	
-{0x0F12, 0x0000},	
-{0x0F12, 0x0000},	
-{0x0F12, 0x0000},	
-{0x0F12, 0x0000},	     
-{0x0F12, 0x0000},	
-{0x0F12, 0x0000},	
-{0x0F12, 0x0000},	
+{0x0F12, 0x0000}, 
+{0x0F12, 0x0000}, 
+{0x0F12, 0x0000}, 
+{0x0F12, 0x0000}, 
+{0x0F12, 0x0000}, 
+{0x0F12, 0x0000}, 
+{0x0F12, 0x0000}, 
+{0x0F12, 0x0000}, 
+{0x0F12, 0x0000}, 
+{0x0F12, 0x0000}, 
+{0x0F12, 0x0000}, 
+{0x0F12, 0x0000}, 
+{0x0F12, 0x0000}, 
+{0x0F12, 0x0000}, 
+{0x0F12, 0x0000}, 
+{0x0F12, 0x0000}, 
+{0x0F12, 0x0000}, 
+{0x0F12, 0x0000}, 
+{0x0F12, 0x0000}, 
+{0x0F12, 0x0000}, 
+{0x0F12, 0x0000}, 
+{0x0F12, 0x0000}, 
+{0x0F12, 0x0000}, 
+{0x0F12, 0x0000}, 
+{0x0F12, 0x0000}, 
+{0x0F12, 0x0000}, 
+{0x0F12, 0x0000}, 
+{0x0F12, 0x0000}, 
+{0x0F12, 0x0000}, 
+{0x0F12, 0x0000}, 
+{0x0F12, 0x0000}, 
+{0x0F12, 0x0000}, 
+{0x0F12, 0x0000}, 
+{0x0F12, 0x0000}, 
+{0x0F12, 0x0000}, 
+{0x0F12, 0x0000}, 
 
 // Outdoor Grid Offset
 {0x0F12, 0xFFEA}, 
@@ -2481,8 +2481,8 @@ static struct regval_list sensor_default_regs[] = {
 
 {0x002A, 0x0F30}, 	
 {0x0F12, 0x0001},   	//AFC_D_ConvAccelerPower 
-     
-// Auto Flicker (60Mhz start)	
+
+// Auto Flicker (60Mhz start)
 {0x002A, 0x0F2A},	
 {0x0F12, 0x0000},	//AFC_Default BIT[0] 1:60Hz 0:50Hz
 {0x002A, 0x04E6},	                                      
@@ -2498,11 +2498,11 @@ static struct regval_list sensor_default_regs[] = {
 // 12.AE Setting
 //==================================================================================
 
-//AE Target	
+//AE Target
 {0x002A, 0x1484},	
 {0x0F12, 0x0046},   	//TVAR_ae_BrAve
 
-//ae_StatMode bit[3] BLC has to be bypassed to prevent AE weight change especially backlight scene 
+//ae_StatMode bit[3] BLC has to be bypassed to prevent AE weight change especially backlight scene
 {0x002A, 0x148A},	
 {0x0F12, 0x000F},  	 //ae_StatMode
 
@@ -2523,7 +2523,7 @@ static struct regval_list sensor_default_regs[] = {
 
 {0x002A, 0x0588},
 {0x0F12, 0x0002},	//lt_uInitPostToleranceCnt
-     
+
 //AE_state                	
 {0x002A, 0x0544},	
 {0x0F12, 0x0111},  	 //lt_uLimitHigh
@@ -2556,7 +2556,7 @@ static struct regval_list sensor_default_regs[] = {
 {0x0F12, 0x0005},	
 {0x0F12, 0xDC00},	
 {0x0F12, 0x0005},	
-     
+	
 {0x002A, 0x0638},	//lt_ExpGain_ExpCurveGainMaxStr_0__ulExpOut_0_
 {0x0F12, 0x0001},	
 {0x0F12, 0x0000},	
@@ -2578,14 +2578,14 @@ static struct regval_list sensor_default_regs[] = {
 {0x0F12, 0x0000},	
 {0x0F12, 0xC350},	
 {0x0F12, 0x0000},	
-
+	
 //Gain	
 {0x002A, 0x060C},	
 {0x0F12, 0x0800},	//lt_ExpGain_ExpCurveGainMaxStr
 {0x0F12, 0x0100},	//lt_ExpGain_ExpCurveGainMaxStr_0__uMaxDigGain
 {0x002A, 0x05a2},		
 {0x0F12, 0x1000},	//lt_uMaxTotGain
-
+	
 // Lei Control	
 {0x002A, 0x06B8},               	
 {0x0F12, 0x452C},               	
@@ -2629,7 +2629,7 @@ static struct regval_list sensor_default_regs[] = {
 {0x0F12,0x0101},	// ae_WeightTbl_16[30]
 {0x0F12,0x0101},	// ae_WeightTbl_16[31]
 
-
+      
 //==================================================================================
 // 14.Flash Setting
 //==================================================================================
@@ -2705,23 +2705,23 @@ static struct regval_list sensor_default_regs[] = {
 // 15.CCM Setting
 //==================================================================================
 
-{0x002A, 0x08A6},
+{0x002A, 0x08A6},	
 {0x0F12, 0x00C0},	//SARR_AwbCcmCord[0]
 {0x0F12, 0x0100},	//SARR_AwbCcmCord[1]
 {0x0F12, 0x0125},	//SARR_AwbCcmCord[2]
 {0x0F12, 0x015F},	//SARR_AwbCcmCord[3]
 {0x0F12, 0x017C},	//SARR_AwbCcmCord[4]
 {0x0F12, 0x0194},	//SARR_AwbCcmCord[5]
-     
+	
 {0x002A, 0x0898},	
 {0x0F12, 0x4800},	//TVAR_wbt_pBaseCcms
 {0x0F12, 0x7000},	
 {0x002A, 0x08A0},	
 {0x0F12, 0x48D8},	//TVAR_wbt_pOutdoorCcm
 {0x0F12, 0x7000},	
-     
-//Horizon	
-{0x002A, 0x4800},
+	
+//Horizon
+{0x002A, 0x4800},	
 {0x0F12, 0x01EB}, //0210 	//H TVAR_wbt_pBaseCcms[0]  
 {0x0F12, 0xFFD1}, //FFC0 	//TVAR_wbt_pBaseCcms[1]  
 {0x0F12, 0xFFDC}, //FFCC 	//TVAR_wbt_pBaseCcms[2]  
@@ -2740,8 +2740,8 @@ static struct regval_list sensor_default_regs[] = {
 {0x0F12, 0xFF06}, //FF06 	//TVAR_wbt_pBaseCcms[15] 
 {0x0F12, 0x01BA}, //01BA 	//TVAR_wbt_pBaseCcms[16] 
 {0x0F12, 0x0108}, //0108 	//TVAR_wbt_pBaseCcms[17] 
-	
-// INCA A                               	
+
+// INCA A
 {0x0F12, 0x01EB}, //0210 	//A TVAR_wbt_pBaseCcms[18] 
 {0x0F12, 0xFFD1}, //FFC0 	//TVAR_wbt_pBaseCcms[19] 
 {0x0F12, 0xFFDC}, //FFCC 	//TVAR_wbt_pBaseCcms[20] 
@@ -2760,8 +2760,8 @@ static struct regval_list sensor_default_regs[] = {
 {0x0F12, 0xFF06}, //FF06 	//TVAR_wbt_pBaseCcms[33] 
 {0x0F12, 0x01BA}, //01BA 	//TVAR_wbt_pBaseCcms[34] 
 {0x0F12, 0x0108}, //0108 	//TVAR_wbt_pBaseCcms[35] 
-	
-//Warm White                    	
+
+//Warm White
 {0x0F12, 0x022B}, //0230 //0243 //023E //023B //0231 //0227 	//CW TVAR_wbt_pBaseCcms[36] 
 {0x0F12, 0xFF8C}, //FF9E //FF8E //FF8A //FF8D //FF93 //FF95 	//TVAR_wbt_pBaseCcms[37] 
 {0x0F12, 0xFFD8}, //FFC5 //FFC3 //FFCC //FFCF //FFD4 //FFE0 	//TVAR_wbt_pBaseCcms[38] 
@@ -2780,8 +2780,8 @@ static struct regval_list sensor_default_regs[] = {
 {0x0F12, 0xFF86}, //FF86 //FF86 //FF86 //FF86 //FF75 	//TVAR_wbt_pBaseCcms[51] 
 {0x0F12, 0x01B4}, //01B4 //01B4 //01B4 //01B4 //0187 	//TVAR_wbt_pBaseCcms[52] 
 {0x0F12, 0x017E}, //017E //017E //017E //017E //01BF 	//TVAR_wbt_pBaseCcms[53] 
-         	
-//Cool White	
+
+//Cool White
 {0x0F12, 0x022B}, //0230 //0243 //023E //023B //0231 //0227 	//CW TVAR_wbt_pBaseCcms[54] 
 {0x0F12, 0xFF8C}, //FF9E //FF8E //FF8A //FF8D //FF93 //FF95 	//TVAR_wbt_pBaseCcms[55] 
 {0x0F12, 0xFFD8}, //FFC5 //FFC3 //FFCC //FFCF //FFD4 //FFE0 	//TVAR_wbt_pBaseCcms[56] 
@@ -2800,8 +2800,8 @@ static struct regval_list sensor_default_regs[] = {
 {0x0F12, 0xFF86}, //FF86 //FF86 //FF86 //FF86 //FF75 	//TVAR_wbt_pBaseCcms[69] 
 {0x0F12, 0x01B4}, //01B4 //01B4 //01B4 //01B4 //0187 	//TVAR_wbt_pBaseCcms[70] 
 {0x0F12, 0x017E}, //017E //017E //017E //017E //01BF 	//TVAR_wbt_pBaseCcms[71] 
-         	
-//D50	
+
+//D50
 {0x0F12, 0x01EC}, 	//TVAR_wbt_pBaseCcms[72]  
 {0x0F12, 0xFFB2}, 	//TVAR_wbt_pBaseCcms[73] 
 {0x0F12, 0x0007}, 	//TVAR_wbt_pBaseCcms[74] 
@@ -2820,8 +2820,8 @@ static struct regval_list sensor_default_regs[] = {
 {0x0F12, 0xFF86}, //FF74 //FF75 	//TVAR_wbt_pBaseCcms[87] 
 {0x0F12, 0x01B4}, //01A2 //0187 	//TVAR_wbt_pBaseCcms[88] 
 {0x0F12, 0x017E}, //01A2 //01BF 	//TVAR_wbt_pBaseCcms[89] 
-         		
-//D65     	
+
+//D65
 {0x0F12, 0x01EC}, 	//d65 TVAR_wbt_pBaseCcms[90]  
 {0x0F12, 0xFFB2}, 	//TVAR_wbt_pBaseCcms[91] 
 {0x0F12, 0x0007}, 	//TVAR_wbt_pBaseCcms[92] 
@@ -2840,8 +2840,8 @@ static struct regval_list sensor_default_regs[] = {
 {0x0F12, 0xFF86}, //FF74 //FF75 	//TVAR_wbt_pBaseCcms[105]
 {0x0F12, 0x01B4}, //01A2 //0187 	//TVAR_wbt_pBaseCcms[106]
 {0x0F12, 0x017E}, //01A2 //01BF 	//TVAR_wbt_pBaseCcms[107]
-	  	
-//Outdoor		
+
+//Outdoor
 {0x002A, 0x48d8},		
 {0x0F12, 0x01DC}, //01D2 //01D4 	//TVAR_wbt_pOutdoorCcm[0] 
 {0x0F12, 0xFF91}, //FF97 //FF9D 	//TVAR_wbt_pOutdoorCcm[1] 
@@ -2862,7 +2862,7 @@ static struct regval_list sensor_default_regs[] = {
 {0x0F12, 0x014F}, //014F 	//TVAR_wbt_pOutdoorCcm[16]
 {0x0F12, 0x0137}, //0137 	//TVAR_wbt_pOutdoorCcm[17]
 
-
+     
 
 //==================================================================================
 // 16.GAMMA
@@ -3662,8 +3662,8 @@ static struct regval_list sensor_default_regs[] = {
 //==================================================================================
 // 21.Select Cofigration Display
 //==================================================================================
-//PREVIEW                                                                  
-     
+//PREVIEW                                                                        		
+
 {0x0028,0x7000},//many insert
 {0x002A,0x0266},
 {0x0F12,0x0000},	// REG_TC_GP_ActivePrevConfig
@@ -3698,7 +3698,7 @@ static struct regval_list sensor_default_regs[] = {
 {0x0028,0x1482},
 {0x002A,0x01AC},
 {0x0F12,0x0180},	// bp_uMinBrightnessFactor
-     
+
 };
 ////////////////////////////////////////////////////////////////
 // Automatically written by Setfile Rule Check function.
@@ -3732,18 +3732,18 @@ static struct regval_list sensor_qsxga_regs[] = { //qsxga: 2560*1920  7fps
 //==================================================================================
 // 19.Select Cofigration Display
 //==================================================================================
-//PREVIEW                                                                        		
+//PREVIEW
 
 {0x0028, 0x7000},//many insert
-{0x002A, 0x0266},   
+{0x002A, 0x0266},
 {0x0F12, 0x0003},	 //REG_TC_GP_ActivePrevConfig        		
-{0x002A, 0x026A},                                    
+{0x002A, 0x026A},
 {0x0F12, 0x0001},	 //REG_TC_GP_PrevOpenAfterChange     		
-{0x002A, 0x0268},                                    
+{0x002A, 0x0268},
 {0x0F12, 0x0001},	 //REG_TC_GP_NewConfigSync           		
-{0x002A, 0x024E},                                    
+{0x002A, 0x024E},
 {0x0F12, 0x0001},	 //REG_TC_GP_PrevConfigChanged       		
-{0x002A, 0x023E},                                    
+{0x002A, 0x023E},
 {0x0F12, 0x0001},	 //REG_TC_GP_CapConfigChanged                                    
 {0x0F12, 0x0001},	 //REG_TC_GP_EnablePreview           	
 //=============================================
@@ -3759,8 +3759,8 @@ static struct regval_list sensor_qsxga_regs[] = { //qsxga: 2560*1920  7fps
 {0x0F12, 0x0A00},	//REG_0TC_CCFG_usWidth              
 {0x0F12, 0x0780},	//REG_0TC_CCFG_usHeight
 {0x002A, 0x03AE},                                     	
-{0x0F12, 0x0000},	//REG_0TC_CCFG_uClockInd 
-{0x002A, 0x03B4},                                     	
+{0x0F12, 0x0000},	//REG_0TC_CCFG_uClockInd            
+{0x002A, 0x03B4},      
 {0x0F12, 0x07D0},	//535 REG_0TC_CCFG_usMaxFrTimeMsecMult10
 {0x0F12, 0x014D},	//535 REG_0TC_CCFG_usMinFrTimeMsecMult10
 
@@ -3816,24 +3816,24 @@ static struct regval_list sensor_qxga_regs[] = { //qxga: 2048*1536
 {0x0F12, 0x0002},	 //REG_0TC_PCFG_FrRateQualityType    	
 {0x0F12, 0x07D0},	 //029A  //REG_0TC_PCFG_usMaxFrTimeMsecMult10	
 {0x0F12, 0x0000},	 //REG_0TC_PCFG_usMinFrTimeMsecMult10	
-	
+
 
 
 //==================================================================================
 // 19.Select Cofigration Display
 //==================================================================================
-//PREVIEW                                                                        		
+//PREVIEW
 
 {0x0028, 0x7000},//many insert
-{0x002A, 0x0266},   
+{0x002A, 0x0266},
 {0x0F12, 0x0002},	 //REG_TC_GP_ActivePrevConfig        		
-{0x002A, 0x026A},                                    
+{0x002A, 0x026A},
 {0x0F12, 0x0001},	 //REG_TC_GP_PrevOpenAfterChange     		       		
-{0x002A, 0x0268},                                    
+{0x002A, 0x0268},	                                         
 {0x0F12, 0x0001},	 //REG_TC_GP_PrevConfigChanged  
-{0x002A, 0x024E},									 
+{0x002A, 0x024E},
 {0x0F12, 0x0001},	 //REG_TC_GP_NewConfigSync	  
-{0x002A, 0x023E},                                    
+{0x002A, 0x023E},
 {0x0F12, 0x0001},	 //REG_TC_GP_EnablePreview           	
 {0x0F12, 0x0001},	 //REG_TC_GP_EnablePreviewChanged
 //=============================================
@@ -3849,8 +3849,8 @@ static struct regval_list sensor_qxga_regs[] = { //qxga: 2048*1536
 {0x0F12, 0x0800},	//REG_0TC_CCFG_usWidth              
 {0x0F12, 0x0600},	//REG_0TC_CCFG_usHeight
 {0x002A, 0x03AE},                                     	
-{0x0F12, 0x0000},	//REG_0TC_CCFG_uClockInd            
-{0x002A, 0x03B4},      
+{0x0F12, 0x0000},	//REG_0TC_CCFG_uClockInd    
+{0x002A, 0x03B4},                                     	
 {0x0F12, 0x07D0},	//REG_0TC_CCFG_usMaxFrTimeMsecMult10   0x0535
 {0x0F12, 0x0535},	//REG_0TC_CCFG_usMinFrTimeMsecMult10
 
@@ -3987,7 +3987,7 @@ static struct regval_list sensor_1080p_regs[] = { //1080: 1920*1080
 {0x0F12, 0x0001},	//REG_TC_GP_PrevOpenAfterChange
 {0x002A, 0x0268},
 {0x0F12, 0x0001},	//REG_TC_GP_PrevConfigChanged
-{0x002A, 0x026E},
+{0x002A, 0x026E},                                          
 {0x0f12, 0x0000},       //REG_TC_GP_ActiveCapConfig          
 {0x002A, 0x026A},	                                         
 {0x0F12, 0x0001},	//REG_TC_GP_CapOpenAfterChange           
@@ -4003,7 +4003,7 @@ static struct regval_list sensor_1080p_regs[] = { //1080: 1920*1080
 
 {0xffff, 0x00c8},  //delay 200ms
 */
-};                                      
+};
 
 static struct regval_list sensor_720p_regs[] = { //1280*720
 
@@ -4038,18 +4038,18 @@ static struct regval_list sensor_720p_regs[] = { //1280*720
 //==================================================================================
 // 19.Select Cofigration Display
 //==================================================================================
-//PREVIEW                                                                        		
+//PREVIEW
 
 {0x0028, 0x7000},//many insert
 {0x002A, 0x0266},   
 {0x0F12, 0x0001},	 //REG_TC_GP_ActivePrevConfig        		
-{0x002A, 0x026A},                                    
+{0x002A, 0x026A},	                                   
 {0x0F12, 0x0001},	 //REG_TC_GP_PrevOpenAfterChange     
-{0x002A, 0x0268},									 
+{0x002A, 0x0268},	                                         
 {0x0F12, 0x0001},	 //REG_TC_GP_PrevConfigChanged	  
-{0x002A, 0x024E},                                    
+{0x002A, 0x024E},	                                   
 {0x0F12, 0x0001},	 //REG_TC_GP_NewConfigSync           		   		
-{0x002A, 0x023E},                                    
+{0x002A, 0x023E},	                                   
 {0x0F12, 0x0001},	 //REG_TC_GP_EnablePreview           	
 {0x0F12, 0x0001},	 //REG_TC_GP_EnablePreviewChanged
 //=============================================
@@ -4074,20 +4074,20 @@ static struct regval_list sensor_720p_regs[] = { //1280*720
 {0x0F12, 0x05A0},	//REG_TC_GP_PrevReqInputHeight
 {0x0F12, 0x0010},	//REG_TC_GP_PrevInputWidthOfs 
 {0x0F12, 0x00FC},	//REG_TC_GP_PrevInputHeightOfs
-{0x0F12, 0x0A00},	//REG_TC_GP_CapReqInputWidth
-{0x0F12, 0x0780},	//REG_TC_GP_CapReqInputHeight
-{0x0F12, 0x0010},	//REG_TC_GP_CapInputWidthOfs
-{0x0F12, 0x000C},	//REG_TC_GP_CapInputHeightOfs
+{0x0F12, 0x0A00},	//REG_TC_GP_CapReqInputWidth  
+{0x0F12, 0x0780},	//REG_TC_GP_CapReqInputHeight 
+{0x0F12, 0x0010},	//REG_TC_GP_CapInputWidthOfs  
+{0x0F12, 0x000C},	//REG_TC_GP_CapInputHeightOfs 
 
 {0x002A, 0x0494},
 {0x0F12, 0x0A00},	//REG_TC_PZOOM_ZoomInputWidth
 {0x0F12, 0x05A0},	//REG_TC_PZOOM_ZoomInputHeight
-{0x0F12, 0x0000},	//REG_TC_PZOOM_ZoomInputWidthOfs
-{0x0F12, 0x0000},	//REG_TC_PZOOM_ZoomInputHeightOfs
-{0x0F12, 0x0A00},	//REG_TC_CZOOM_ZoomInputWidth
-{0x0F12, 0x0780},	//REG_TC_CZOOM_ZoomInputHeight
-{0x0F12, 0x0000},	//REG_TC_CZOOM_ZoomInputWidthOfs
-{0x0F12, 0x0000},	//REG_TC_CZOOM_ZoomInputHeightOfs
+{0x0F12, 0x0000},	//REG_TC_PZOOM_ZoomInputWidthOfs    
+{0x0F12, 0x0000},	//REG_TC_PZOOM_ZoomInputHeightOfs   
+{0x0F12, 0x0A00},	//REG_TC_CZOOM_ZoomInputWidth       
+{0x0F12, 0x0780},	//REG_TC_CZOOM_ZoomInputHeight      
+{0x0F12, 0x0000},	//REG_TC_CZOOM_ZoomInputWidthOfs    
+{0x0F12, 0x0000},	//REG_TC_CZOOM_ZoomInputHeightOfs  
 
 {0x002A, 0x0262},
 {0x0F12, 0x0001},	//REG_TC_GP_bUseReqInputInPre
@@ -4121,8 +4121,8 @@ static struct regval_list sensor_720p_regs[] = { //1280*720
 {0x0f12, 0x0000},	//REG_TC_GP_ActivePrevConfig
 {0x002A, 0x026A},
 {0x0F12, 0x0001},	//REG_TC_GP_PrevOpenAfterChange
-{0x002A, 0x0268},
-{0x0F12, 0x0001},	//REG_TC_GP_PrevConfigChanged
+{0x002A, 0x0268},	                                         
+{0x0F12, 0x0001},	//REG_TC_GP_PrevConfigChanged                             
 {0x002A, 0x026E},                                          
 {0x0f12, 0x0000},       //REG_TC_GP_ActiveCapConfig          
 {0x002A, 0x026A},	                                         
@@ -4301,24 +4301,24 @@ static struct regval_list sensor_SVGA_regs[] = { //800*600
 //==================================================================================
 //Input Size
 {0x002A, 0x0250},
-{0x0F12, 0x0A00},	//REG_TC_GP_PrevReqInputWidth
+{0x0F12, 0x0A00},	//REG_TC_GP_PrevReqInputWidth 
 {0x0F12, 0x0780},	//REG_TC_GP_PrevReqInputHeight
-{0x0F12, 0x0010},	//REG_TC_GP_PrevInputWidthOfs
+{0x0F12, 0x0010},	//REG_TC_GP_PrevInputWidthOfs 
 {0x0F12, 0x000C},	//REG_TC_GP_PrevInputHeightOfs
-{0x0F12, 0x0A00},	//REG_TC_GP_CapReqInputWidth
-{0x0F12, 0x0780},	//REG_TC_GP_CapReqInputHeight
-{0x0F12, 0x0010},	//REG_TC_GP_CapInputWidthOfs
-{0x0F12, 0x000C},	//REG_TC_GP_CapInputHeightOfs
+{0x0F12, 0x0A00},	//REG_TC_GP_CapReqInputWidth  
+{0x0F12, 0x0780},	//REG_TC_GP_CapReqInputHeight 
+{0x0F12, 0x0010},	//REG_TC_GP_CapInputWidthOfs  
+{0x0F12, 0x000C},	//REG_TC_GP_CapInputHeightOfs 
 
 {0x002A, 0x0494},
 {0x0F12, 0x0A00},	//REG_TC_PZOOM_ZoomInputWidth
 {0x0F12, 0x0780},	//REG_TC_PZOOM_ZoomInputHeight
-{0x0F12, 0x0000},	//REG_TC_PZOOM_ZoomInputWidthOfs
-{0x0F12, 0x0000},	//REG_TC_PZOOM_ZoomInputHeightOfs
-{0x0F12, 0x0A00},	//REG_TC_CZOOM_ZoomInputWidth
-{0x0F12, 0x0780},	//REG_TC_CZOOM_ZoomInputHeight
-{0x0F12, 0x0000},	//REG_TC_CZOOM_ZoomInputWidthOfs
-{0x0F12, 0x0000},	//REG_TC_CZOOM_ZoomInputHeightOfs
+{0x0F12, 0x0000},	//REG_TC_PZOOM_ZoomInputWidthOfs    
+{0x0F12, 0x0000},	//REG_TC_PZOOM_ZoomInputHeightOfs   
+{0x0F12, 0x0A00},	//REG_TC_CZOOM_ZoomInputWidth       
+{0x0F12, 0x0780},	//REG_TC_CZOOM_ZoomInputHeight      
+{0x0F12, 0x0000},	//REG_TC_CZOOM_ZoomInputWidthOfs    
+{0x0F12, 0x0000},	//REG_TC_CZOOM_ZoomInputHeightOfs  
 
 {0x002A, 0x0262},
 {0x0F12, 0x0001},	//REG_TC_GP_bUseReqInputInPre
@@ -4329,14 +4329,14 @@ static struct regval_list sensor_SVGA_regs[] = { //800*600
 //==================================================================================
 {0xFCFC, 0xD000},
 {0x0028, 0x7000},
-{0x002A, 0x02A6},	
+{0x002A, 0x02A6},
 {0x0F12, 0x0320},	//280 REG_0TC_PCFG_usWidth
 {0x0F12, 0x0258},	//1E0 REG_0TC_PCFG_usHeight
 {0x0F12, 0x0005},
-{0x002A, 0x02BC},	
-{0x0F12, 0x0000},	//REG_0TC_PCFG_uClockInd            	
-{0x0F12, 0x0000},	//REG_0TC_PCFG_usFrTimeType         	
-{0x0F12, 0x0001},	//REG_0TC_PCFG_FrRateQualityType    	
+{0x002A, 0x02BC},
+{0x0F12, 0x0000},	//REG_0TC_PCFG_uClockInd
+{0x0F12, 0x0000},	//REG_0TC_PCFG_usFrTimeType
+{0x0F12, 0x0001},	//REG_0TC_PCFG_FrRateQualityType
 {0x0F12, 0x07D0},	//  REG_0TC_PCFG_usMaxFrTimeMsecMult10    0x0320  0x0535
 {0x0F12, 0x014D},	//   REG_0TC_PCFG_usMinFrTimeMsecMult10  
 
@@ -4348,11 +4348,11 @@ static struct regval_list sensor_SVGA_regs[] = { //800*600
 //==================================================================================
 //PREVIEW
 {0xFCFC, 0xD000},
-{0x0028, 0x7000},                                		                               		
-{0x002A, 0x0266},   
-{0x0f12, 0x0000},	//REG_TC_GP_ActivePrevConfig        		
-{0x002A, 0x026A},	                                   
-{0x0F12, 0x0001},	//REG_TC_GP_PrevOpenAfterChange     		
+{0x0028, 0x7000},
+{0x002A, 0x0266},
+{0x0f12, 0x0000},	//REG_TC_GP_ActivePrevConfig
+{0x002A, 0x026A},
+{0x0F12, 0x0001},	//REG_TC_GP_PrevOpenAfterChange
 {0x002A, 0x0268},	                                         
 {0x0F12, 0x0001},	//REG_TC_GP_PrevConfigChanged                             
 {0x002A, 0x026E},                                          
@@ -4361,12 +4361,12 @@ static struct regval_list sensor_SVGA_regs[] = { //800*600
 {0x0F12, 0x0001},	//REG_TC_GP_CapOpenAfterChange           
 {0x002A, 0x0270},	                                         
 {0x0F12, 0x0001},	//REG_TC_GP_CapConfigChanged   
-    		
-{0x002A, 0x024E},	                                   
-{0x0F12, 0x0001},	//REG_TC_GP_NewConfigSync           		
-{0x002A, 0x023E},	                                   
-{0x0F12, 0x0001},	//REG_TC_GP_EnablePreview           	
-{0x0F12, 0x0001},	//REG_TC_GP_EnablePreviewChanged   
+
+{0x002A, 0x024E},
+{0x0F12, 0x0001},	//REG_TC_GP_NewConfigSync
+{0x002A, 0x023E},
+{0x0F12, 0x0001},	//REG_TC_GP_EnablePreview
+{0x0F12, 0x0001},	//REG_TC_GP_EnablePreviewChanged
 
 //==================================================================================
 // 13+.Edge sharpness
@@ -4426,18 +4426,18 @@ static struct regval_list sensor_vga_regs[] = { //VGA:  640*480
 //==================================================================================
 // 19.Select Cofigration Display
 //==================================================================================
-//PREVIEW                                                                        		
+//PREVIEW
 
 {0x0028, 0x7000},//many insert
-{0x002A, 0x0266},   
+{0x002A, 0x0266},
 {0x0F12, 0x0000},	 //REG_TC_GP_ActivePrevConfig        		
-{0x002A, 0x026A},                                    
+{0x002A, 0x026A},
 {0x0F12, 0x0001},	 //REG_TC_GP_PrevOpenAfterChange 
-{0x002A, 0x0268},									 
+{0x002A, 0x0268},
 {0x0F12, 0x0001},	 //REG_TC_GP_PrevConfigChanged	
-{0x002A, 0x024E},                                    
+{0x002A, 0x024E},
 {0x0F12, 0x0001},	 //REG_TC_GP_NewConfigSync           		     		
-{0x002A, 0x023E},                                    
+{0x002A, 0x023E},
 {0x0F12, 0x0001},	 //REG_TC_GP_EnablePreview           	
 {0x0F12, 0x0001},	 //REG_TC_GP_EnablePreviewChanged
   */    
@@ -4486,9 +4486,9 @@ static struct regval_list sensor_vga_regs[] = { //VGA:  640*480
 {0x0F12, 0x0280},	//REG_0TC_PCFG_usWidth              	
 {0x0F12, 0x01E0},	//REG_0TC_PCFG_usHeight              	
 {0x002A, 0x02BC},	
-{0x0F12, 0x0000},	//REG_0TC_PCFG_uClockInd
+{0x0F12, 0x0000},	//REG_0TC_PCFG_uClockInd            	
 {0x0F12, 0x0000},	//REG_0TC_PCFG_usFrTimeType         	
-{0x0F12, 0x0001},	//REG_0TC_PCFG_FrRateQualityType
+{0x0F12, 0x0001},	//REG_0TC_PCFG_FrRateQualityType    	
 {0x0F12, 0x07D0},	//REG_0TC_PCFG_usMaxFrTimeMsecMult10	  0x0535
 {0x0F12, 0x014D},	//REG_0TC_PCFG_usMinFrTimeMsecMult10	
 
@@ -4500,25 +4500,25 @@ static struct regval_list sensor_vga_regs[] = { //VGA:  640*480
 //==================================================================================
 //PREVIEW
 {0xFCFC, 0xD000},
-{0x0028, 0x7000},
-{0x002A, 0x0266},
+{0x0028, 0x7000},                                		                               		
+{0x002A, 0x0266},   
 {0x0f12, 0x0000},	//REG_TC_GP_ActivePrevConfig        		
-{0x002A, 0x026A},
-{0x0F12, 0x0001},	//REG_TC_GP_PrevOpenAfterChange
-{0x002A, 0x0268},
-{0x0F12, 0x0001},	//REG_TC_GP_PrevConfigChanged
-{0x002A, 0x026E},
+{0x002A, 0x026A},	                                   
+{0x0F12, 0x0001},	//REG_TC_GP_PrevOpenAfterChange     		
+{0x002A, 0x0268},	                                         
+{0x0F12, 0x0001},	//REG_TC_GP_PrevConfigChanged                             
+{0x002A, 0x026E},                                          
 {0x0f12, 0x0000},       //REG_TC_GP_ActiveCapConfig          
-{0x002A, 0x026A},
-{0x0F12, 0x0001},	//REG_TC_GP_CapOpenAfterChange
-{0x002A, 0x0270},
-{0x0F12, 0x0001},	//REG_TC_GP_CapConfigChanged
-
-{0x002A, 0x024E},
-{0x0F12, 0x0001},	//REG_TC_GP_NewConfigSync
-{0x002A, 0x023E},
-{0x0F12, 0x0001},	//REG_TC_GP_EnablePreview
-{0x0F12, 0x0001},	//REG_TC_GP_EnablePreviewChanged
+{0x002A, 0x026A},	                                         
+{0x0F12, 0x0001},	//REG_TC_GP_CapOpenAfterChange           
+{0x002A, 0x0270},	                                         
+{0x0F12, 0x0001},	//REG_TC_GP_CapConfigChanged   
+    		
+{0x002A, 0x024E},	                                   
+{0x0F12, 0x0001},	//REG_TC_GP_NewConfigSync           		
+{0x002A, 0x023E},	                                   
+{0x0F12, 0x0001},	//REG_TC_GP_EnablePreview           	
+{0x0F12, 0x0001},	//REG_TC_GP_EnablePreviewChanged   
 
 {0xffff, 0x00c8},  //delay 200ms
 };

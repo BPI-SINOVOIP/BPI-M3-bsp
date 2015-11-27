@@ -101,7 +101,7 @@ static inline struct sensor_info *to_state(struct v4l2_subdev *sd)
   return container_of(sd, struct sensor_info, sd);
 }
 
-
+ 
 static struct regval_list sensor_default_regs[] = {
 	{0xfe,0xf0},
 	{0xfe,0xf0},
@@ -246,7 +246,7 @@ static struct regval_list sensor_default_regs[] = {
 	{0xcF, 0xFF},
 
 
-#if 0
+#if 0	
 	{0xbf,0x12},
 	{0xc0,0x1d},
 	{0xc1,0x35},
@@ -403,7 +403,7 @@ static struct regval_list sensor_default_regs[] = {
 	{0xcD, 0xF1},
 	{0xcE, 0xFA},
 	{0xcF, 0xFF},
-                     
+
 	default:
 	//GC0310_RGB_Gamma_m3
 	{0xfe , 0x00},
@@ -424,9 +424,9 @@ static struct regval_list sensor_default_regs[] = {
 	{0xcd , 0xf0},
 	{0xce , 0xf7},
 	{0xcf , 0xff},
-	                
+
 #endif
-                                      
+		
 		/////////////////////////////////////////////////
 		///////////////////   YCP  //////////////////////
 		/////////////////////////////////////////////////
@@ -659,7 +659,7 @@ static struct regval_list sensor_default_regs[] = {
 	{0xfe,0x00},
 		///////////////////OUTPUT//////////////////////
 	{0xf3,0xff},// output_enable
- 	                                         
+	
 };
 
 
@@ -678,7 +678,7 @@ static struct regval_list sensor_wb_auto_regs[] = {
 };
 
 static struct regval_list sensor_wb_incandescence_regs[] = {
-	//bai re guang
+	//bai re guang	
 	{0xfe, 0x00},
 	{0x42, 0xcd},
 	{0x77, 0x48},
@@ -806,7 +806,7 @@ static struct regval_list sensor_colorfx_sepia_regs[] = {
 };
 
 static struct regval_list sensor_colorfx_negative_regs[] = {
-	
+
 	{0xfe, 0x00},
 	{0x43, 0x01},
 };
@@ -820,7 +820,7 @@ static struct regval_list sensor_colorfx_sketch_regs[] = {
 };
 
 static struct regval_list sensor_colorfx_sky_blue_regs[] = {
-	
+
 	{0xfe, 0x00},
 	{0x43 , 0x02},
 	{0xda , 0x50},
@@ -836,7 +836,7 @@ static struct regval_list sensor_colorfx_grass_green_regs[] = {
 };
 
 static struct regval_list sensor_colorfx_skin_whiten_regs[] = {
-	      
+	
 };
 
 static struct regval_list sensor_colorfx_vivid_regs[] = {
@@ -1546,7 +1546,7 @@ static int sensor_g_autoexp(struct v4l2_subdev *sd, __s32 *value)
 	int ret;
 	struct sensor_info *info = to_state(sd);
 	unsigned char val;
-	
+
 	ret = sensor_write(sd, 0xfe, 0x00);
 	if (ret < 0) {
 		vfe_dev_err("sensor_write err at sensor_g_autoexp!\n");
@@ -1578,7 +1578,7 @@ static int sensor_s_autoexp(struct v4l2_subdev *sd,
 	int ret;
 	struct sensor_info *info = to_state(sd);
 	unsigned char val;
-	
+
 	ret = sensor_write(sd, 0xfe, 0x00);
 	if (ret < 0) {
 		vfe_dev_err("sensor_write err at sensor_s_autoexp!\n");
@@ -1613,7 +1613,7 @@ static int sensor_s_autoexp(struct v4l2_subdev *sd,
 	}
 	
 	usleep_range(10000,12000);
-
+	
 	info->autoexp = value;
 	return 0;
 }
@@ -1623,7 +1623,7 @@ static int sensor_g_autowb(struct v4l2_subdev *sd, int *value)
 	int ret;
 	struct sensor_info *info = to_state(sd);
 	unsigned char val;
-	
+
 	ret = sensor_write(sd, 0xfe, 0x00);
 	if (ret < 0) {
 		vfe_dev_err("sensor_write err at sensor_g_autowb!\n");
@@ -1650,7 +1650,7 @@ static int sensor_s_autowb(struct v4l2_subdev *sd, int value)
 	int ret;
 	struct sensor_info *info = to_state(sd);
 	unsigned char val;
-	
+
 	ret = sensor_write_array(sd, sensor_wb_auto_regs, ARRAY_SIZE(sensor_wb_auto_regs));
 	if (ret < 0) {
 		vfe_dev_err("sensor_write_array err at sensor_s_autowb!\n");
@@ -1939,7 +1939,7 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
  //make sure that no device can access i2c bus during sensor initial or power down
   //when using i2c_lock_adpater function, the following codes must not access i2c bus before calling i2c_unlock_adapter
   cci_lock(sd);
-
+  
   //insure that clk_disable() and clk_enable() are called in pair 
   //when calling CSI_SUBDEV_STBY_ON/OFF and CSI_SUBDEV_PWR_ON/OFF  
   switch(on)
@@ -2073,7 +2073,7 @@ static int sensor_detect(struct v4l2_subdev *sd)
 	
 	return 0;
 }
-	
+
 static int sensor_init(struct v4l2_subdev *sd, u32 val)
 {
 	int ret;
@@ -2289,7 +2289,7 @@ static int sensor_s_fmt(struct v4l2_subdev *sd,
 	ret = sensor_try_fmt_internal(sd, fmt, &sensor_fmt, &wsize);
 	if (ret){
 		return ret;
-	
+		
 	}
 	if(info->capture_mode == V4L2_MODE_VIDEO) {
 	//video

@@ -26,10 +26,10 @@ MODULE_LICENSE("GPL");
 
 //for internel driver debug
 #define DEV_DBG_EN   		0
-#if(DEV_DBG_EN == 1)
+#if(DEV_DBG_EN == 1)		
 #define vfe_dev_dbg(x,arg...) printk("[CSI_DEBUG][GC2145]"x,##arg)
 #else
-#define vfe_dev_dbg(x,arg...)
+#define vfe_dev_dbg(x,arg...) 
 #endif
 
 #define vfe_dev_err(x,arg...) printk("[CSI_ERR][GC2145]"x,##arg)
@@ -212,7 +212,7 @@ static struct regval_list sensor_default_regs[] = {
 	{0x49, 0x00},
 	{0x4b, 0x0b},
 	{0xfe, 0x00},
-	
+
 	///////////////////////////////////////////////
 	/////////// AEC ////////////////////////
 	///////////////////////////////////////////////
@@ -260,7 +260,7 @@ static struct regval_list sensor_default_regs[] = {
 	{0x97, 0x64},
 	{0xa2, 0x11},
 	{0xfe, 0x00},
-		
+
 	/////////////////////////////
 	//////// DNDD///////////////
 	/////////////////////////////
@@ -299,7 +299,7 @@ static struct regval_list sensor_default_regs[] = {
 	{0x4b, 0x0d},
 	{0x4c, 0x20},
 	{0xfe, 0x00},
-	
+
 	/////////////gamma1//////////////////
 	/////////////////////Gamma///////////////////////
 	///////////////////////////////////////
@@ -723,7 +723,7 @@ static struct regval_list sensor_default_regs[] = {
 		{0xfe , 0x00},
 #endif
 
-	
+
 #if 0	
 	{0xfe, 0x01},
 	{0x4f, 0x00},
@@ -981,7 +981,7 @@ static struct regval_list sensor_default_regs[] = {
 	{0x07 , 0x14},
 	{0x08 , 0x36},
 	{0x0a , 0xc0}, 
-	{0x21 , 0x14}, 
+	{0x21 , 0x14},
 	{0xfe , 0x00},
 	///////output//////////////////////////
 	{0xfe, 0x00},
@@ -1004,7 +1004,7 @@ static struct regval_list sensor_uxga_regs[] ={
 	//// crop window
 	{0xfe , 0x00},
 	{0xb6 , 0x00},
-	{0x99 , 0x11}, 
+	{0x99 , 0x11},  
 	{0x9a , 0x06},
 	{0x9b , 0x00},
 	{0x9c , 0x00},
@@ -1023,7 +1023,7 @@ static struct regval_list sensor_uxga_regs[] ={
 	{0x96 , 0xb0},
 	{0x97 , 0x06},
 	{0x98 , 0x40},
-
+	
 	//// AWB   
 	{0xfe , 0x00},
 	{0xec , 0x02},
@@ -1049,21 +1049,21 @@ static struct regval_list sensor_uxga_regs[] ={
 
 /* 800X600 SVGA,30fps*/
 static struct regval_list sensor_svga_regs[] =
-{	
+{
 	{0xfe , 0x00},
 	{0xfa , 0x00},
-	{0xfd , 0x01},
+	{0xfd , 0x01}, 
 	{0xb6 , 0x01},
-	//// crop window			  
+	//// crop window              
 	{0xfe , 0x00},
-	{0x99 , 0x11},
+	{0x99 , 0x11},  
 	{0x9a , 0x06},
 	{0x9b , 0x00},
 	{0x9c , 0x00},
 	{0x9d , 0x00},
 	{0x9e , 0x00},
 	{0x9f , 0x00},
-	{0xa0 , 0x00},	
+	{0xa0 , 0x00},  
 	{0xa1 , 0x00},
 	{0xa2  ,0x00},
 	{0x90 , 0x01}, 
@@ -1076,7 +1076,7 @@ static struct regval_list sensor_svga_regs[] =
 	{0x97 , 0x03},
 	{0x98 , 0x20},
 
-	//// AWB					  
+	//// AWB                      
 	{0xfe , 0x00},
 	{0xec , 0x01}, 
 	{0xed , 0x02},
@@ -1084,7 +1084,7 @@ static struct regval_list sensor_svga_regs[] =
 	{0xef , 0x48},
 	{0xfe , 0x01},
 	{0x74 , 0x00}, 
-	//// AEC					  
+	//// AEC                      
 	{0xfe , 0x01},
 	{0x01 , 0x04},
 	{0x02 , 0x60},
@@ -1095,7 +1095,7 @@ static struct regval_list sensor_svga_regs[] =
 	{0x07 , 0x14},
 	{0x08 , 0x36},
 	{0x0a , 0xc0}, 
-	{0x21 , 0x14}, 
+	{0x21 , 0x14},
 	{0xfe , 0x00},
 
 };
@@ -1162,10 +1162,10 @@ static struct regval_list sensor_vga_regs[] =
 #endif
 /*
  * The white balance settings
- * Here only tune the R G B channel gain.
+ * Here only tune the R G B channel gain. 
  * The white balance enalbe bit is modified in sensor_s_autowb and sensor_s_wb
  */
-static struct regval_list sensor_wb_manual[] = {
+static struct regval_list sensor_wb_manual[] = { 
 //null
 };
 
@@ -1207,7 +1207,7 @@ static struct regval_list sensor_wb_tungsten_regs[] = {
 		
 };
 
-static struct regval_list sensor_wb_horizon[] = {
+static struct regval_list sensor_wb_horizon[] = { 
 //null
 };
 static struct regval_list sensor_wb_daylight_regs[] = {
@@ -1220,7 +1220,7 @@ static struct regval_list sensor_wb_daylight_regs[] = {
 	
 };
 
-static struct regval_list sensor_wb_flash[] = {
+static struct regval_list sensor_wb_flash[] = { 
 //null
 };
 
@@ -1232,25 +1232,25 @@ static struct regval_list sensor_wb_cloud_regs[] = {
 	{0xb5, 0x50},	
 };
 
-static struct regval_list sensor_wb_shade[] = {
+static struct regval_list sensor_wb_shade[] = { 
 //null
 };
 
 static struct cfg_array sensor_wb[] = {
-  {
-  	.regs = sensor_wb_manual,             //V4L2_WHITE_BALANCE_MANUAL
+  { 
+  	.regs = sensor_wb_manual,             //V4L2_WHITE_BALANCE_MANUAL       
     .size = ARRAY_SIZE(sensor_wb_manual),
   },
   {
-  	.regs = sensor_wb_auto_regs,          //V4L2_WHITE_BALANCE_AUTO
+  	.regs = sensor_wb_auto_regs,          //V4L2_WHITE_BALANCE_AUTO      
     .size = ARRAY_SIZE(sensor_wb_auto_regs),
   },
   {
-  	.regs = sensor_wb_incandescence_regs, //V4L2_WHITE_BALANCE_INCANDESCENT
+  	.regs = sensor_wb_incandescence_regs, //V4L2_WHITE_BALANCE_INCANDESCENT 
     .size = ARRAY_SIZE(sensor_wb_incandescence_regs),
   },
   {
-  	.regs = sensor_wb_fluorescent_regs,   //V4L2_WHITE_BALANCE_FLUORESCENT
+  	.regs = sensor_wb_fluorescent_regs,   //V4L2_WHITE_BALANCE_FLUORESCENT  
     .size = ARRAY_SIZE(sensor_wb_fluorescent_regs),
   },
   {
@@ -1258,23 +1258,23 @@ static struct cfg_array sensor_wb[] = {
     .size = ARRAY_SIZE(sensor_wb_tungsten_regs),
   },
   {
-  	.regs = sensor_wb_horizon,            //V4L2_WHITE_BALANCE_HORIZON
+  	.regs = sensor_wb_horizon,            //V4L2_WHITE_BALANCE_HORIZON    
     .size = ARRAY_SIZE(sensor_wb_horizon),
-  },
+  },  
   {
-  	.regs = sensor_wb_daylight_regs,      //V4L2_WHITE_BALANCE_DAYLIGHT
+  	.regs = sensor_wb_daylight_regs,      //V4L2_WHITE_BALANCE_DAYLIGHT     
     .size = ARRAY_SIZE(sensor_wb_daylight_regs),
   },
   {
-  	.regs = sensor_wb_flash,              //V4L2_WHITE_BALANCE_FLASH
+  	.regs = sensor_wb_flash,              //V4L2_WHITE_BALANCE_FLASH        
     .size = ARRAY_SIZE(sensor_wb_flash),
   },
   {
-  	.regs = sensor_wb_cloud_regs,         //V4L2_WHITE_BALANCE_CLOUDY
+  	.regs = sensor_wb_cloud_regs,         //V4L2_WHITE_BALANCE_CLOUDY       
     .size = ARRAY_SIZE(sensor_wb_cloud_regs),
   },
   {
-  	.regs = sensor_wb_shade,              //V4L2_WHITE_BALANCE_SHADE
+  	.regs = sensor_wb_shade,              //V4L2_WHITE_BALANCE_SHADE  
     .size = ARRAY_SIZE(sensor_wb_shade),
   },
 //  {
@@ -1282,7 +1282,7 @@ static struct cfg_array sensor_wb[] = {
 //    .size = 0,
 //  },
 };
-
+                                          
 
 /*
  * The color effect settings
@@ -1363,55 +1363,55 @@ static struct regval_list sensor_colorfx_set_cbcr_regs[] = {
 
 static struct cfg_array sensor_colorfx[] = {
   {
-  	.regs = sensor_colorfx_none_regs,         //V4L2_COLORFX_NONE = 0,
+  	.regs = sensor_colorfx_none_regs,         //V4L2_COLORFX_NONE = 0,         
     .size = ARRAY_SIZE(sensor_colorfx_none_regs),
   },
   {
-  	.regs = sensor_colorfx_bw_regs,           //V4L2_COLORFX_BW   = 1,
+  	.regs = sensor_colorfx_bw_regs,           //V4L2_COLORFX_BW   = 1,  
     .size = ARRAY_SIZE(sensor_colorfx_bw_regs),
   },
   {
-  	.regs = sensor_colorfx_sepia_regs,        //V4L2_COLORFX_SEPIA  = 2,
+  	.regs = sensor_colorfx_sepia_regs,        //V4L2_COLORFX_SEPIA  = 2,   
     .size = ARRAY_SIZE(sensor_colorfx_sepia_regs),
   },
   {
-  	.regs = sensor_colorfx_negative_regs,     //V4L2_COLORFX_NEGATIVE = 3,
+  	.regs = sensor_colorfx_negative_regs,     //V4L2_COLORFX_NEGATIVE = 3,     
     .size = ARRAY_SIZE(sensor_colorfx_negative_regs),
   },
   {
-  	.regs = sensor_colorfx_emboss_regs,       //V4L2_COLORFX_EMBOSS = 4,
+  	.regs = sensor_colorfx_emboss_regs,       //V4L2_COLORFX_EMBOSS = 4,       
     .size = ARRAY_SIZE(sensor_colorfx_emboss_regs),
   },
   {
-  	.regs = sensor_colorfx_sketch_regs,       //V4L2_COLORFX_SKETCH = 5,
+  	.regs = sensor_colorfx_sketch_regs,       //V4L2_COLORFX_SKETCH = 5,       
     .size = ARRAY_SIZE(sensor_colorfx_sketch_regs),
   },
   {
-  	.regs = sensor_colorfx_sky_blue_regs,     //V4L2_COLORFX_SKY_BLUE = 6,
+  	.regs = sensor_colorfx_sky_blue_regs,     //V4L2_COLORFX_SKY_BLUE = 6,     
     .size = ARRAY_SIZE(sensor_colorfx_sky_blue_regs),
   },
   {
-  	.regs = sensor_colorfx_grass_green_regs,  //V4L2_COLORFX_GRASS_GREEN = 7,
+  	.regs = sensor_colorfx_grass_green_regs,  //V4L2_COLORFX_GRASS_GREEN = 7,  
     .size = ARRAY_SIZE(sensor_colorfx_grass_green_regs),
   },
   {
-  	.regs = sensor_colorfx_skin_whiten_regs,  //V4L2_COLORFX_SKIN_WHITEN = 8,
+  	.regs = sensor_colorfx_skin_whiten_regs,  //V4L2_COLORFX_SKIN_WHITEN = 8,  
     .size = ARRAY_SIZE(sensor_colorfx_skin_whiten_regs),
   },
   {
-  	.regs = sensor_colorfx_vivid_regs,        //V4L2_COLORFX_VIVID = 9,
+  	.regs = sensor_colorfx_vivid_regs,        //V4L2_COLORFX_VIVID = 9,        
     .size = ARRAY_SIZE(sensor_colorfx_vivid_regs),
   },
   {
-  	.regs = sensor_colorfx_aqua_regs,         //V4L2_COLORFX_AQUA = 10,
+  	.regs = sensor_colorfx_aqua_regs,         //V4L2_COLORFX_AQUA = 10,        
     .size = ARRAY_SIZE(sensor_colorfx_aqua_regs),
   },
   {
-  	.regs = sensor_colorfx_art_freeze_regs,   //V4L2_COLORFX_ART_FREEZE = 11,
+  	.regs = sensor_colorfx_art_freeze_regs,   //V4L2_COLORFX_ART_FREEZE = 11,  
     .size = ARRAY_SIZE(sensor_colorfx_art_freeze_regs),
   },
   {
-  	.regs = sensor_colorfx_silhouette_regs,   //V4L2_COLORFX_SILHOUETTE = 12,
+  	.regs = sensor_colorfx_silhouette_regs,   //V4L2_COLORFX_SILHOUETTE = 12,  
     .size = ARRAY_SIZE(sensor_colorfx_silhouette_regs),
   },
   {
@@ -1419,11 +1419,11 @@ static struct cfg_array sensor_colorfx[] = {
     .size = ARRAY_SIZE(sensor_colorfx_solarization_regs),
   },
   {
-  	.regs = sensor_colorfx_antique_regs,      //V4L2_COLORFX_ANTIQUE = 14,
+  	.regs = sensor_colorfx_antique_regs,      //V4L2_COLORFX_ANTIQUE = 14,     
     .size = ARRAY_SIZE(sensor_colorfx_antique_regs),
   },
   {
-  	.regs = sensor_colorfx_set_cbcr_regs,     //V4L2_COLORFX_SET_CBCR = 15,
+  	.regs = sensor_colorfx_set_cbcr_regs,     //V4L2_COLORFX_SET_CBCR = 15, 
     .size = ARRAY_SIZE(sensor_colorfx_set_cbcr_regs),
   },
 };
@@ -1450,7 +1450,7 @@ static struct regval_list sensor_brightness_neg1_regs[] = {
 };
 
 static struct regval_list sensor_brightness_zero_regs[] = {
-//NULL
+//NULL	
 };
 
 static struct regval_list sensor_brightness_pos1_regs[] = {
@@ -1458,11 +1458,11 @@ static struct regval_list sensor_brightness_pos1_regs[] = {
 };
 
 static struct regval_list sensor_brightness_pos2_regs[] = {
-//NULL
+//NULL	
 };
 
 static struct regval_list sensor_brightness_pos3_regs[] = {
-//NULL
+//NULL	
 };
 
 static struct regval_list sensor_brightness_pos4_regs[] = {
@@ -1727,7 +1727,7 @@ static struct regval_list sensor_ev_pos3_regs[] = {
 	{0x13 , 0xc0}, 
 	{0xfe, 0x02},
 	{0xd5, 0x30}, 
-	{0xfe, 0x00},
+	{0xfe, 0x00},	
 };
 
 static struct regval_list sensor_ev_pos4_regs[] = {
@@ -1780,7 +1780,7 @@ static struct cfg_array sensor_ev[] = {
 /*
  * Here we'll try to encapsulate the changes for just the output
  * video format.
- *
+ * 
  */
 
 static struct regval_list sensor_fmt_yuv422_yuyv[] = {
@@ -1876,15 +1876,15 @@ static int sensor_write(struct v4l2_subdev *sd, unsigned char reg,
 static int sensor_write_array(struct v4l2_subdev *sd, struct regval_list *regs, int array_size)
 {
 	int i=0;
-
+	
   if(!regs)
   	return -EINVAL;
-
+  
   while(i<array_size)
   {
     if(regs->addr == REG_DLY) {
       msleep(regs->data);
-    }
+    } 
     else {
     	//printk("write 0x%x=0x%x\n", regs->addr, regs->data);
       LOG_ERR_RET(sensor_write(sd, regs->addr, regs->data))
@@ -1908,16 +1908,16 @@ static int sensor_g_hflip(struct v4l2_subdev *sd, __s32 *value)
 		vfe_dev_err("sensor_write err at sensor_g_hflip!\n");
 		return ret;
 	}
-
+	
 	ret = sensor_read(sd, 0x17, &val);
 	if (ret < 0) {
 		vfe_dev_err("sensor_read err at sensor_g_hflip!\n");
 		return ret;
 	}
-
+	
 	val &= (1<<0);
-	val = val>>0;	
-
+	val = val>>0;		
+		
 	*value = val;
 
 	info->hflip = *value;
@@ -1930,7 +1930,7 @@ static int sensor_s_hflip(struct v4l2_subdev *sd, int value)
 	struct sensor_info *info = to_state(sd);
 //	struct regval_list regs;
 	unsigned char val;
-
+	
 	ret = sensor_write(sd, 0xfe, 0);
 	if (ret < 0) {
 		vfe_dev_err("sensor_write err at sensor_s_hflip!\n");
@@ -1941,7 +1941,7 @@ static int sensor_s_hflip(struct v4l2_subdev *sd, int value)
 		vfe_dev_err("sensor_read err at sensor_s_hflip!\n");
 		return ret;
 	}
-
+	
 	switch (value) {
 		case 0:
 		  val &= 0xfe;
@@ -1957,9 +1957,9 @@ static int sensor_s_hflip(struct v4l2_subdev *sd, int value)
 		vfe_dev_err("sensor_write err at sensor_s_hflip!\n");
 		return ret;
 	}
-
+	
 	usleep_range(20000,22000);
-
+	
 	info->hflip = value;
 	return 0;
 }
@@ -1970,22 +1970,22 @@ static int sensor_g_vflip(struct v4l2_subdev *sd, __s32 *value)
 	struct sensor_info *info = to_state(sd);
 //	struct regval_list regs;
 	unsigned char val;
-
+	
 	ret = sensor_write(sd, 0xfe, 0x00);
 	if (ret < 0) {
 		vfe_dev_err("sensor_write err at sensor_g_vflip!\n");
 		return ret;
 	}
-
+	
 	ret = sensor_read(sd, 0x17, &val);
 	if (ret < 0) {
 		vfe_dev_err("sensor_read err at sensor_g_vflip!\n");
 		return ret;
 	}
-
+	
 	val &= (1<<1);
-	val = val>>1;	
-
+	val = val>>1;		
+		
 	*value = val;
 
 	info->vflip = *value;
@@ -1998,19 +1998,19 @@ static int sensor_s_vflip(struct v4l2_subdev *sd, int value)
 	struct sensor_info *info = to_state(sd);
 //	struct regval_list regs;
 	unsigned char val;
-
+	
 	ret = sensor_write(sd, 0xfe, 0x00);
 	if (ret < 0) {
 		vfe_dev_err("sensor_write err at sensor_s_vflip!\n");
 		return ret;
 	}
-
+	
 	ret = sensor_read(sd, 0x17, &val);
 	if (ret < 0) {
 		vfe_dev_err("sensor_read err at sensor_s_vflip!\n");
 		return ret;
 	}
-
+	
 	switch (value) {
 		case 0:
 		  val &= 0xfd;
@@ -2026,9 +2026,9 @@ static int sensor_s_vflip(struct v4l2_subdev *sd, int value)
 		vfe_dev_err("sensor_write err at sensor_s_vflip!\n");
 		return ret;
 	}
-
+	
 	usleep_range(20000,22000);
-
+	
 	info->vflip = value;
 	return 0;
 }
@@ -2049,13 +2049,13 @@ static int sensor_g_autoexp(struct v4l2_subdev *sd, __s32 *value)
 	struct sensor_info *info = to_state(sd);
 //	struct regval_list regs;
 	unsigned char val;
-
+	
 	ret = sensor_write(sd, 0xfe, 0x00);
 	if (ret < 0) {
 		vfe_dev_err("sensor_write err at sensor_g_autoexp!\n");
 		return ret;
 	}
-
+	
 	ret = sensor_read(sd, 0xb6, &val);
 	if (ret < 0) {
 		vfe_dev_err("sensor_read err at sensor_g_autoexp!\n");
@@ -2070,7 +2070,7 @@ static int sensor_g_autoexp(struct v4l2_subdev *sd, __s32 *value)
 	{
 		*value = V4L2_EXPOSURE_MANUAL;
 	}
-
+	
 	info->autoexp = *value;
 	return 0;
 }
@@ -2082,13 +2082,13 @@ static int sensor_s_autoexp(struct v4l2_subdev *sd,
 	struct sensor_info *info = to_state(sd);
 //	struct regval_list regs;
 	unsigned char val;
-
+	
 	ret = sensor_write(sd, 0xfe, 0x00);
 	if (ret < 0) {
 		vfe_dev_err("sensor_write err at sensor_s_autoexp!\n");
 		return ret;
 	}
-
+	
 	ret = sensor_read(sd, 0xb6, &val);
 	if (ret < 0) {
 		vfe_dev_err("sensor_read err at sensor_s_autoexp!\n");
@@ -2103,7 +2103,7 @@ static int sensor_s_autoexp(struct v4l2_subdev *sd,
 			val &= 0xfe;
 			break;
 		case V4L2_EXPOSURE_SHUTTER_PRIORITY:
-			return -EINVAL;
+			return -EINVAL;    
 		case V4L2_EXPOSURE_APERTURE_PRIORITY:
 			return -EINVAL;
 		default:
@@ -2124,13 +2124,13 @@ static int sensor_g_autowb(struct v4l2_subdev *sd, int *value)
 	struct sensor_info *info = to_state(sd);
 //	struct regval_list regs;
 	unsigned char val;
-
+	
 	ret = sensor_write(sd, 0xfe, 0x00);
 	if (ret < 0) {
 		vfe_dev_err("sensor_write err at sensor_g_autowb!\n");
 		return ret;
 	}
-
+	
 	ret = sensor_read(sd, 0x82, &val);
 	if (ret < 0) {
 		vfe_dev_err("sensor_read err at sensor_g_autowb!\n");
@@ -2150,7 +2150,7 @@ static int sensor_s_autowb(struct v4l2_subdev *sd, int value)
 	struct sensor_info *info = to_state(sd);
 //	struct regval_list regs;
 	unsigned char val;
-
+	
 	ret = sensor_write_array(sd, sensor_wb_auto_regs, ARRAY_SIZE(sensor_wb_auto_regs));
 	if (ret < 0) {
 		vfe_dev_err("sensor_write_array err at sensor_s_autowb!\n");
@@ -2172,15 +2172,15 @@ static int sensor_s_autowb(struct v4l2_subdev *sd, int value)
 		break;
 	default:
 		break;
-	}
+	}	
 	ret = sensor_write(sd, 0x82, val);
 	if (ret < 0) {
 		vfe_dev_err("sensor_write err at sensor_s_autowb!\n");
 		return ret;
 	}
-
+	
 	usleep_range(10000,12000);
-
+	
 	info->autowb = value;
 	return 0;
 }
@@ -2210,7 +2210,7 @@ static int sensor_s_gain(struct v4l2_subdev *sd, int value)
 static int sensor_g_brightness(struct v4l2_subdev *sd, __s32 *value)
 {
   struct sensor_info *info = to_state(sd);
-
+  
   *value = info->brightness;
   return 0;
 }
@@ -2218,13 +2218,13 @@ static int sensor_g_brightness(struct v4l2_subdev *sd, __s32 *value)
 static int sensor_s_brightness(struct v4l2_subdev *sd, int value)
 {
   struct sensor_info *info = to_state(sd);
-
+  
   if(info->brightness == value)
     return 0;
-
+  
   if(value < -4 || value > 4)
     return -ERANGE;
-
+  
   LOG_ERR_RET(sensor_write_array(sd, sensor_brightness[value+4].regs, sensor_brightness[value+4].size))
 
   info->brightness = value;
@@ -2234,7 +2234,7 @@ static int sensor_s_brightness(struct v4l2_subdev *sd, int value)
 static int sensor_g_contrast(struct v4l2_subdev *sd, __s32 *value)
 {
   struct sensor_info *info = to_state(sd);
-
+  
   *value = info->contrast;
   return 0;
 }
@@ -2242,15 +2242,15 @@ static int sensor_g_contrast(struct v4l2_subdev *sd, __s32 *value)
 static int sensor_s_contrast(struct v4l2_subdev *sd, int value)
 {
   struct sensor_info *info = to_state(sd);
-
+  
   if(info->contrast == value)
     return 0;
-
+  
   if(value < -4 || value > 4)
     return -ERANGE;
-
+    
   LOG_ERR_RET(sensor_write_array(sd, sensor_contrast[value+4].regs, sensor_contrast[value+4].size))
-
+  
   info->contrast = value;
   return 0;
 }
@@ -2258,7 +2258,7 @@ static int sensor_s_contrast(struct v4l2_subdev *sd, int value)
 static int sensor_g_saturation(struct v4l2_subdev *sd, __s32 *value)
 {
   struct sensor_info *info = to_state(sd);
-
+  
   *value = info->saturation;
   return 0;
 }
@@ -2266,13 +2266,13 @@ static int sensor_g_saturation(struct v4l2_subdev *sd, __s32 *value)
 static int sensor_s_saturation(struct v4l2_subdev *sd, int value)
 {
   struct sensor_info *info = to_state(sd);
-
+  
   if(info->saturation == value)
     return 0;
 
   if(value < -4 || value > 4)
     return -ERANGE;
-
+      
   LOG_ERR_RET(sensor_write_array(sd, sensor_saturation[value+4].regs, sensor_saturation[value+4].size))
 
   info->saturation = value;
@@ -2282,7 +2282,7 @@ static int sensor_s_saturation(struct v4l2_subdev *sd, int value)
 static int sensor_g_exp_bias(struct v4l2_subdev *sd, __s32 *value)
 {
   struct sensor_info *info = to_state(sd);
-
+  
   *value = info->exp_bias;
   return 0;
 }
@@ -2296,7 +2296,7 @@ static int sensor_s_exp_bias(struct v4l2_subdev *sd, int value)
 
   if(value < -4 || value > 4)
     return -ERANGE;
-
+      
   LOG_ERR_RET(sensor_write_array(sd, sensor_ev[value+4].regs, sensor_ev[value+4].size))
 
   info->exp_bias = value;
@@ -2307,9 +2307,9 @@ static int sensor_g_wb(struct v4l2_subdev *sd, int *value)
 {
   struct sensor_info *info = to_state(sd);
   enum v4l2_auto_n_preset_white_balance *wb_type = (enum v4l2_auto_n_preset_white_balance*)value;
-
+  
   *wb_type = info->wb;
-
+  
   return 0;
 }
 
@@ -2317,20 +2317,20 @@ static int sensor_s_wb(struct v4l2_subdev *sd,
     enum v4l2_auto_n_preset_white_balance value)
 {
   struct sensor_info *info = to_state(sd);
-
+  
   if(info->capture_mode == V4L2_MODE_IMAGE)
     return 0;
-
+  
   if(info->wb == value)
     return 0;
   
   LOG_ERR_RET(sensor_write_array(sd, sensor_wb[value].regs ,sensor_wb[value].size) )
-
-  if (value == V4L2_WHITE_BALANCE_AUTO)
+  
+  if (value == V4L2_WHITE_BALANCE_AUTO) 
     info->autowb = 1;
   else
     info->autowb = 0;
-
+	
 	info->wb = value;
 	return 0;
 }
@@ -2340,7 +2340,7 @@ static int sensor_g_colorfx(struct v4l2_subdev *sd,
 {
 	struct sensor_info *info = to_state(sd);
 	enum v4l2_colorfx *clrfx_type = (enum v4l2_colorfx*)value;
-
+	
 	*clrfx_type = info->clrfx;
 	return 0;
 }
@@ -2352,7 +2352,7 @@ static int sensor_s_colorfx(struct v4l2_subdev *sd,
 
   if(info->clrfx == value)
     return 0;
-
+  
   LOG_ERR_RET(sensor_write_array(sd, sensor_colorfx[value].regs, sensor_colorfx[value].size))
 
   info->clrfx = value;
@@ -2364,7 +2364,7 @@ static int sensor_g_flash_mode(struct v4l2_subdev *sd,
 {
   struct sensor_info *info = to_state(sd);
   enum v4l2_flash_led_mode *flash_mode = (enum v4l2_flash_led_mode*)value;
-
+  
   *flash_mode = info->flash_mode;
   return 0;
 }
@@ -2375,30 +2375,30 @@ static int sensor_s_flash_mode(struct v4l2_subdev *sd,
   struct sensor_info *info = to_state(sd);
 //  struct vfe_dev *dev=(struct vfe_dev *)dev_get_drvdata(sd->v4l2_dev->dev);
 //  int flash_on,flash_off;
-//
+//  
 //  flash_on = (dev->flash_pol!=0)?1:0;
 //  flash_off = (flash_on==1)?0:1;
-//
+//  
 //  switch (value) {
 //  case V4L2_FLASH_MODE_OFF:
 //    os_gpio_write(&dev->flash_io,flash_off);
 //    break;
 //  case V4L2_FLASH_MODE_AUTO:
 //    return -EINVAL;
-//    break;
+//    break;  
 //  case V4L2_FLASH_MODE_ON:
 //    os_gpio_write(&dev->flash_io,flash_on);
-//    break;
+//    break;   
 //  case V4L2_FLASH_MODE_TORCH:
 //    return -EINVAL;
 //    break;
-//  case V4L2_FLASH_MODE_RED_EYE:
+//  case V4L2_FLASH_MODE_RED_EYE:   
 //    return -EINVAL;
 //    break;
 //  default:
 //    return -EINVAL;
 //  }
-
+  
   info->flash_mode = value;
   return 0;
 }
@@ -2426,7 +2426,7 @@ static int sensor_s_sw_stby(struct v4l2_subdev *sd, int on_off)
 /*
  * Stuff that knows about the sensor.
  */
-
+ 
 static int sensor_power(struct v4l2_subdev *sd, int on)
 {
 	int ret;
@@ -2517,13 +2517,13 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
       break;
     default:
       return -EINVAL;
-	}
+	}		
 
 	//remember to unlock i2c adapter, so the device can access the i2c bus again
-	cci_unlock(sd);
+	cci_unlock(sd);	
 	return 0;
 }
-
+ 
 static int sensor_reset(struct v4l2_subdev *sd, u32 val)
 {
   switch(val)
@@ -2539,7 +2539,7 @@ static int sensor_reset(struct v4l2_subdev *sd, u32 val)
     default:
       return -EINVAL;
   }
-
+    
   return 0;
 }
 
@@ -2548,7 +2548,7 @@ static int sensor_detect(struct v4l2_subdev *sd)
 	int ret;
 	unsigned   int SENSOR_ID=0;
 	unsigned char val;
-
+	
 //	ret = sensor_write(sd, 0xfe, 0x00);
 //	if (ret < 0) {
 //		vfe_dev_err("sensor_write err at sensor_detect!\n");
@@ -2561,7 +2561,7 @@ static int sensor_detect(struct v4l2_subdev *sd)
 		vfe_dev_err("sensor_read err at sensor_detect!\n");
 		return ret;
 	}
-
+	
 	ret = sensor_read(sd, 0xf1, &val);
 	SENSOR_ID|= (val);
 	vfe_dev_print("V4L2_IDENT_SENSOR=%x",SENSOR_ID);
@@ -2569,10 +2569,10 @@ static int sensor_detect(struct v4l2_subdev *sd)
 		vfe_dev_err("sensor_read err at sensor_detect!\n");
 		return ret;
 	}
-
+	
 	if(SENSOR_ID != V4L2_IDENT_SENSOR)
 		return -ENODEV;
-
+	
 	return 0;
 }
 
@@ -2586,7 +2586,7 @@ static int sensor_init(struct v4l2_subdev *sd, u32 val)
 		vfe_dev_err("chip found is not an target chip.\n");
 		return ret;
 	}
-
+	
 	return sensor_write_array(sd, sensor_default_regs , ARRAY_SIZE(sensor_default_regs));
 }
 
@@ -2598,7 +2598,7 @@ static long sensor_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 
 
 /*
- * Store information about the video data format.
+ * Store information about the video data format. 
  */
 static struct sensor_format_struct {
 	__u8 *desc;
@@ -2646,14 +2646,14 @@ static struct sensor_format_struct {
 };
 #define N_FMTS ARRAY_SIZE(sensor_formats)
 
-
+	
 
 /*
  * Then there is the issue of window sizes.  Try to capture the info here.
  */
 
 
-static struct sensor_win_size
+static struct sensor_win_size 
 sensor_win_sizes[] = {
   /* UXGA */
   {
@@ -2716,11 +2716,11 @@ static int sensor_enum_size(struct v4l2_subdev *sd,
 {
   if(fsize->index > N_WIN_SIZES-1)
   	return -EINVAL;
-
+  
   fsize->type = V4L2_FRMSIZE_TYPE_DISCRETE;
   fsize->discrete.width = sensor_win_sizes[fsize->index].width;
   fsize->discrete.height = sensor_win_sizes[fsize->index].height;
-
+  
   return 0;
 }
 
@@ -2737,18 +2737,18 @@ static int sensor_try_fmt_internal(struct v4l2_subdev *sd,
     if (sensor_formats[index].mbus_code == fmt->code)
       break;
 
-  if (index >= N_FMTS)
+  if (index >= N_FMTS) 
     return -EINVAL;
-
+  
   if (ret_fmt != NULL)
     *ret_fmt = sensor_formats + index;
-
+    
   /*
    * Fields: the sensor devices claim to be progressive.
    */
-
+  
   fmt->field = V4L2_FIELD_NONE;
-
+  
   /*
    * Round requested image size down to the nearest
    * we support, but not below the smallest.
@@ -2757,7 +2757,7 @@ static int sensor_try_fmt_internal(struct v4l2_subdev *sd,
        wsize++)
     if (fmt->width >= wsize->width && fmt->height >= wsize->height)
       break;
-
+    
   if (wsize >= sensor_win_sizes + N_WIN_SIZES)
     wsize--;   /* Take the smallest one */
   if (ret_wsize != NULL)
@@ -2773,7 +2773,7 @@ static int sensor_try_fmt_internal(struct v4l2_subdev *sd,
   return 0;
 }
 
-static int sensor_try_fmt(struct v4l2_subdev *sd,
+static int sensor_try_fmt(struct v4l2_subdev *sd, 
              struct v4l2_mbus_framefmt *fmt)
 {
   return sensor_try_fmt_internal(sd, fmt, NULL, NULL);
@@ -2784,13 +2784,13 @@ static int sensor_g_mbus_config(struct v4l2_subdev *sd,
 {
   cfg->type = V4L2_MBUS_PARALLEL;
   cfg->flags = V4L2_MBUS_MASTER | VREF_POL | HREF_POL | CLK_POL ;
-
+  
   return 0;
 }
 /*
  * Set a format.
  */
-static int sensor_s_fmt(struct v4l2_subdev *sd,
+static int sensor_s_fmt(struct v4l2_subdev *sd, 
              struct v4l2_mbus_framefmt *fmt)//linux-3.0
 {
 	int ret;
@@ -2799,7 +2799,7 @@ static int sensor_s_fmt(struct v4l2_subdev *sd,
 
 	struct sensor_format_struct *sensor_fmt;
 	struct sensor_win_size *wsize;
-	struct sensor_info *info = to_state(sd);
+	struct sensor_info *info = to_state(sd);	
 //	printk("chr wsize.width = [%d], wsize.height = [%d]\n", wsize->width, wsize->height);		
 	//////////////shutter-gain///////////////
 	ret = sensor_try_fmt_internal(sd, fmt, &sensor_fmt, &wsize);
@@ -2811,9 +2811,9 @@ static int sensor_s_fmt(struct v4l2_subdev *sd,
 		sensor_write(sd, 0xb6, 0x00);
 		/*read shutter */
 		sensor_read(sd, 0x03, &val);
-		temp |= (val<< 8);
+		temp |= (val<< 8);			  
 		sensor_read(sd, 0x04, &val);
-		temp |= (val & 0xff);
+		temp |= (val & 0xff);		  
 		shutter=temp;
 	}
 
@@ -2825,7 +2825,7 @@ static int sensor_s_fmt(struct v4l2_subdev *sd,
 		if (ret < 0)
 			return ret;
 	}
-
+	
 	if (wsize->set_size)
 	{
 		ret = wsize->set_size(sd);
@@ -2880,7 +2880,7 @@ static int sensor_g_parm(struct v4l2_subdev *sd, struct v4l2_streamparm *parms)
 	else {
 		cp->timeperframe.denominator = SENSOR_FRAME_RATE;
 	}
-
+	
 	return 0;
 }
 
@@ -2906,7 +2906,7 @@ static int sensor_s_parm(struct v4l2_subdev *sd, struct v4l2_streamparm *parms)
 //			div = (tpf->numerator*SENSOR_FRAME_RATE)/tpf->denominator;
 //		}
 //	}	
-//
+//	
 //	if (div == 0)
 //		div = 1;
 //	else if (div > 8)
@@ -2924,7 +2924,7 @@ static int sensor_s_parm(struct v4l2_subdev *sd, struct v4l2_streamparm *parms)
 }
 
 
-/*
+/* 
  * Code for dealing with controls.
  * fill with different sensor module
  * different sensor module has different settings here
@@ -2938,7 +2938,7 @@ static int sensor_queryctrl(struct v4l2_subdev *sd,
 	/* Fill in min, max, step and default value for these controls. */
 	/* see include/linux/videodev2.h for details */
 	/* see sensor_s_parm and sensor_g_parm for the meaning of value */
-
+	
 	switch (qc->id) {
 //	case V4L2_CID_BRIGHTNESS:
 //		return v4l2_ctrl_query_fill(qc, -4, 4, 1, 1);
@@ -2967,7 +2967,7 @@ static int sensor_queryctrl(struct v4l2_subdev *sd,
 	case V4L2_CID_COLORFX:
     return v4l2_ctrl_query_fill(qc, 0, 15, 1, 0);
   case V4L2_CID_FLASH_LED_MODE:
-	  return v4l2_ctrl_query_fill(qc, 0, 4, 1, 0);
+	  return v4l2_ctrl_query_fill(qc, 0, 4, 1, 0);	
   
 //  case V4L2_CID_3A_LOCK:
 //    return v4l2_ctrl_query_fill(qc, 0, V4L2_LOCK_EXPOSURE |
@@ -3002,7 +3002,7 @@ static int sensor_g_ctrl(struct v4l2_subdev *sd, struct v4l2_control *ctrl)
 	case V4L2_CID_SATURATION:
 		return sensor_g_saturation(sd, &ctrl->value);
 	case V4L2_CID_HUE:
-		return sensor_g_hue(sd, &ctrl->value);
+		return sensor_g_hue(sd, &ctrl->value);	
 	case V4L2_CID_VFLIP:
 		return sensor_g_vflip(sd, &ctrl->value);
 	case V4L2_CID_HFLIP:
@@ -3053,7 +3053,7 @@ static int sensor_s_ctrl(struct v4l2_subdev *sd, struct v4l2_control *ctrl)
 {
   struct v4l2_queryctrl qc;
   int ret;
-
+  
 //  vfe_dev_dbg("sensor_s_ctrl ctrl->id=0x%8x\n", ctrl->id);
   qc.id = ctrl->id;
   ret = sensor_queryctrl(sd, &qc);
@@ -3077,7 +3077,7 @@ static int sensor_s_ctrl(struct v4l2_subdev *sd, struct v4l2_control *ctrl)
 	case V4L2_CID_SATURATION:
 		return sensor_s_saturation(sd, ctrl->value);
 	case V4L2_CID_HUE:
-		return sensor_s_hue(sd, ctrl->value);
+		return sensor_s_hue(sd, ctrl->value);		
 	case V4L2_CID_VFLIP:
 		return sensor_s_vflip(sd, ctrl->value);
 	case V4L2_CID_HFLIP:
@@ -3094,7 +3094,7 @@ static int sensor_s_ctrl(struct v4l2_subdev *sd, struct v4l2_control *ctrl)
           (enum v4l2_exposure_auto_type) ctrl->value);
     case V4L2_CID_AUTO_N_PRESET_WHITE_BALANCE:
   		return sensor_s_wb(sd,
-          (enum v4l2_auto_n_preset_white_balance) ctrl->value);
+          (enum v4l2_auto_n_preset_white_balance) ctrl->value); 
     case V4L2_CID_AUTO_WHITE_BALANCE:
       return sensor_s_autowb(sd, ctrl->value);
     case V4L2_CID_COLORFX:

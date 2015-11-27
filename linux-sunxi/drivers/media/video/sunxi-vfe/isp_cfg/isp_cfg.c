@@ -24,6 +24,12 @@
 #include "SENSOR_H/h22_mipi_isp_cfg.h"
 #include "SENSOR_H/gc1004_mipi_isp_cfg.h"
 #include "SENSOR_H/ov4689_isp_cfg.h"
+
+#include "SENSOR_H/gc1014_mipi_isp_cfg.h"
+#include "SENSOR_H/imx219_default_a83.h"
+#include "SENSOR_H/ov8865_4lane_default_a83.h"
+
+
 #define ISP_CFG_ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
 struct isp_cfg_item isp_cfg_array[] = 

@@ -99,12 +99,12 @@ static ssize_t cci_sys_store(struct device *dev,
 	value =  val & 0xFFFF;
 	if(0 == cci_drv->read_flag)
 	{
-		cci_write(sd , reg, value, cci_drv->addr_width, cci_drv->data_width);
+		cci_write(sd, (addr_type)reg, (addr_type)value);
 		cci_print("Write reg = 0x%x, write value = 0x%x\n",reg, value);
 	}
 	else
 	{
-		cci_read(sd , reg, &cci_drv->read_value, cci_drv->addr_width, cci_drv->data_width);
+		cci_read(sd, (addr_type)reg, (addr_type*)&cci_drv->read_value);
 		cci_print("Read reg = 0x%x, read value = 0x%x\n",reg, cci_drv->read_value);
 	}
 	return count;
@@ -688,6 +688,46 @@ int cci_write_a16_d16(struct v4l2_subdev *sd, unsigned short addr,
 
 EXPORT_SYMBOL_GPL(cci_write_a16_d16);
 
+int cci_write_a16_d32(struct v4l2_subdev *sd, unsigned short addr,
+    unsigned int value)
+{
+#ifdef USE_SPECIFIC_CCI
+	struct cci_driver *cci_drv;
+	unsigned char vals[4];
+	cci_drv = v4l2_get_subdevdata(sd);
+	vals[0] = (value&0xff000000)>>24;
+	vals[1] = (value&0x00ff0000)>>16;
+	vals[2] = (value&0x0000ff00)>>8;
+	vals[3] = (value&0x000000ff);
+	return cci_wr_a16_d8_continuous(cci_drv->cci_id, addr, vals, cci_drv->cci_saddr,4);
+#else
+  struct i2c_msg msg;
+  unsigned char data[6];
+  int ret;
+  struct i2c_client *client = v4l2_get_subdevdata(sd);
+  
+  data[0] = (addr&0xff00)>>8;
+  data[1] = (addr&0x00ff);
+  data[2] = (value&0xff000000)>>24;
+  data[3] = (value&0x00ff0000)>>16;
+  data[4] = (value&0x0000ff00)>>8;
+  data[5] = (value&0x000000ff);  
+  msg.addr = client->addr;
+  msg.flags = 0;
+  msg.len = 6;
+  msg.buf = data;
+
+  ret = i2c_transfer(client->adapter, &msg, 1);
+  if (ret >= 0) {
+    ret = 0;
+  } else {
+    cci_err("%s error! slave = 0x%x, addr = 0x%4x, value = 0x%4x\n ",__func__, client->addr, addr,value);
+  }
+  return ret;
+#endif
+}
+
+EXPORT_SYMBOL_GPL(cci_write_a16_d32);
 int cci_read_a0_d16(struct v4l2_subdev *sd, unsigned short *value)
 {
 #ifdef USE_SPECIFIC_CCI
@@ -797,8 +837,12 @@ int cci_write_a16_d8_continuous_helper(struct v4l2_subdev *sd, unsigned short ad
 }
 EXPORT_SYMBOL_GPL(cci_write_a16_d8_continuous_helper);
 
-int cci_write(struct v4l2_subdev *sd, unsigned short addr, unsigned short value, int addr_width, int data_width)
+int cci_write(struct v4l2_subdev *sd, addr_type addr, data_type value)
 {
+	struct cci_driver *cci_drv = v4l2_get_subdevdata(sd);
+	int addr_width = cci_drv->addr_width;
+	int data_width = cci_drv->data_width;
+
 	if(8 == addr_width && 8 == data_width)
 	{
 		return cci_write_a8_d8(sd, (unsigned char)addr, (unsigned char)value);
@@ -827,8 +871,12 @@ int cci_write(struct v4l2_subdev *sd, unsigned short addr, unsigned short value,
 }
 EXPORT_SYMBOL_GPL(cci_write);
 
-int cci_read(struct v4l2_subdev *sd, unsigned short addr, unsigned short *value, int addr_width, int data_width)
+int cci_read(struct v4l2_subdev *sd, addr_type addr, data_type *value)
 {
+	struct cci_driver *cci_drv = v4l2_get_subdevdata(sd);
+	int addr_width = cci_drv->addr_width;
+	int data_width = cci_drv->data_width;
+	*value = 0;
 	if(8 == addr_width && 8 == data_width)
 	{
 		return cci_read_a8_d8(sd, (unsigned char)addr, (unsigned char *)value);

@@ -366,6 +366,7 @@ struct vfe_dev {
   unsigned int            mipi_sel;
   unsigned int            vip_sel;
   unsigned int            isp_sel;
+  unsigned int            cci_sel;
   struct ccm_config       ccm_cfg_content[MAX_INPUT_NUM];
   struct ccm_config       *ccm_cfg[MAX_INPUT_NUM];
 //  struct vfe_device_info  *ccm_info;        /* current config */
@@ -381,6 +382,9 @@ struct vfe_dev {
   unsigned int            thumb_height;
   unsigned int            buf_byte_size;    /* including main and thumb buffer */
   unsigned int            buf_addr;         /* including main and thumb buffer */
+	struct isp_size_settings	size_settings;
+	enum pixel_fmt			isp_fmt[ISP_MAX_CH_NUM];
+	unsigned int 			crop_flag;
   struct bus_info         bus_info;
   struct frame_info       frame_info;
   struct isp_frame_info   isp_frame_info;
@@ -391,7 +395,7 @@ struct vfe_dev {
   struct vfe_mm						isp_stat_buf_mm[MAX_ISP_STAT_BUF];
   struct vfe_mm						isp_load_reg_mm;
   struct vfe_mm						isp_save_reg_mm;
-  struct isp_gen_settings isp_gen_set[MAX_INPUT_NUM];
+  struct isp_gen_settings *isp_gen_set[MAX_INPUT_NUM];
   struct isp_gen_settings *isp_gen_set_pt; 
   struct mutex            isp_3a_result_mutex;
   struct isp_3a_result    isp_3a_result[MAX_INPUT_NUM];
@@ -405,6 +409,9 @@ struct vfe_dev {
   struct flash_dev_info                   *fl_dev_info;
   unsigned int						platform_id;
   unsigned int 			vfe_s_input_flag;
+  unsigned int 			nframe_in_buf;
+  unsigned int			set_addr_cnt;
+  struct timer_list		timer_for_reset;
 };
 
 #endif  /* __VFE__H__ */

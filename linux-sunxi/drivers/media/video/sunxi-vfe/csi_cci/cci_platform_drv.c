@@ -96,11 +96,8 @@ static int __devinit cci_probe(struct platform_device *pdev)
 	ret = bsp_csi_cci_set_base_addr(0, (unsigned int)cci->base);
 	if(ret < 0)
 		goto ehwinit;
-
-	ret = bsp_csi_cci_set_base_addr(1, (unsigned int)cci->base);
-	if(ret < 0)
-		goto ehwinit;
 #endif
+
 	platform_set_drvdata(pdev, cci);
 	vfe_print("cci probe end cci_sel = %d!\n",pdata->cci_sel);
 	return 0;

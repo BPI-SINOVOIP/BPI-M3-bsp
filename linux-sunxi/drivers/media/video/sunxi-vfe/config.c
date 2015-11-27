@@ -19,6 +19,7 @@
 #include "isp_cfg/isp_cfg.h"
 #define SIZE_OF_LSC_TBL_MOD0     7*768*2
 #define SIZE_OF_LSC_TBL_MOD1     8*768*2
+#define SIZE_OF_LSC_TBL_MOD2     12*768*2
 #define SIZE_OF_HDR_TBL     4*256*2
 #define SIZE_OF_GAMMA_TBL   256*2
 
@@ -845,7 +846,7 @@ struct isp_init_config isp_init_def_cfg = {
       .adaptive_frame_rate      = 1,
       .high_quality_mode_en     = 0,
       .force_frame_rate         = 0,
-
+	.ae_touch_dist_ind = 2,
       /*isp awb param */
       .awb_interval                 = 4,
       .awb_speed = 8,
@@ -854,15 +855,34 @@ struct isp_init_config isp_init_def_cfg = {
       .awb_color_temper_high    = 7500,
       .awb_base_temper = 6500,
       .awb_skin_color_num = 0,
+      .awb_special_color_num = 0,
+      .awb_rgain_favor = 256,
+	.awb_bgain_favor = 256,
+
+      .af_use_otp = 0,
       .vcm_min_code             = 0,
       .vcm_max_code             = 650,
       .af_interval_time = 100,
-	.af_speed_ind = 4, //0~5
+	.af_speed_ind = 16, //0~43
 	.af_auto_fine_en = 1,
 	.af_single_fine_en = 0,
 	.af_fine_step = 24,
 	.af_move_cnt = 4,
 	.af_still_cnt = 1,
+	.af_move_monitor_cnt = 6,
+	.af_still_monitor_cnt = 2,
+	.af_stable_min = 250,
+	.af_stable_max = 260,
+	.af_low_light_ind = 40,
+	.af_near_tolerance = 5,
+	.af_far_tolerance = 7,
+	.af_tolerance_off = 0,
+	.af_peak_th = 100,
+	.af_dir_th = 10, 
+
+	.af_change_ratio = 20,
+	.af_move_minus = 1,
+	.af_still_minus = 1,
     },
     .isp_tunning_settings =
     {
@@ -1044,6 +1064,7 @@ SET_ISP_SINGLE_VALUE(isp_3a_settings, ae_min_frame_rate);
 SET_ISP_SINGLE_VALUE(isp_3a_settings, exp_delay_frame);
 SET_ISP_SINGLE_VALUE(isp_3a_settings, gain_delay_frame);
 SET_ISP_SINGLE_VALUE(isp_3a_settings, exp_comp_step);
+SET_ISP_SINGLE_VALUE(isp_3a_settings, ae_touch_dist_ind);
 
 SET_ISP_SINGLE_VALUE(isp_3a_settings, high_quality_mode_en);
 SET_ISP_SINGLE_VALUE(isp_3a_settings, adaptive_frame_rate);
@@ -1053,11 +1074,15 @@ SET_ISP_SINGLE_VALUE(isp_3a_settings, awb_speed);
 SET_ISP_SINGLE_VALUE(isp_3a_settings, awb_color_temper_low);
 SET_ISP_SINGLE_VALUE(isp_3a_settings, awb_color_temper_high);
 SET_ISP_SINGLE_VALUE(isp_3a_settings, awb_base_temper);
+SET_ISP_SINGLE_VALUE(isp_3a_settings, awb_rgain_favor);
+SET_ISP_SINGLE_VALUE(isp_3a_settings, awb_bgain_favor);
 
 SET_ISP_SINGLE_VALUE(isp_3a_settings, awb_light_num);
 SET_ISP_SINGLE_VALUE(isp_3a_settings, awb_ext_light_num);
 SET_ISP_SINGLE_VALUE(isp_3a_settings, awb_skin_color_num);
+SET_ISP_SINGLE_VALUE(isp_3a_settings, awb_special_color_num);
 
+SET_ISP_SINGLE_VALUE(isp_3a_settings, af_use_otp);
 SET_ISP_SINGLE_VALUE(isp_3a_settings, vcm_min_code);
 SET_ISP_SINGLE_VALUE(isp_3a_settings, vcm_max_code);
 SET_ISP_SINGLE_VALUE(isp_3a_settings, af_interval_time);
@@ -1068,6 +1093,21 @@ SET_ISP_SINGLE_VALUE(isp_3a_settings, af_single_fine_en);
 SET_ISP_SINGLE_VALUE(isp_3a_settings, af_fine_step);
 SET_ISP_SINGLE_VALUE(isp_3a_settings, af_move_cnt);
 SET_ISP_SINGLE_VALUE(isp_3a_settings, af_still_cnt);
+SET_ISP_SINGLE_VALUE(isp_3a_settings, af_move_monitor_cnt);
+SET_ISP_SINGLE_VALUE(isp_3a_settings, af_still_monitor_cnt);
+
+SET_ISP_SINGLE_VALUE(isp_3a_settings, af_stable_min);
+SET_ISP_SINGLE_VALUE(isp_3a_settings, af_stable_max);
+SET_ISP_SINGLE_VALUE(isp_3a_settings, af_low_light_ind);
+SET_ISP_SINGLE_VALUE(isp_3a_settings, af_near_tolerance);
+SET_ISP_SINGLE_VALUE(isp_3a_settings, af_far_tolerance);
+SET_ISP_SINGLE_VALUE(isp_3a_settings, af_tolerance_off);
+SET_ISP_SINGLE_VALUE(isp_3a_settings, af_peak_th);
+SET_ISP_SINGLE_VALUE(isp_3a_settings, af_dir_th);
+
+SET_ISP_SINGLE_VALUE(isp_3a_settings, af_change_ratio);
+SET_ISP_SINGLE_VALUE(isp_3a_settings, af_move_minus);
+SET_ISP_SINGLE_VALUE(isp_3a_settings, af_still_minus);
 
 SET_ISP_SINGLE_VALUE(isp_tunning_settings, flash_gain);
 SET_ISP_SINGLE_VALUE(isp_tunning_settings, flash_delay_frame);
@@ -1094,6 +1134,7 @@ void set_lsc_center_y(struct isp_init_config *isp_ini_cfg, void *value, int len)
 SET_ISP_ARRAY_VALUE(isp_3a_settings, awb_light_info);
 SET_ISP_ARRAY_VALUE(isp_3a_settings, awb_ext_light_info);
 SET_ISP_ARRAY_VALUE(isp_3a_settings, awb_skin_color_info);
+SET_ISP_ARRAY_VALUE(isp_3a_settings, awb_special_color_info);
 SET_ISP_ARRAY_VALUE(isp_3a_settings, awb_preset_gain);
 SET_ISP_ARRAY_VALUE(isp_3a_settings, ae_table_preview);
 SET_ISP_ARRAY_VALUE(isp_3a_settings, ae_table_capture);
@@ -1200,21 +1241,29 @@ static struct IspParamAttribute Isp3aParam[] =
 	ISP_FILE_SINGLE_ATTR(isp_ae_cfg,	high_quality_mode_en    ),            
 	ISP_FILE_SINGLE_ATTR(isp_ae_cfg,	adaptive_frame_rate     ),            
 	ISP_FILE_SINGLE_ATTR(isp_ae_cfg,	force_frame_rate        ),            
+	ISP_FILE_SINGLE_ATTR(isp_ae_cfg,	ae_touch_dist_ind        ), 
 	ISP_FILE_SINGLE_ATTR(isp_awb_cfg,	awb_interval           	),             
 	ISP_FILE_SINGLE_ATTR(isp_awb_cfg,	awb_speed           	),             
 	ISP_FILE_SINGLE_ATTR(isp_awb_cfg,	awb_color_temper_low    ),             
-	ISP_FILE_SINGLE_ATTR(isp_awb_cfg,	awb_color_temper_high   ), 
+	ISP_FILE_SINGLE_ATTR(isp_awb_cfg,	awb_color_temper_high   ),             
 	ISP_FILE_SINGLE_ATTR(isp_awb_cfg,	awb_base_temper   ), 
 	
 	ISP_FILE_SINGLE_ATTR(isp_awb_cfg,	awb_light_num     		),             
 	ISP_FILE_SINGLE_ATTR(isp_awb_cfg,	awb_ext_light_num       ),             
 	ISP_FILE_SINGLE_ATTR(isp_awb_cfg,	awb_skin_color_num      ),
+	ISP_FILE_SINGLE_ATTR(isp_awb_cfg,	awb_special_color_num      ),
+
+	ISP_FILE_SINGLE_ATTR(isp_awb_cfg,	awb_rgain_favor), 
+	ISP_FILE_SINGLE_ATTR(isp_awb_cfg,	awb_bgain_favor), 
 	
 	ISP_FILE_ARRAY_ATTR(isp_awb_cfg,	awb_light_info          ,	  100 ),
 	ISP_FILE_ARRAY_ATTR(isp_awb_cfg,	awb_ext_light_info      ,	   60 ),
 	ISP_FILE_ARRAY_ATTR(isp_awb_cfg,	awb_skin_color_info     ,	   40 ),
+	ISP_FILE_ARRAY_ATTR(isp_awb_cfg,	awb_special_color_info     ,	   40 ),
 	
 	{ "isp_awb_cfg",  "awb_perset_gain",             22 ,  set_awb_preset_gain             ,},
+	ISP_FILE_SINGLE_ATTR(isp_af_cfg, 	af_use_otp     ),      
+
 	ISP_FILE_SINGLE_ATTR(isp_af_cfg, 	vcm_min_code     ),
 	ISP_FILE_SINGLE_ATTR(isp_af_cfg, 	vcm_max_code     ),
 	ISP_FILE_SINGLE_ATTR(isp_af_cfg, 	af_interval_time ),
@@ -1224,6 +1273,23 @@ static struct IspParamAttribute Isp3aParam[] =
 	ISP_FILE_SINGLE_ATTR(isp_af_cfg, 	af_fine_step     ),
 	ISP_FILE_SINGLE_ATTR(isp_af_cfg, 	af_move_cnt      ),
 	ISP_FILE_SINGLE_ATTR(isp_af_cfg, 	af_still_cnt     ),          
+	ISP_FILE_SINGLE_ATTR(isp_af_cfg, 	af_move_monitor_cnt      ),
+	ISP_FILE_SINGLE_ATTR(isp_af_cfg, 	af_still_monitor_cnt     ),      
+
+	ISP_FILE_SINGLE_ATTR(isp_af_cfg, 	af_stable_min      ),
+	ISP_FILE_SINGLE_ATTR(isp_af_cfg, 	af_stable_max     ),      
+
+	ISP_FILE_SINGLE_ATTR(isp_af_cfg, 	af_low_light_ind      ),
+	ISP_FILE_SINGLE_ATTR(isp_af_cfg, 	af_near_tolerance     ),      
+	ISP_FILE_SINGLE_ATTR(isp_af_cfg, 	af_far_tolerance      ),
+	ISP_FILE_SINGLE_ATTR(isp_af_cfg, 	af_tolerance_off     ),      
+
+	ISP_FILE_SINGLE_ATTR(isp_af_cfg, 	af_peak_th      ),
+	ISP_FILE_SINGLE_ATTR(isp_af_cfg, 	af_dir_th     ),      
+
+	ISP_FILE_SINGLE_ATTR(isp_af_cfg, af_change_ratio),
+	ISP_FILE_SINGLE_ATTR(isp_af_cfg, af_move_minus),
+	ISP_FILE_SINGLE_ATTR(isp_af_cfg, af_still_minus),
 
 };
 static struct IspParamAttribute IspIsoParam[] =
@@ -1318,6 +1384,10 @@ int fetch_isp_cfg(struct isp_init_config *isp_ini_cfg, struct cfg_section *cfg_s
 			{
 				param->len = 10 * isp_ini_cfg->isp_3a_settings.awb_skin_color_num;
 			}
+			if(!strcmp(param->sub, "awb_special_color_info"))
+			{
+				param->len = 10 * isp_ini_cfg->isp_3a_settings.awb_special_color_num;
+			}
 
 			array_value = (int*)vmalloc(param->len*sizeof(int));
 			memset(array_value, 0, param->len*sizeof(int));
@@ -1362,7 +1432,7 @@ int fetch_isp_tbl(struct isp_init_config *isp_ini_cfg, char* tbl_patch)
 	strcat(isp_lsc_tbl_path, "lsc_tbl.bin");
 
 	vfe_print("Fetch table form \"%s\", gamma num = %d\n",isp_gamma_tbl_path, isp_ini_cfg->isp_tunning_settings.gamma_num);
-	buf = (char*)kzalloc(SIZE_OF_LSC_TBL_MOD1,GFP_KERNEL);
+	buf = (char*)kzalloc(SIZE_OF_LSC_TBL_MOD2,GFP_KERNEL);
 
 	/* fetch gamma_tbl table! */
 	if(isp_ini_cfg->isp_tunning_settings.gamma_num > 1 && isp_ini_cfg->isp_tunning_settings.gamma_num <= 5 )
@@ -1393,8 +1463,12 @@ int fetch_isp_tbl(struct isp_init_config *isp_ini_cfg, char* tbl_patch)
 	/* fetch lsc table! */
 	if(0 == isp_ini_cfg->isp_tunning_settings.lsc_mod){
 		len = cfg_read_file(isp_lsc_tbl_path,buf,SIZE_OF_LSC_TBL_MOD0);
-	}else{
+	}else if(1 == isp_ini_cfg->isp_tunning_settings.lsc_mod){
 		len = cfg_read_file(isp_lsc_tbl_path,buf,SIZE_OF_LSC_TBL_MOD1);
+	}else{
+		len = cfg_read_file(isp_lsc_tbl_path,buf,SIZE_OF_LSC_TBL_MOD2);
+		if(len != SIZE_OF_LSC_TBL_MOD2)
+			vfe_warn("read lsc_tbl from lsc_tbl.bin len = %d, but %d is required\n", len, SIZE_OF_LSC_TBL_MOD2);
 	}
 	if(len < 0)
 	{
@@ -1433,7 +1507,7 @@ int match_isp_cfg(struct vfe_dev *dev,int isp_id)
 {
 	int ret;
 	struct isp_cfg_item isp_cfg_tmp;
-	struct isp_init_config *isp_ini_cfg = &dev->isp_gen_set[isp_id].isp_ini_cfg;
+	struct isp_init_config *isp_ini_cfg = &dev->isp_gen_set[isp_id]->isp_ini_cfg;
 	ret = get_isp_cfg(dev->ccm_cfg[isp_id]->isp_cfg_name,&isp_cfg_tmp);
 	if(ret < 0)
 	{
@@ -1483,7 +1557,7 @@ int read_ini_info(struct vfe_dev *dev,int isp_id, char *main_path)
 	}
 	vfe_print("read ini start\n");
 	
-	dev->isp_gen_set[isp_id].isp_ini_cfg = isp_init_def_cfg;
+	dev->isp_gen_set[isp_id]->isp_ini_cfg = isp_init_def_cfg;
 	for(i=0; i< ARRAY_SIZE(FileAttr); i++)
 	{
 		sprintf(file_name_path,"%s%s",isp_cfg_path,FileAttr[i].file_name);
@@ -1495,13 +1569,13 @@ int read_ini_info(struct vfe_dev *dev,int isp_id, char *main_path)
 			cfg_section_release(&cfg_section);
 			goto read_ini_info_end;
 		}
-		fetch_isp_cfg(&dev->isp_gen_set[isp_id].isp_ini_cfg, cfg_section,&FileAttr[i]);
+		fetch_isp_cfg(&dev->isp_gen_set[isp_id]->isp_ini_cfg, cfg_section,&FileAttr[i]);
 		cfg_section_release(&cfg_section);
 	}
-	ret = fetch_isp_tbl(&dev->isp_gen_set[isp_id].isp_ini_cfg, &isp_tbl_path[0]);
+	ret = fetch_isp_tbl(&dev->isp_gen_set[isp_id]->isp_ini_cfg, &isp_tbl_path[0]);
 	if(ret == -1)
     	{
-    		dev->isp_gen_set[isp_id].isp_ini_cfg = isp_init_def_cfg;
+    		dev->isp_gen_set[isp_id]->isp_ini_cfg = isp_init_def_cfg;
         }
 read_ini_info_end:
 	vfe_dbg(0,"read ini end\n");

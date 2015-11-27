@@ -21,7 +21,11 @@
 #include <linux/sched.h>
 #include <linux/mutex.h>
 #include <linux/semaphore.h>
+#if defined  (CONFIG_ARCH_SUN9IW1P1)
 #define MAX_CCI_DEVICE 2
+#else 
+#define MAX_CCI_DEVICE 1
+#endif
 wait_queue_head_t wait[MAX_CCI_DEVICE];
 static int status_err_flag[MAX_CCI_DEVICE] = {0};
 struct mutex            cci_mutex[MAX_CCI_DEVICE];

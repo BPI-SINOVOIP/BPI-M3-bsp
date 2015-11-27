@@ -190,7 +190,7 @@ static struct regval_list sensor_default_regs[] =
 	{0x3F06, 0x046A},  // RESERVED_MFR_3F06
 	{0x3EDA, 0x88BC},  // RESERVED_MFR_3EDA
 	{0x3EDC, 0xAA63},  // RESERVED_MFR_3EDC
-	
+
 #endif
 
 
@@ -770,7 +770,7 @@ static struct sensor_win_size sensor_win_sizes[] = {
     },
 
 //  	/* SXGA *///1280x960
-//    {
+//    {     
 //        .width		= SXGA_WIDTH,
 //        .height 	= SXGA_HEIGHT,
 //        .hoffset    = 288,

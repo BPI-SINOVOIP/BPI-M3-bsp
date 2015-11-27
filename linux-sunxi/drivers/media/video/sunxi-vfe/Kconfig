@@ -3,7 +3,8 @@ config CSI_VFE
 	tristate "v4l2 driver for SUNXI"
 	default m
 	select VIDEOBUF_DMA_CONTIG
-	if ARCH_SUN8IW8
+		
+if ARCH_SUN8IW8
 
 menu "Sensor CSI"
 config OV2710_MIPI
@@ -27,6 +28,9 @@ config GC1004_MIPI
 config H22_MIPI
 	tristate "h22_mipi"
 	default n
+config NT99231_MIPI
+	tristate "nt99231_mipi"
+	default n	
 endmenu
 
 endif	

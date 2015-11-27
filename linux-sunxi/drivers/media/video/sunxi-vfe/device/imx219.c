@@ -363,7 +363,7 @@ static struct regval_list sensor_1080p_regs[] = { //1080: 1920*1080@30fps
 
 
 
-static struct regval_list sensor_720p_regs[] = { //720: 1280*720@30fps
+static struct regval_list sensor_720p_30fps_regs[] = { //720: 1280*720@30fps
 // MIPI=720Mbps,
 // 1280x720 60fps //perhaps reach to 100~120fps
 {0x30EB , 0x05 },
@@ -380,8 +380,8 @@ static struct regval_list sensor_720p_regs[] = { //720: 1280*720@30fps
 //{0x0157 , 0x   },
 //{0x015A , 0x   },
 //{0x015B , 0x   },
-{0x0160 , 0x02 },//0x05 for 60fps
-{0x0161 , 0x00 },//0x17 for 60fps
+{0x0160 , 0x0A },//0x05 for 60fps
+{0x0161 , 0x2F },//0x17 for 60fps
 {0x0162 , 0x0d/*0D*/ },
 {0x0163 , 0xE8 },
 {0x0164 , 0x03 },
@@ -418,29 +418,85 @@ static struct regval_list sensor_720p_regs[] = { //720: 1280*720@30fps
 {0x0100,0x01},
 };
 
+static struct regval_list sensor_720p_60fps_regs[] = { //720: 1280*720@30fps
+// MIPI=720Mbps,
+// 1280x720 60fps //perhaps reach to 100~120fps
+{0x30EB , 0x05 },
+{0x30EB , 0x0C },
+{0x300A , 0xFF },
+{0x300B , 0xFF },
+{0x30EB , 0x05 },
+{0x30EB , 0x09 },
+//{0x     , 0x   },
+{0x0114 , 0x03 },
+{0x0128 , 0x00 },
+{0x012A , 0x18 },
+{0x012B , 0x00 },
+//{0x0157 , 0x   },
+//{0x015A , 0x   },
+//{0x015B , 0x   },
+{0x0160 , 0x05 },//0x05 for 60fps
+{0x0161 , 0x17 },//0x17 for 60fps
+{0x0162 , 0x0D/*0D*/ },
+{0x0163 , 0xE8 },
+{0x0164 , 0x03 },
+{0x0165 , 0xE8 },
+{0x0166 , 0x08 },
+{0x0167 , 0xE7 },
+{0x0168 , 0x03 },
+{0x0169 , 0x68 },
+{0x016A , 0x06 },
+{0x016B , 0x37 },
+{0x016C , 0x05 },
+{0x016D , 0x00 },
+{0x016E , 0x02 },
+{0x016F , 0xD0 },
+{0x0170 , 0x01 },
+{0x0171 , 0x01 },
+{0x0174 , 0x00 },
+{0x0175 , 0x00 },
+{0x018C , 0x0A },
+{0x018D , 0x0A },
+{0x0301 , 0x05 },
+{0x0303 , 0x01 },
+{0x0304 , 0x03 },
+{0x0305 , 0x03 },
+{0x0306 , 0x00},
+{0x0307 , 0x57 },
+{0x0309 , 0x05/*0A*/ },
+{0x030B , 0x01 },
+{0x030C , 0x00 },
+{0x030D , 0x5A },
+{0x4767 , 0x0F },
+{0x4750 , 0x14 },
+{0x47B4 , 0x14 },
+{0x0100,0x01},
+};
+
+
 //static struct regval_list sensor_svga_regs[] = { //SVGA: 800*600
 //
 //  //{REG_TERM,VAL_TERM},
 //};
 
-static struct regval_list sensor_vga_regs[] = { //VGA:  640*480
-
-};
+//static struct regval_list sensor_vga_regs[] = { //VGA:  640*480
+//
+//};
 
 //misc
-static struct regval_list sensor_oe_disable_regs[] = {
+//static struct regval_list sensor_oe_disable_regs[] = {
 //  {0x3000,0x00},
 //  {0x3001,0x00},
 //  {0x3002,0x00},
   //{REG_TERM,VAL_TERM},
-};
+//};
 
-static struct regval_list sensor_oe_enable_regs[] = {
+//static struct regval_list sensor_oe_enable_regs[] = {
 //  {0x3000,0x0f},
 //  {0x3001,0xff},
 //  {0x3002,0xe4},
   //{REG_TERM,VAL_TERM},
-};
+//};
 
 
 /*
@@ -665,8 +721,8 @@ static int sensor_s_vflip(struct v4l2_subdev *sd, int value)
 	static int sensor_s_exp_gain(struct v4l2_subdev *sd, struct sensor_exp_gain *exp_gain)
 	{ //return -1;
 	  int exp_val, gain_val,frame_length,shutter;
-	  unsigned char explow=0,expmid=0,exphigh=0;
-	  unsigned char gainlow=0,gainhigh=0;  
+	  unsigned char explow=0,/*expmid=0,*/exphigh=0;
+	  //unsigned char gainlow=0,gainhigh=0;  
 	  struct sensor_info *info = to_state(sd);
 	
 	  exp_val = exp_gain->exp_val;
@@ -1058,25 +1114,25 @@ else if(ES_GAIN(10.0,10.6,gain_val))
   return 0;
 }
 
-static int sensor_s_sw_stby(struct v4l2_subdev *sd, int on_off)
-{
-  int ret;
-  unsigned char rdval;
-  
-  ret=sensor_read(sd, 0x0100, &rdval);
-  if(ret!=0)
-    return ret;
-  
-  if(on_off==CSI_STBY_ON)//sw stby on
-  {
-    ret=sensor_write(sd, 0x0100, rdval&0xfe);
-  }
-  else//sw stby off
-  {
-    ret=sensor_write(sd, 0x0100, rdval|0x01);
-  }
-  return ret;
-}
+//static int sensor_s_sw_stby(struct v4l2_subdev *sd, int on_off)
+//{
+//  int ret;
+//  unsigned char rdval;
+//  
+//  ret=sensor_read(sd, 0x0100, &rdval);
+//  if(ret!=0)
+//    return ret;
+//  
+//  if(on_off==CSI_STBY_ON)//sw stby on
+//  {
+//    ret=sensor_write(sd, 0x0100, rdval&0xfe);
+//  }
+//  else//sw stby off
+//  {
+//    ret=sensor_write(sd, 0x0100, rdval|0x01);
+//  }
+//  return ret;
+//}
 
 
 
@@ -1106,7 +1162,8 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
       cci_lock(sd);    
 
 //      //reset on io
-     vfe_gpio_write(sd,RESET,CSI_RST_ON);
+     vfe_gpio_write(sd, RESET, CSI_GPIO_LOW);
+     vfe_gpio_write(sd, PWDN, CSI_GPIO_LOW);
 //      mdelay(10);
       //standby on io
      // vfe_gpio_write(sd,PWDN,CSI_STBY_ON);
@@ -1132,7 +1189,8 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
       cci_unlock(sd);        
       //software standby
 
-	  vfe_gpio_write(sd,RESET,CSI_RST_OFF);
+	  vfe_gpio_write(sd, RESET, CSI_GPIO_HIGH);
+	  vfe_gpio_write(sd, PWDN, CSI_GPIO_HIGH);
   //    mdelay(10);
      // vfe_dev_print("enable oe!\n");
     //  ret = sensor_write_array(sd, sensor_oe_enable_regs,  ARRAY_SIZE(sensor_oe_enable_regs));
@@ -1151,7 +1209,8 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
       //power down io
      // vfe_gpio_write(sd,PWDN,CSI_STBY_ON);
       //reset on io
-      vfe_gpio_write(sd,RESET,CSI_RST_ON);
+      vfe_gpio_write(sd, RESET, CSI_GPIO_LOW);
+	  vfe_gpio_write(sd, PWDN, CSI_GPIO_LOW);
       usleep_range(1000,1200);
       //active mclk before power on
       vfe_set_mclk_freq(sd,MCLK);
@@ -1159,15 +1218,16 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
       usleep_range(10000,12000);
       //power supply
      // vfe_gpio_write(sd,POWER_EN,CSI_PWR_ON);
-      vfe_set_pmu_channel(sd,IOVDD,ON);
-      vfe_set_pmu_channel(sd,AVDD,ON);
-      vfe_set_pmu_channel(sd,DVDD,ON);
-      vfe_set_pmu_channel(sd,AFVDD,ON);
+      vfe_set_pmu_channel(sd, IOVDD, CSI_GPIO_HIGH);
+      vfe_set_pmu_channel(sd, AVDD, CSI_GPIO_HIGH);
+      vfe_set_pmu_channel(sd, DVDD, CSI_GPIO_HIGH);
+      vfe_set_pmu_channel(sd, AFVDD, CSI_GPIO_HIGH);
       //standby off io
     //  vfe_gpio_write(sd,PWDN,CSI_STBY_OFF);
       usleep_range(10000,12000);
       //reset after power on
-      vfe_gpio_write(sd,RESET,CSI_RST_OFF);
+      vfe_gpio_write(sd, RESET, CSI_GPIO_HIGH);
+	  vfe_gpio_write(sd, PWDN, CSI_GPIO_HIGH);
       usleep_range(30000,31000);
       //remember to unlock i2c adapter, so the device can access the i2c bus again
       cci_unlock(sd);  
@@ -1181,10 +1241,10 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
       vfe_set_mclk(sd,OFF);
       //power supply off
     //  vfe_gpio_write(sd,POWER_EN,CSI_PWR_OFF);
-      vfe_set_pmu_channel(sd,AFVDD,OFF);
-      vfe_set_pmu_channel(sd,DVDD,OFF);
-      vfe_set_pmu_channel(sd,AVDD,OFF);
-      vfe_set_pmu_channel(sd,IOVDD,OFF);  
+      vfe_set_pmu_channel(sd, AFVDD, CSI_GPIO_LOW);
+      vfe_set_pmu_channel(sd, DVDD, CSI_GPIO_LOW);
+      vfe_set_pmu_channel(sd, AVDD, CSI_GPIO_LOW);
+      vfe_set_pmu_channel(sd, IOVDD, CSI_GPIO_LOW);  
       //standby and reset io
       usleep_range(10000,12000);
       vfe_gpio_write(sd,POWER_EN,CSI_STBY_OFF);
@@ -1367,7 +1427,7 @@ static struct sensor_win_size sensor_win_sizes[] = {
       .pclk       = (278*1000*1000),//252*1000*1000,
      
       .mipi_bps   = 720*1000*1000,
-      .fps_fixed  = 1,
+      .fps_fixed  = 20,
       .bin_factor = 1,
       .intg_min   = 1<<4,
       .intg_max   = (4037-4)<<4,
@@ -1388,7 +1448,7 @@ static struct sensor_win_size sensor_win_sizes[] = {
       .vts        = 2607,
       .pclk       = (278*1000*1000),
       .mipi_bps   = 720*1000*1000,
-      .fps_fixed  = 1,
+      .fps_fixed  = 30,
       .bin_factor = 2,
       .intg_min   = 1<<4,
       .intg_max   = (2607-4)<<4,
@@ -1427,7 +1487,7 @@ static struct sensor_win_size sensor_win_sizes[] = {
      .vts        = 2607,
       .pclk       = (278*1000*1000),
       .mipi_bps   = 720*1000*1000,
-      .fps_fixed  = 1,
+      .fps_fixed  = 30,
       .bin_factor = 2,
       .intg_min   = 1<<4,
       .intg_max   = 2607<<4,
@@ -1443,20 +1503,42 @@ static struct sensor_win_size sensor_win_sizes[] = {
       .height     = HD720_HEIGHT,
       .hoffset    = 0,
       .voffset    = 0,
-      .hts        = 2560,
-      .vts        = 1303,//735 106fps
-      .pclk       = (200*1000*1000),
+      .hts        = 3560,
+      .vts        = 2607,//735 106fps
+      .pclk       = (278*1000*1000),
       .mipi_bps   = 720*1000*1000,
-      .fps_fixed  = 1,
+      .fps_fixed  = 30,
       .bin_factor = 2,
       .intg_min   = 1<<4,
       .intg_max   = (1303-4)<<4,
       .gain_min   = 1<<4,
       .gain_max   = 10<<4,
-      .regs       = sensor_720p_regs,//
-      .regs_size  = ARRAY_SIZE(sensor_720p_regs),//
+      .regs       = sensor_720p_30fps_regs,//
+      .regs_size  = ARRAY_SIZE(sensor_720p_30fps_regs),//
       .set_size   = NULL,
     },
+
+	{
+		.width		= HD720_WIDTH,
+		.height 	= HD720_HEIGHT,
+		.hoffset	= 0,
+		.voffset	= 0,
+		.hts		= 3560,
+		.vts		= 1303,//735 106fps
+		.pclk		= (278*1000*1000),
+		.mipi_bps	= 720*1000*1000,
+		.fps_fixed	= 60,
+		.bin_factor = 2,
+		.intg_min	= 1<<4,
+		.intg_max	= (1303-4)<<4,
+		.gain_min	= 1<<4,
+		.gain_max	= 10<<4,
+		.regs		= sensor_720p_60fps_regs,//
+		.regs_size	= ARRAY_SIZE(sensor_720p_60fps_regs),//
+		.set_size	= NULL,
+	  },
+
+	  
     /* XGA */
 //    {
 //      .width      = XGA_WIDTH,
@@ -1529,7 +1611,7 @@ static int sensor_try_fmt_internal(struct v4l2_subdev *sd,
     struct sensor_format_struct **ret_fmt,
     struct sensor_win_size **ret_wsize)
 {
-  int index;
+  int index, isMatched;
   struct sensor_win_size *wsize;
   struct sensor_info *info = to_state(sd);
 
@@ -1553,13 +1635,37 @@ static int sensor_try_fmt_internal(struct v4l2_subdev *sd,
    * Round requested image size down to the nearest
    * we support, but not below the smallest.
    */
+
+  isMatched = 0;
   for (wsize = sensor_win_sizes; wsize < sensor_win_sizes + N_WIN_SIZES;
        wsize++)
-    if (fmt->width >= wsize->width && fmt->height >= wsize->height)
-      break;
+  {
+      if (fmt->width == wsize->width && fmt->height == wsize->height && wsize->fps_fixed == info->tpf.denominator)
+      {
+          isMatched = 1;
+          break;
+      }
+  }
+
+  if (!isMatched)
+  {
+	  for (wsize = sensor_win_sizes; wsize < sensor_win_sizes + N_WIN_SIZES;
+	       wsize++)
+	  {
+	      if (fmt->width >= wsize->width && fmt->height >= wsize->height)
+	      {
+	          break;
+	      }
+	  }
+  }
     
   if (wsize >= sensor_win_sizes + N_WIN_SIZES)
     wsize--;   /* Take the smallest one */
+
+  printk("imx219 try fmt: [%d %d %d] -> [%d %d %d]\n", 
+  	fmt->width, fmt->height, info->tpf.denominator,
+  	wsize->width, wsize->height, wsize->fps_fixed);
+  
   if (ret_wsize != NULL)
     *ret_wsize = wsize;
   /*
