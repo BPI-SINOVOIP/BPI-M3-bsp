@@ -1,4 +1,4 @@
-;;A83 PAD application
+;A83 PAD application
 ;---------------------------------------------------------------------------------------------------------
 ; 说明： 脚本中的字符串区分大小写，用户可以修改"="后面的数值，但是不要修改前面的字符串
 ; 描述gpio的形式：Port:端口+组内序号<功能分配><内部电阻状态><驱动能力><输出电平状态>
@@ -569,8 +569,6 @@ nand1_ndqs          = port:PC16<2><default><default><default>
 [boot_disp]
 output_disp = 1
 output_type = 3
-;MIKEY
-;output_mode = 5
 output_mode = 10
 
 ;----------------------------------------------------------------------------------
@@ -589,13 +587,9 @@ disp_init_enable         = 1
 disp_mode                = 0
 
 screen0_output_type      = 3
-;MIKEY
-;screen0_output_mode      = 5
 screen0_output_mode      = 10
 
 screen1_output_type      = 3
-;MIKEY
-;screen1_output_mode      = 5
 screen1_output_mode      = 10
 
 fb0_format               = 0

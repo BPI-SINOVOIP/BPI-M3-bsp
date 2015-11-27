@@ -6,7 +6,7 @@
 
 [product]
 version = "100"
-machine = "f1"
+machine = "BPI-M3"
 
 ;---------------------------------------------------------------------------------------------------------
 ; eraseflag - 1 erase data partition, 0 - do not erase data partition
