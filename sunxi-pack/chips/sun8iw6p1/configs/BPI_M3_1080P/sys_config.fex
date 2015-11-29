@@ -168,7 +168,7 @@ jtag_di         = port:PF01<3><default><default><default>
 ;dram_odt_en : A_IC=3   B_IC=1
 ;*****************************************************************************
 [dram_para]
-dram_clk        = 732
+dram_clk        = 672
 dram_type       = 7
 dram_zq         = 0x3bfb
 dram_odt_en     = 1
