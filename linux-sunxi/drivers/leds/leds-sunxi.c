@@ -54,6 +54,11 @@ static int sunxi_leds_fetch_sysconfig_para(void)
         static char* led_name[3] = {"red_led","green_led","blue_led"};
         char led_active_low[25];
 
+        //BPI-Team Justin Porting for LED Start 
+        char led_default_trigger[25];
+        script_item_u item_temp;
+        //BPI-Team Justin Porting for LED End
+
         type = script_get_item("leds_para", "leds_used", &val);
         if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
                 printk(KERN_ERR "%s script_parser_fetch \"leds_para\" leds_used = %d\n",
@@ -72,6 +77,17 @@ static int sunxi_leds_fetch_sysconfig_para(void)
                 else {
                         gpio_leds[num].name = led_name[i];
                         gpio_leds[num].gpio = val.gpio.gpio;
+                            
+                      //BPI-Team Justin Porting for LED start    		   
+                       sprintf(led_default_trigger,"%s_default_trigger", led_name[i]);                       
+                       type= script_get_item("leds_para", led_default_trigger, &item_temp);
+                       if(type != SCIRPT_ITEM_VALUE_TYPE_STR){
+                                printk(KERN_ERR "no %s, %s failed!\n",led_default_trigger,__FUNCTION__);
+                                goto script_get_err;
+                        }                     
+                        gpio_leds[num].default_trigger= item_temp.str;                   
+                      //BPI-Team Justin Porting for LED End  
+                      
                         gpio_leds[num].default_state = val.gpio.data ? LEDS_GPIO_DEFSTATE_ON : LEDS_GPIO_DEFSTATE_OFF;
                         sprintf(led_active_low,"%s_active_low", led_name[i]);
                         type = script_get_item("leds_para", led_active_low, &val);
