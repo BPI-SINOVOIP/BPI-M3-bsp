@@ -605,6 +605,8 @@ void board_init_r(gd_t *id, ulong dest_addr)
 
 #ifdef 	CONFIG_ARCH_HOMELET
 	gpio_control();
+#else
+	gpio_control(); /* BPI-M3 SATA power & LEDs */
 #endif
 #if 0
 #if !defined(CONFIG_SYS_NO_FLASH)
