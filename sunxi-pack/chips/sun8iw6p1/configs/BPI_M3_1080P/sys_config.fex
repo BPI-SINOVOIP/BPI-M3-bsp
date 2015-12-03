@@ -1351,7 +1351,7 @@ ir_tx               =
 ;----------------------------------------------------------------------------------
 [gpio_para]                    
 gpio_used                = 1
-gpio_num                 = 30
+gpio_num                 = 28
 gpio_pin_1               = port:PH5<1><default><default><1>
 gpio_pin_2               = port:PH4<1><default><default><1>
 gpio_pin_3               = port:PL10<1><default><default><1>
@@ -1380,8 +1380,6 @@ gpio_pin_25              = port:PG13<1><default><default><1>
 gpio_pin_26              = port:PE5<1><default><default><1>
 gpio_pin_27              = port:PE18<1><default><default><1>
 gpio_pin_28              = port:PE19<1><default><default><1>
-gpio_pin_29              = port:PD25<1><default><default><1>
-gpio_pin_30              = port:PD15<1><default><default><0>
 
 
 ;-------------------------------------------------------------------------------------
