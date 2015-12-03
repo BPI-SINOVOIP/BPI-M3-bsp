@@ -1741,10 +1741,12 @@ static int buffer_setup(struct videobuf_queue *vq, unsigned int *count, unsigned
 				vfe_err("buffer count is set to 1 in image capture mode\n");
 			}
 		} else {
-			if (*count < 3) {
-				*count = 3;
-				vfe_err("buffer count is invalid, set to 3 in video capture\n");
+		   //BPI-Team Justin Porting for Camera start 
+			if (*count < 8) {
+				*count = 8;
+				vfe_err("buffer count is invalid, set to 8 in video capture\n");
 			}
+		   //BPI-Team Justin Porting for Camera end
 		}
 	}
 
@@ -1930,14 +1932,24 @@ static int vidioc_g_fmt_vid_cap(struct file *file, void *priv,
           struct v4l2_format *f)
 {
 	struct vfe_dev *dev = video_drvdata(file);
-
-	f->fmt.pix.width        = dev->width;
-	f->fmt.pix.height       = dev->height;
-	f->fmt.pix.field        = dev->vb_vidq.field;
-	f->fmt.pix.pixelformat  = dev->fmt->bus_pix_code;
-	//  f->fmt.pix.bytesperline = (f->fmt.pix.width * dev->fmt->depth) >> 3;
-	//  f->fmt.pix.sizeimage    = f->fmt.pix.height * f->fmt.pix.bytesperline;
-
+	//BPI-Team Justin Porting for Camera start 
+	if(0 == dev->fmt->bus_pix_code)
+	{
+		f->fmt.pix.width        = 1920;
+		f->fmt.pix.height       = 1080;
+		f->fmt.pix.field        = V4L2_FIELD_NONE;
+		f->fmt.pix.pixelformat  = V4L2_PIX_FMT_NV21;			
+	}
+	else
+	{
+		f->fmt.pix.width        = dev->width;
+		f->fmt.pix.height       = dev->height;
+		f->fmt.pix.field        = dev->vb_vidq.field;
+		f->fmt.pix.pixelformat  = dev->fmt->fourcc;
+		f->fmt.pix.bytesperline = ALIGN_16B(dev->width);//(f->fmt.pix.width * dev->fmt->depth) >> 3
+		f->fmt.pix.sizeimage    = dev->buf_byte_size;//f->fmt.pix.height * f->fmt.pix.bytesperline;
+	}
+    //BPI-Team Justin Porting for Camera end
 	return 0;
 }
 
@@ -2244,6 +2256,9 @@ void vfe_apply_isp_cfg(struct vfe_dev *dev, struct isp_cfg_pt *isp_cfg)
 	memcpy(dev->isp_gen_set_pt->isp_ini_cfg.isp_tunning_settings.gamma_tbl_post, dev->isp_gen_set_pt->isp_ini_cfg.isp_tunning_settings.gamma_tbl_ini, ISP_GAMMA_MEM_SIZE);
 	isp_module_init(dev->isp_gen_set_pt, dev->isp_3a_result_pt);
 }
+//BPI-Team Justin Porting for Camera start 
+static int internal_s_input(struct vfe_dev *dev, unsigned int i);
+//BPI-Team Justin Porting for Camera end
 
 static int vidioc_s_fmt_vid_cap(struct file *file, void *priv,
           struct v4l2_format *f)
@@ -2273,6 +2288,19 @@ static int vidioc_s_fmt_vid_cap(struct file *file, void *priv,
   }
 
   mutex_lock(&q->vb_lock);
+   //BPI-Team Justin Porting for Camera start 
+	if(dev->input == -1)
+	{
+		internal_s_input(dev, 0);
+		vfe_print("Uses BPI-M3 Canera,Input_ID:%d\n", 0);
+	}
+
+	else
+	{
+		internal_s_input(dev, i);
+	}
+    //BPI-Team Justin Porting for Camera end
+
 
   bus_pix_code = try_fmt_internal(dev,f);
   if(!bus_pix_code) {

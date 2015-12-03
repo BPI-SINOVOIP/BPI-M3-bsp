@@ -1593,6 +1593,8 @@ static struct sensor_win_size sensor_win_sizes[] = {
       .regs_size  = ARRAY_SIZE(sensor_svga_90fps_regs),
       .set_size	  = NULL,
     },
+//BPI-Team Justin Porting for Camera start 
+#if 0
     /* VGA */
     {
       .width	  = VGA_WIDTH,
@@ -1615,6 +1617,31 @@ static struct sensor_win_size sensor_win_sizes[] = {
       .regs_size  = ARRAY_SIZE(sensor_svga_90fps_regs),
       .set_size	  = NULL,
     },
+#else
+    /* VGA */
+    {
+      .width	  = VGA_WIDTH,
+      .height 	  = VGA_HEIGHT,
+      .hoffset    = 408,
+      .voffset    = 0,
+	  .hts		  = 2582,
+	  .vts		  = 1858,
+	  .pclk 	  = 144*1000*1000,
+	  .mipi_bps   = 720*1000*1000,
+      .fps_fixed  = 30,
+      .bin_factor = 1,
+      .intg_min   = 1<<4,
+      .intg_max   = (1858-4)<<4,
+      .gain_min   = 1<<4,
+      .gain_max   = 15<<4,
+      .width_input	  = 2448,
+	  .height_input 	  = 1836,
+      .regs       = sensor_6M_regs,//
+      .regs_size  = ARRAY_SIZE(sensor_6M_regs),//
+      .set_size	  = NULL,
+    },
+#endif
+//BPI-Team Justin Porting for Camera end
 };
 
 #define N_WIN_SIZES (ARRAY_SIZE(sensor_win_sizes))
