@@ -43,7 +43,7 @@ Step 2.Go to folder "Download", put the file(s) to 100MB of the SD Card whit DD 
 	
 	sudo dd if=sunxi_mbr.fex 	of=${card} bs=1k seek=20480
 	
-	sudo dd if=bootloader.fex 	of=${card} bs=1k seek=36864
+	sudo dd if=boot-resource.fex 	of=${card} bs=1k seek=36864
 
 	sudo dd if=env.fex 		    of=${card} bs=1k seek=69632
 
