@@ -12,6 +12,10 @@
 #include "../axp-cfg.h"
 #include "axp81x-sply.h"
 
+//BPI-Team Justin Porting for OTG_Reboot start	
+#include "axp81x-common.h"
+//BPI-Team Justin Porting for OTG_Reboot end
+
 void axp81x_power_off(int power_start)
 {
 	uint8_t val;
@@ -223,7 +227,9 @@ int axp81x_init(struct axp_charger *charger)
 	if (ret)
 		goto err_charger_init;
 
+        //BPI-Team Justin Porting for OTG_Reboot start	
 	/* usb voltage limit */
+        /*
 	if((axp81x_config.pmu_usbvol) && (axp81x_config.pmu_usbvol_limit)){
 		axp_set_bits(charger->master, AXP81X_CHARGE_VBUS, 0x40);///qin no use
 		var = axp81x_config.pmu_usbvol * 1000;
@@ -234,6 +240,36 @@ int axp81x_init(struct axp_charger *charger)
 		}
 	}else
 		axp_clr_bits(charger->master, AXP81X_CHARGE_VBUS, 0x40);///qin no use
+
+        */
+        	if((axp81x_config.pmu_usbcur) && (axp81x_config.pmu_usbcur_limit)){
+		var = axp81x_config.pmu_usbcur;
+		if (var < 2000) {
+			tmp = 0x01;   /* 1500mA */
+			axp_update(charger->master, AXP_CHARGE_AC, tmp,0x07);
+		} else if (var < 2500) {
+			tmp = 0x02;   /* 2000mA */
+			axp_update(charger->master, AXP_CHARGE_AC, tmp,0x07);
+		} else if (var < 3000) {
+			tmp = 0x03;   /* 2500mA */
+			axp_update(charger->master, AXP_CHARGE_AC, tmp,0x07);
+		} else if (var < 3500) {
+			tmp = 0x04;   /* 3000mA */
+			axp_update(charger->master, AXP_CHARGE_AC, tmp,0x07);
+		} else if (var < 4000) {
+			tmp = 0x05;   /* 3500mA */
+			axp_update(charger->master, AXP_CHARGE_AC, tmp,0x07);
+		} else {
+			tmp = 0x06;   /* 4000mA */
+			axp_update(charger->master, AXP_CHARGE_AC, tmp,0x07);
+		}
+	} else {
+		    tmp = 0x03;   /* 2500mA */
+		    axp_update(charger->master, AXP_CHARGE_AC, tmp,0x07);
+	}
+
+
+        //BPI-Team Justin Porting for OTG_Reboot end
 
 	axp81x_chg_current_limit(axp81x_config.pmu_runtime_chgcur);
 
