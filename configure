@@ -9,6 +9,7 @@ BOARD=
 
 CUR_DIR=$PWD
 CROSS_COMPILE=$CUR_DIR/allwinner-tools/toolchain/bin
+NEW_CROSS_COMPILE=$CUR_DIR/allwinner-tools/gcc-linaro-4.9-2015.05-x86_64_arm-linux-gnueabihf/bin
 
 list_boards() {
 	ls -1 sunxi-pack/chips/sun8iw6p1/configs/*/*/*.fex |
@@ -25,6 +26,7 @@ generate_board_mk() {
 	SOC=$SOC
 	MACH=$MACH
 	COMPILE_TOOL=$CROSS_COMPILE
+	NEW_COMPILE_TOOL=$NEW_CROSS_COMPILE
 	UBOOT_CONFIG=$MACH
 	KERNEL_CONFIG=sun8iw6p1smp_bpi_defconfig
 	EOT

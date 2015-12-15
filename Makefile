@@ -6,6 +6,15 @@ include chosen_board.mk
 
 SUDO=sudo
 CROSS_COMPILE=$(COMPILE_TOOL)/arm-linux-gnueabi-
+NEW_CROSS_COMPILE=$(NEW_COMPILE_TOOL)/arm-linux-gnueabihf-
+U_CROSS_COMPILE=$(CROSS_COMPILE)
+K_CROSS_COMPILE=$(CROSS_COMPILE)
+#K_CROSS_COMPILE=$(NEW_CROSS_COMPILE)
+
+#unmark for use new toolchain , this time just for KERNEL TEST ONLY
+#DONOT USE FOR UBOOT this time, 
+#due to allwinner UBOOT release without some source code issue. 
+
 OUTPUT_DIR=$(CURDIR)/output
 
 U_CONFIG_H=$(U_O_PATH)/include/config.h
@@ -30,36 +39,36 @@ pack: sunxi-pack
 
 # u-boot
 $(U_CONFIG_H): u-boot-sunxi
-	$(Q)$(MAKE) -C u-boot-sunxi $(UBOOT_CONFIG)_config CROSS_COMPILE=$(CROSS_COMPILE) -j$J
+	$(Q)$(MAKE) -C u-boot-sunxi $(UBOOT_CONFIG)_config CROSS_COMPILE=$(U_CROSS_COMPILE) -j$J
 
 u-boot: $(U_CONFIG_H)
-	$(Q)$(MAKE) -C u-boot-sunxi all CROSS_COMPILE=$(CROSS_COMPILE) -j$J
+	$(Q)$(MAKE) -C u-boot-sunxi all CROSS_COMPILE=$(U_CROSS_COMPILE) -j$J
 
 u-boot-clean:
 	rm -f sunxi-pack/chips/sun8iw6p1/bin/u-boot-sun8iw6p1.bin
 	rm -f u-boot-sunxi/tools/sunxi_env_gen
-	$(Q)$(MAKE) -C u-boot-sunxi CROSS_COMPILE=$(CROSS_COMPILE) -j$J distclean
+	$(Q)$(MAKE) -C u-boot-sunxi CROSS_COMPILE=$(U_CROSS_COMPILE) -j$J distclean
 
 ## linux
 $(K_DOT_CONFIG): linux-sunxi
 	$(Q)$(MAKE) -C linux-sunxi ARCH=arm $(KERNEL_CONFIG)
 
 kernel: $(K_DOT_CONFIG)
-	$(Q)$(MAKE) -C linux-sunxi ARCH=arm CROSS_COMPILE=${CROSS_COMPILE} -j$J INSTALL_MOD_PATH=output uImage modules
-	$(Q)$(MAKE) -C linux-sunxi/modules/gpu CROSS_COMPILE=$(CROSS_COMPILE) ARCH=arm LICHEE_KDIR=${LICHEE_KDIR}
-	$(Q)$(MAKE) -C linux-sunxi ARCH=arm CROSS_COMPILE=${CROSS_COMPILE} -j$J INSTALL_MOD_PATH=output modules_install
-	$(Q)$(MAKE) -C linux-sunxi ARCH=arm CROSS_COMPILE=${CROSS_COMPILE} -j$J headers_install
-	cd linux-sunxi && ${CROSS_COMPILE}objcopy -R .note.gnu.build-id -S -O binary vmlinux bImage
+	$(Q)$(MAKE) -C linux-sunxi ARCH=arm CROSS_COMPILE=${K_CROSS_COMPILE} -j$J INSTALL_MOD_PATH=output uImage modules
+	$(Q)$(MAKE) -C linux-sunxi/modules/gpu CROSS_COMPILE=$(K_CROSS_COMPILE) ARCH=arm LICHEE_KDIR=${LICHEE_KDIR}
+	$(Q)$(MAKE) -C linux-sunxi ARCH=arm CROSS_COMPILE=${K_CROSS_COMPILE} -j$J INSTALL_MOD_PATH=output modules_install
+	$(Q)$(MAKE) -C linux-sunxi ARCH=arm CROSS_COMPILE=${K_CROSS_COMPILE} -j$J headers_install
+	cd linux-sunxi && ${K_CROSS_COMPILE}objcopy -R .note.gnu.build-id -S -O binary vmlinux bImage
 
 kernel-clean:
-	$(Q)$(MAKE) -C linux-sunxi/arch/arm/mach-sunxi/pm/standby ARCH=arm CROSS_COMPILE=${CROSS_COMPILE} clean
-	$(Q)$(MAKE) -C linux-sunxi/modules/gpu CROSS_COMPILE=$(CROSS_COMPILE) ARCH=arm LICHEE_KDIR=${LICHEE_KDIR} clean
-	$(Q)$(MAKE) -C linux-sunxi ARCH=arm CROSS_COMPILE=${CROSS_COMPILE} -j$J distclean
+	$(Q)$(MAKE) -C linux-sunxi/arch/arm/mach-sunxi/pm/standby ARCH=arm CROSS_COMPILE=${K_CROSS_COMPILE} clean
+	$(Q)$(MAKE) -C linux-sunxi/modules/gpu CROSS_COMPILE=$(K_CROSS_COMPILE) ARCH=arm LICHEE_KDIR=${LICHEE_KDIR} clean
+	$(Q)$(MAKE) -C linux-sunxi ARCH=arm CROSS_COMPILE=${K_CROSS_COMPILE} -j$J distclean
 	rm -rf linux-sunxi/output/
 	rm -f linux-sunxi/bImage
 
 kernel-config: $(K_DOT_CONFIG)
-	$(Q)$(MAKE) -C linux-sunxi ARCH=arm CROSS_COMPILE=${CROSS_COMPILE} -j$J menuconfig
+	$(Q)$(MAKE) -C linux-sunxi ARCH=arm CROSS_COMPILE=${K_CROSS_COMPILE} -j$J menuconfig
 	cp linux-sunxi/.config linux-sunxi/arch/arm/configs/$(KERNEL_CONFIG)
 
 ## bsp
