@@ -32,9 +32,9 @@ else
 PLATFORM_CPPFLAGS += -mcpu=cortex-a7
 endif
 
-ifndef CONFIG_SPL
-PLATFORM_CPPFLAGS += -Werror
-endif
+#ifndef CONFIG_SPL
+#PLATFORM_CPPFLAGS += -Werror
+#endif
 # =========================================================================
 #
 # Supply options according to compiler version
