@@ -25,6 +25,10 @@ source "drivers/gpu/stub/Kconfig"
 
 source "drivers/gpu/ion/Kconfig"
 
+#BPI Porting 20151231 Start
+source "drivers/video/fbtft/Kconfig"
+#BPI Porting 20151231 End
+
 config VGASTATE
        tristate
        default n
