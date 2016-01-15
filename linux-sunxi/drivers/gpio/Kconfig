@@ -521,4 +521,15 @@ config GPIO_TPS65910
 	help
 	  Select this option to enable GPIO driver for the TPS65910
 	  chip family.
+
+config GPIO_SUNXI
+    tristate "SUNXI GPIO USER INTERFACE"
+    depends on ARCH_SUNXI
+       default m
+    help
+        This driver export interface node in "/sys/class/gpio_sw/......",
+        operate this node can change pins functions status, resistance
+        status, driver level, and output level in output function.
+        It is used to sunxi family
+
 endif
