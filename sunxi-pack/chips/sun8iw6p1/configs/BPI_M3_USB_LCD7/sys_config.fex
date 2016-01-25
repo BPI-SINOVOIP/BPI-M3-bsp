@@ -380,7 +380,7 @@ uart_regulator	= "vcc-io"
 ;SPI controller configuration
 ;----------------------------------------------------------------------------------
 [spi0]
-spi_used       = 0
+spi_used       = 1
 spi_cs_bitmap  = 1
 spi_mosi       = port:PC00<3><default><default><default>
 spi_miso       = port:PC01<3><default><default><default>
@@ -404,11 +404,13 @@ spi_regulator  = "vcc-io"
 spi_dev_num = 1
 
 [spi_board0]
-modalias      = "m25p32"
+modalias      = "spidev"
 max_speed_hz  = 33000000
 bus_num       = 0
 chip_select   = 0
-mode          = 0
+mode          = 3
+full_duplex   = 0
+manual_cs     = 0
 
 ;----------------------------------------------------------------------------------
 ;resistance tp configuration
