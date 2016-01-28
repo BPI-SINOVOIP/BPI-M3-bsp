@@ -23,16 +23,16 @@ export CROSS_COMPILE ?= aarch64-linux-gnu-
 endif
 endif
 
-SYSTEM_TYPE = android
+SYSTEM_TYPE = linux
 GPU_TYPE = sgx544
 
 #####################################
 #For sgx544 Platform
 #####################################
 ifeq ($(GPU_TYPE),sgx544)
-GPU_BUILD_DIR = sgx544/$(SYSTEM_TYPE)/kernel_mode/eurasia_km/eurasiacon/build/linux2/sunxi_android
-GPU_KO_NAME   = sgx544/$(SYSTEM_TYPE)/kernel_mode/eurasia_km/eurasiacon/binary2_sunxi_$(SYSTEM_TYPE)_$(GPU_BUILD_TYPE)/target/pvrsrvkm.ko
-GPU_CLEAN_DIR = sgx544/$(SYSTEM_TYPE)/kernel_mode/eurasia_km/eurasiacon/binary2_sunxi_$(SYSTEM_TYPE)_$(GPU_BUILD_TYPE)
+GPU_BUILD_DIR = sgx544/android/kernel_mode/eurasia_km/eurasiacon/build/linux2/sunxi_linux
+GPU_KO_NAME   = sgx544/android/kernel_mode/eurasia_km/eurasiacon/binary2_sunxi_$(SYSTEM_TYPE)_$(GPU_BUILD_TYPE)/target/pvrsrvkm.ko
+GPU_CLEAN_DIR = sgx544/android/kernel_mode/eurasia_km/eurasiacon/binary2_sunxi_$(SYSTEM_TYPE)_$(GPU_BUILD_TYPE)
 ifdef CONFIG_OF
 export USING_DT = 1
 endif

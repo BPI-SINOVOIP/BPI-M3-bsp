@@ -61,6 +61,13 @@ struct write_back {
     unsigned int    sync;
     bool            success;
 };
+//BPI-M3 Porting GPU Feature Start
+struct img_call_back {
+    
+    unsigned int    sync;
+    void *call_arg;
+};
+//BPI-M3 Porting GPU Feature End
 
 struct composer_health_info {
 	unsigned long         time[DBG_TIME_TYPE][DBG_TIME_SIZE];
@@ -155,7 +162,23 @@ static void imp_finish_cb(bool force_all)
         }
     }
 }
+//BPI-M3 Porting GPU Feature Start
 
+int dispc_gralloc_queue_for_IMG(disp_layer_config *psDispcData, int ui32DispcDataLength, void (*cb_fn)(void *, int), void *cb_arg)
+{
+    disp_drv_info *psg_disp_drv = composer_priv.psg_disp_drv;
+    struct disp_manager *disp_mgr = NULL;
+    disp_mgr = psg_disp_drv->mgr[0];
+    bsp_disp_shadow_protect(0,true);
+    disp_mgr->set_layer_config(disp_mgr, psDispcData, 1);
+    bsp_disp_shadow_protect(0,false);
+    cb_fn(cb_arg,1);
+    return 0;
+}
+
+EXPORT_SYMBOL(dispc_gralloc_queue_for_IMG);
+
+//BPI-M3 Porting GPU Feature End
 extern s32  bsp_disp_shadow_protect(u32 disp, bool protect);
 int dispc_gralloc_queue(disp_layer_config *commit_layer, unsigned int disp,unsigned int hwc_sync, disp_capture_info *data)
 {

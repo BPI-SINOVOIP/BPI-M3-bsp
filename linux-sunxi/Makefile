@@ -327,7 +327,7 @@ $(srctree)/scripts/Kbuild.include: ;
 include $(srctree)/scripts/Kbuild.include
 
 # bpi, GPU module
-GPU_MODULE = $(srctree)/modules/gpu/sgx544/android/kernel_mode/eurasia_km/eurasiacon/binary2_sunxi_android_release/target
+GPU_MODULE = $(srctree)/modules/gpu/sgx544/android/kernel_mode/eurasia_km/eurasiacon/binary2_sunxi_linux_release/target
 
 # Make variables (CC, etc...)
 
