@@ -485,7 +485,7 @@ function do_signature()
 
 function do_pack_dragonboard()
 {
-	printf "packing for dragonboard\n"
+	printf "packing for BPI-M3\n"
 
 	ln -s ${LICHEE_OUT}/kernel/boot.img boot.fex
 	ln -s ${LICHEE_OUT}/rootfs/rootfs.ext4 rootfs.fex
