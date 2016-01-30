@@ -252,8 +252,8 @@ gmac_mdio          = port:PD23<2><default><3><default>
 gmac_power1        = "vcc-gmac-25:2500000"
 gmac_power2        = "vcc-gmac-33"
 gmac_power3        =
-tx-delay           = 7
-rx-delay           = 7
+tx_delay           = 7
+rx_delay           = 7
 
 ;---------------------------------------------------------------------------------------------------------
 ; wakeup_src_para:
@@ -479,7 +479,7 @@ tkey_int            =
 [motor_para]
 motor_used          = 1
 motor_shake         = 0
-motor_ldo           = vcc-vibrator
+motor_ldo           = "vcc-vibrator"
 motor_ldo_voltage   = 3300
 
 ;----------------------------------------------------------------------------------

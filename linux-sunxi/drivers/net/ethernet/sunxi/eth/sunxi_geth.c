@@ -1696,11 +1696,11 @@ static int geth_script_parse(struct platform_device *pdev)
 	if (priv->phy_ext == INT_PHY)
 		priv->phy_interface = PHY_INTERFACE_MODE_MII;
 
-	type = script_get_item((char *)dev_name(&pdev->dev), "tx-delay", &item);
+	type = script_get_item((char *)dev_name(&pdev->dev), "tx_delay", &item);
 	if(SCIRPT_ITEM_VALUE_TYPE_INT == type)
 		tx_delay = item.val;
 
-	type = script_get_item((char *)dev_name(&pdev->dev), "rx-delay", &item);
+	type = script_get_item((char *)dev_name(&pdev->dev), "rx_delay", &item);
 	if(SCIRPT_ITEM_VALUE_TYPE_INT == type)
 		rx_delay = item.val;
 #endif
