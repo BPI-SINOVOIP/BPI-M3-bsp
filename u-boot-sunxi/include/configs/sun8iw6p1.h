@@ -336,5 +336,7 @@
 #define CONFIG_CMD_BOOTA		/* boot android image */
 #define CONFIG_CMD_RUN			/* run a command */
 #define CONFIG_CMD_BOOTD		/* boot the default command */
+#define CONFIG_CMD_ECHO
+#define CONFIG_CMD_EXT2
 
 #endif /* __CONFIG_H */
