@@ -12,6 +12,39 @@
 
 #include "dev_disp.h"
 
+#define VIDEOMODE_CMDLINE	1
+
+// BPI-M3: Thanks linux-sunxi support!!
+#ifdef VIDEOMODE_CMDLINE
+static int screen0_output_type = -1;
+module_param(screen0_output_type, int, 0444);
+MODULE_PARM_DESC(screen0_output_type, "0:none; 1:lcd; 2:tv; 3:hdmi; 4:vga");
+
+static char *screen0_output_mode;
+module_param(screen0_output_mode, charp, 0444);
+MODULE_PARM_DESC(screen0_output_mode,
+	"used for hdmi output"
+	"0:480i 1:576i 2:480p 3:576p 4:720p50"
+	"5:720p60 6:1080i50 7:1080i60 8:1080p24 9:1080p50 10:1080p60"
+	"check sys_config.fex for more info.");
+
+static int screen1_output_type = -1;
+module_param(screen1_output_type, int, 0444);
+MODULE_PARM_DESC(screen1_output_type, "0:none; 1:lcd; 2:tv; 3:hdmi; 4:vga");
+
+static char *screen1_output_mode;
+module_param(screen1_output_mode, charp, 0444);
+MODULE_PARM_DESC(screen1_output_mode, "See screen0_output_mode");
+
+static int screen2_output_type = -1;
+module_param(screen2_output_type, int, 0444);
+MODULE_PARM_DESC(screen2_output_type, "0:none; 1:lcd; 2:tv; 3:hdmi; 4:vga");
+
+static char *screen2_output_mode;
+module_param(screen2_output_mode, charp, 0444);
+MODULE_PARM_DESC(screen2_output_mode, "See screen0_output_mode");
+#endif
+
 disp_drv_info g_disp_drv;
 
 #define MY_BYTE_ALIGN(x) ( ( (x + (4*1024-1)) >> 12) << 12)             /* alloc based on 4K byte */
@@ -371,6 +404,13 @@ static s32 parser_disp_init_para(disp_init_para * init_para)
 	init_para->disp_mode= value;
 
 	//screen0
+#ifdef VIDEOMODE_CMDLINE
+	if (screen0_output_type != -1) {
+		value = screen0_output_type;
+		pr_info("[DISP]%s: screen0_output_type(%d)\n", __func__, screen0_output_type);
+	}
+	else
+#endif
 	if(disp_sys_script_get_item("disp_init", "screen0_output_type", &value, 1) < 0)	{
 		__wrn("fetch script data disp_init.screen0_output_type fail\n");
 		return -1;
@@ -390,6 +430,15 @@ static s32 parser_disp_init_para(disp_init_para * init_para)
 		return -1;
 	}
 
+#ifdef VIDEOMODE_CMDLINE
+	if (screen0_output_mode != NULL) {
+		// TODO: support sunxi mode
+		sscanf(screen0_output_mode, "%d", &value);
+		pr_info("[DISP]%s: screen0_output_mode(%s) value(%d)\n", __func__, screen0_output_mode, value);
+	}
+	else
+#endif
+
 	if(disp_sys_script_get_item("disp_init", "screen0_output_mode", &value, 1) < 0)	{
 		__wrn("fetch script data disp_init.screen0_output_mode fail\n");
 		return -1;
@@ -400,6 +449,13 @@ static s32 parser_disp_init_para(disp_init_para * init_para)
 	}
 
 	//screen1
+#ifdef VIDEOMODE_CMDLINE
+	if (screen1_output_type != -1) {
+		value = screen1_output_type;
+		pr_info("[DISP]%s: screen1_output_type(%d)\n", __func__, screen1_output_type);
+	}
+	else
+#endif
 	if(disp_sys_script_get_item("disp_init", "screen1_output_type", &value, 1) < 0)	{
 		__wrn("fetch script data disp_init.screen1_output_type fail\n");
 		return -1;
@@ -419,6 +475,14 @@ static s32 parser_disp_init_para(disp_init_para * init_para)
 		return -1;
 	}
 
+#ifdef VIDEOMODE_CMDLINE
+	if (screen1_output_mode != NULL) {
+		// TODO: support sunxi mode
+		sscanf(screen1_output_mode, "%d", &value);
+		pr_info("[DISP]%s: screen1_output_mode(%s) value(%d)\n", __func__, screen0_output_mode, value);
+	}
+	else
+#endif
 	if(disp_sys_script_get_item("disp_init", "screen1_output_mode", &value, 1) < 0)	{
 		__wrn("fetch script data disp_init.screen1_output_mode fail\n");
 		return -1;
@@ -429,6 +493,13 @@ static s32 parser_disp_init_para(disp_init_para * init_para)
 	}
 
 	//screen2
+#ifdef VIDEOMODE_CMDLINE
+	if (screen2_output_type != -1) {
+		value = screen2_output_type;
+		pr_info("[DISP]%s: screen2_output_type(%d)\n", __func__, screen2_output_type);
+	}
+	else
+#endif
 	if(disp_sys_script_get_item("disp_init", "screen2_output_type", &value, 1) < 0)	{
 		__inf("fetch script data disp_init.screen2_output_type fail\n");
 	}
@@ -446,6 +517,14 @@ static s32 parser_disp_init_para(disp_init_para * init_para)
 		__inf("invalid screen0_output_type %d\n", init_para->output_type[2]);
 	}
 
+#ifdef VIDEOMODE_CMDLINE
+	if (screen2_output_mode != NULL) {
+		// TODO: support sunxi mode
+		sscanf(screen2_output_mode, "%d", &value);
+		pr_info("[DISP]%s: screen2_output_mode(%s) value(%d)\n", __func__, screen2_output_mode, value);
+	}
+	else
+#endif
 	if(disp_sys_script_get_item("disp_init", "screen2_output_mode", &value, 1) < 0)	{
 		__inf("fetch script data disp_init.screen2_output_mode fail\n");
 	}
