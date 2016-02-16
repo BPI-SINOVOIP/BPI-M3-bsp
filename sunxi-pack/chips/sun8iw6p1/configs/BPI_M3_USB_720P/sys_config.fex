@@ -621,6 +621,12 @@ lcd0_backlight           = 50
 lcd1_backlight           = 50
 
 
+
+;----------------------------------------------------------------------------------
+; HDMI to DVI converters
+; hdmi_hdcp_enable    = 0
+; hdmi_cts_compatibility = 1
+;----------------------------------------------------------------------------------
 [hdmi_para]
 hdmi_used           = 1
 hdmi_power          = "vcc-hdmi-18"
