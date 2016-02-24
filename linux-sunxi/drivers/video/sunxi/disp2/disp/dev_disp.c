@@ -14,7 +14,7 @@
 
 #define VIDEOMODE_CMDLINE	1
 
-// BPI-M3: Thanks linux-sunxi support!!
+// BPI-M3: Thanks for linux-sunxi support!!
 #ifdef VIDEOMODE_CMDLINE
 static int screen0_output_type = -1;
 module_param(screen0_output_type, int, 0444);
@@ -479,7 +479,7 @@ static s32 parser_disp_init_para(disp_init_para * init_para)
 	if (screen1_output_mode != NULL) {
 		// TODO: support sunxi mode
 		sscanf(screen1_output_mode, "%d", &value);
-		pr_info("[DISP]%s: screen1_output_mode(%s) value(%d)\n", __func__, screen0_output_mode, value);
+		pr_info("[DISP]%s: screen1_output_mode(%s) value(%d)\n", __func__, screen1_output_mode, value);
 	}
 	else
 #endif
