@@ -441,6 +441,11 @@ int power_source_init(void)
 	power_limit_init();
     // AXP and RTC use the same interrupt line, so disable RTC INT in uboot
     disable_rtc_int();
+#ifdef BPI-M3
+#else
+	printf("__%d__:(%s:%s)\n",__LINE__,__FILE__,__FUNCTION__);
+	axp_probe_vbus_cur_limit();
+#endif
 
 	return 0;
 }

@@ -198,6 +198,8 @@ struct axp_charger {
 	/* platform callbacks for battery low and critical events */
 	void (*battery_low)(void);
 	void (*battery_critical)(void);
+	s32 (*chg_usb_ac_current_set)(struct axp_charger *charger, aw_charge_type port_type, u32 current_limit);
+	s32 (*chg_usb_ac_vol_set)(struct axp_charger *charger, aw_charge_type port_type, u32 vol_limit);
 
 	/* timer for report ac/usb type */
 	struct timer_list usb_status_timer;

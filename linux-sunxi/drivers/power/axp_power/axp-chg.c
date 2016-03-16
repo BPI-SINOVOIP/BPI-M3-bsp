@@ -304,6 +304,10 @@ static void axp_usb(struct work_struct *work)
 			DBG_PSY_MSG(DEBUG_CHG, "set usbcur %d mA\n",axp_config->pmu_usbcur);
 			if((axp_config->pmu_usbcur) && (axp_config->pmu_usbcur_limit)){
 				var = axp_config->pmu_usbcur;
+#ifdef BPI-M3
+#else
+				var = 4000;
+#endif
 				if (var < 2000) {
 					tmp = 0x01;   /* 1500mA */
 					axp_update(axp_charger->master, AXP_CHARGE_AC, tmp,0x07);
@@ -324,7 +328,11 @@ static void axp_usb(struct work_struct *work)
 					axp_update(axp_charger->master, AXP_CHARGE_AC, tmp,0x07);
 				}
 			} else {
+#ifdef BPI-M3
 				tmp = 0x03;   /* 2500mA */
+#else
+				tmp = 0x05;   /* 4000mA */
+#endif
 				axp_update(axp_charger->master, AXP_CHARGE_AC, tmp,0x07);
 			}
 		}

@@ -49,7 +49,7 @@ void axp81x_power_off(int power_start)
 
 	mdelay(20);
 
-	if(power_start != 1){
+	if(axp81x_config.power_start != 1){
 		axp_read(axp->dev, AXP81X_STATUS, &val);
 		if(val & 0xF0){
 			axp_read(axp->dev, AXP81X_MODE_CHGSTATUS, &val);
@@ -216,10 +216,101 @@ int axp81x_chg_current_limit(int current_limit)
 	return 0;
 }
 
+s32 axp81x_usb_ac_current_limit(struct axp_charger *charger, aw_charge_type port_type, u32 current_limit)
+{
+	u8 tmp = 0;
+
+	if( (CHARGE_USB_20 == port_type) || (CHARGE_USB_30 == port_type)) {
+		if(current_limit < 500) {
+			tmp = 0x00;   /* 100mA */
+			axp_update(axp_charger->master, AXP81X_CHARGE_CONTROL3, tmp,0xf0);
+		} else if (current_limit < 900) {
+			tmp = 0x10;   /* 500mA */
+			axp_update(axp_charger->master, AXP81X_CHARGE_CONTROL3, tmp,0xf0);
+		} else if (current_limit < 1500) {
+			tmp = 0x20;   /* 900mA */
+			axp_update(axp_charger->master, AXP81X_CHARGE_CONTROL3, tmp,0xf0);
+		} else if (current_limit < 2000) {
+			tmp = 0x30;   /* 1500mA */
+			axp_update(axp_charger->master, AXP81X_CHARGE_CONTROL3, tmp,0xf0);
+		} else if (current_limit < 2500) {
+			tmp = 0x40;   /* 2000mA */
+			axp_update(axp_charger->master, AXP81X_CHARGE_CONTROL3, tmp,0xf0);
+		} else if (current_limit < 3000) {
+			tmp = 0x50;   /* 2500mA */
+			axp_update(axp_charger->master, AXP81X_CHARGE_CONTROL3, tmp,0xf0);
+		} else if (current_limit < 3500) {
+			tmp = 0x60;   /* 3000mA */
+			axp_update(axp_charger->master, AXP81X_CHARGE_CONTROL3, tmp,0xf0);
+		} else if (current_limit < 4000) {
+			tmp = 0x70;   /* 3500mA */
+			axp_update(axp_charger->master, AXP81X_CHARGE_CONTROL3, tmp,0xf0);
+		} else {
+			tmp = 0x80;   /* 4000mA */
+			axp_update(axp_charger->master, AXP81X_CHARGE_CONTROL3, tmp,0xf0);
+		}
+	}else if (CHARGE_AC == port_type) {
+#ifdef BPI-M3
+#else
+		current_limit =4000;
+#endif
+		if (current_limit < 2000) {
+			tmp = 0x00;   /* 1500mA */
+			axp_update(axp_charger->master, AXP81X_CHARGE_AC, tmp,0x07);
+		} else if (current_limit < 2500) {
+			tmp = 0x01;   /* 2000mA */
+			axp_update(axp_charger->master, AXP81X_CHARGE_AC, tmp,0x07);
+		} else if (current_limit < 3000) {
+			tmp = 0x02;   /* 2500mA */
+			axp_update(axp_charger->master, AXP81X_CHARGE_AC, tmp,0x07);
+		} else if (current_limit < 3500) {
+			tmp = 0x03;   /* 3000mA */
+			axp_update(axp_charger->master, AXP81X_CHARGE_AC, tmp,0x07);
+		} else if (current_limit < 4000) {
+			tmp = 0x04;   /* 3500mA */
+			axp_update(axp_charger->master, AXP81X_CHARGE_AC, tmp,0x07);
+		} else {
+			tmp = 0x05;   /* 4000mA */
+			axp_update(axp_charger->master, AXP81X_CHARGE_AC, tmp,0x07);
+		}
+	} else
+		return -1;
+
+	return 0;
+}
+
+s32 axp81x_usb_ac_vol_limit(struct axp_charger *charger, aw_charge_type port_type, u32 vol_limit)
+{
+	u8 tmp = 0;
+
+	if( (CHARGE_USB_20 == port_type) || (CHARGE_USB_30 == port_type)) {
+		if(vol_limit >= 4000 && vol_limit <=4700){
+			tmp = (vol_limit - 4000)/100;
+			tmp = tmp << 3;
+			axp_update(axp_charger->master, AXP81X_CHARGE_VBUS, tmp,0x38);
+		}else
+			DBG_PSY_MSG(DEBUG_CHG, "set usb limit voltage error,%d mV\n",vol_limit);
+	}else if (CHARGE_AC == port_type) {
+		if(vol_limit >= 4000 && vol_limit <=4700){
+			tmp = (vol_limit - 4000)/100;
+			tmp = tmp << 3;
+#ifdef BPI-M3
+			axp_update(axp_charger->master, AXP81X_CHARGE_AC, tmp,0x38);
+#else
+printk("BPI-M3: tmp [%02X]\n",tmp);
+printk("BPI-M3: set PMIC AC 4000mA\n");
+			axp_update(axp_charger->master, AXP81X_CHARGE_AC, 0x85,0x38);
+#endif
+		}else
+			DBG_PSY_MSG(DEBUG_CHG, "set ac limit voltage error,%d mV\n",vol_limit);
+	}
+	return 0;
+}
+
 int axp81x_init(struct axp_charger *charger)
 {
 	int ret = 0, var = 0;
-	uint8_t tmp = 0, val = 0;
+	uint8_t val = 0;
 	uint8_t ocv_cap[63];
 	int Cur_CoulombCounter,rdc;
 
@@ -227,49 +318,29 @@ int axp81x_init(struct axp_charger *charger)
 	if (ret)
 		goto err_charger_init;
 
-        //BPI-Team Justin Porting for OTG_Reboot start	
-	/* usb voltage limit */
-        /*
-	if((axp81x_config.pmu_usbvol) && (axp81x_config.pmu_usbvol_limit)){
-		axp_set_bits(charger->master, AXP81X_CHARGE_VBUS, 0x40);///qin no use
-		var = axp81x_config.pmu_usbvol * 1000;
-		if(var >= 4000000 && var <=4700000){
-			tmp = (var - 4000000)/100000;
-			val = tmp << 3;
-			axp_update(charger->master, AXP81X_CHARGE_VBUS, val, 0x38);
-		}
-	}else
-		axp_clr_bits(charger->master, AXP81X_CHARGE_VBUS, 0x40);///qin no use
-
-        */
-        	if((axp81x_config.pmu_usbcur) && (axp81x_config.pmu_usbcur_limit)){
-		var = axp81x_config.pmu_usbcur;
-		if (var < 2000) {
-			tmp = 0x01;   /* 1500mA */
-			axp_update(charger->master, AXP_CHARGE_AC, tmp,0x07);
-		} else if (var < 2500) {
-			tmp = 0x02;   /* 2000mA */
-			axp_update(charger->master, AXP_CHARGE_AC, tmp,0x07);
-		} else if (var < 3000) {
-			tmp = 0x03;   /* 2500mA */
-			axp_update(charger->master, AXP_CHARGE_AC, tmp,0x07);
-		} else if (var < 3500) {
-			tmp = 0x04;   /* 3000mA */
-			axp_update(charger->master, AXP_CHARGE_AC, tmp,0x07);
-		} else if (var < 4000) {
-			tmp = 0x05;   /* 3500mA */
-			axp_update(charger->master, AXP_CHARGE_AC, tmp,0x07);
-		} else {
-			tmp = 0x06;   /* 4000mA */
-			axp_update(charger->master, AXP_CHARGE_AC, tmp,0x07);
-		}
-	} else {
-		    tmp = 0x03;   /* 2500mA */
-		    axp_update(charger->master, AXP_CHARGE_AC, tmp,0x07);
+	/* usb /ac voltage limit */
+	if(axp81x_config.pmu_usbvol){
+		axp81x_usb_ac_vol_limit(charger, CHARGE_AC, axp81x_config.pmu_usbvol);
+	}
+	if(axp81x_config.pmu_usbvol_pc){
+		axp81x_usb_ac_vol_limit(charger, CHARGE_USB_20, axp81x_config.pmu_usbvol_pc);
 	}
 
-
-        //BPI-Team Justin Porting for OTG_Reboot end
+	/* ac current limit */
+	if(axp81x_config.pmu_usbcur){
+		axp81x_usb_ac_current_limit(charger, CHARGE_AC, axp81x_config.pmu_usbcur);
+	} else {
+#ifdef BPI-M3
+		axp81x_usb_ac_current_limit(charger, CHARGE_AC, 2500);
+#else
+		axp81x_usb_ac_current_limit(charger, CHARGE_AC, 4000);
+#endif
+	}
+#ifdef BPI-M3
+#else
+printk("BPI-M3: set PMIC AC 4000mA\n");
+	axp81x_usb_ac_current_limit(charger, CHARGE_AC, 4000);
+#endif
 
 	axp81x_chg_current_limit(axp81x_config.pmu_runtime_chgcur);
 
@@ -485,6 +556,9 @@ int axp81x_init(struct axp_charger *charger)
 		axp_write(charger->master,0x3C,axp81x_config.pmu_discharge_ltf*10/128);
 		axp_write(charger->master,0x3D,axp81x_config.pmu_discharge_htf*10/128);
 	}
+
+	charger->chg_usb_ac_current_set = &axp81x_usb_ac_current_limit;
+	charger->chg_usb_ac_vol_set = &axp81x_usb_ac_vol_limit;
 
 	return ret;
 err_charger_init:

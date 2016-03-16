@@ -630,9 +630,46 @@ int axp81_set_vbus_cur_limit(int current)
     return 0;
 }
 
+#ifdef BPI-M3
+#else
+extern int do_reset(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
+
+int axp81_dump_reg(void)
+{
+	int i;
+	uchar reg_value;
+	for(i=0;i<=0x3e;i++)
+	{
+		axp_i2c_read(AXP81X_ADDR, i,&reg_value);
+		printf("[AXP81X]:[%02X]=[%02X]\n", i , reg_value);
+	}
+}
+#endif
+
 int axp81_probe_vbus_cur_limit(void)
 {
     uchar reg_value;
+#ifdef BPI-M3
+#else
+#define	AC_VAL	0x85
+
+	axp81_dump_reg();
+	axp_i2c_read(AXP81X_ADDR, 0x3A,&reg_value);
+	printf("BPI-M3:[AXP81X]:[%02X]=[%02X]\n", 0x3A , reg_value);
+	if((reg_value !=AC_VAL)) {
+		printf("BPI-M3: [AXP81X]: set [%02X]=[%02X]\n", 0x3A , AC_VAL);
+		axp_i2c_write(AXP81X_ADDR, 0x3A, AC_VAL);
+		axp_i2c_read(AXP81X_ADDR, 0x3A,&reg_value);
+		printf("BPI-M3:[AXP81X]: read [%02X]=[%02X]\n", 0x3A , reg_value);
+		printf("BPI-M3: [AXP81X]: set [%02X]=[%02X]\n", 0x35 , 0x83);
+		axp_i2c_write(AXP81X_ADDR, 0x35, 0x83);
+		axp_i2c_read(AXP81X_ADDR, 0x35,&reg_value);
+		printf("BPI-M3:[AXP81X]: read [%02X]=[%02X]\n", 0x35 , reg_value);
+		printf("BPI-M3:[AXP81X]: do_reset\n");
+		do_reset(NULL, 0, 0, NULL);
+	}
+
+#endif
 
     if(axp_i2c_read(AXP81X_ADDR,BOOT_POWER81X_VBUS_SET,&reg_value))
     {
