@@ -981,8 +981,11 @@ smc_sda             =
 ;--------------------------------
 [usbc0]
 usb_used            = 1
-usb_port_type       = 2
-usb_detect_type     = 1
+;change USB0(microusb) from OTG to host only 
+;usb_port_type       = 2
+;usb_detect_type     = 1
+usb_port_type       = 1
+usb_detect_type     = 0
 usb_id_gpio         = port:PH11<0><1><default><default>
 usb_det_vbus_gpio   = "axp_ctrl"
 usb_drv_vbus_gpio   = port:power4<1><0><default><0>
