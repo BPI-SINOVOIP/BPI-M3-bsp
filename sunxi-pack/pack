@@ -94,6 +94,10 @@ TOOLS_DIR="${ROOT_DIR}/pctools/linux"
 LICHEE_OUT="../output/${PACK_BOARD}"
 FEX_OUT="../output/${PACK_BOARD}/pack"
 OTA_TEST_NAME="ota_test"
+#BPI
+if [ ! -d ${LICHEE_OUT} ] ; then
+	mkdir -p ${LICHEE_OUT}
+fi
 if [ -d ${LICHEE_OUT} ] ; then
 	LICHEE_OUT=`cd ${LICHEE_OUT}; pwd`
 else
@@ -485,7 +489,7 @@ function do_signature()
 
 function do_pack_dragonboard()
 {
-	printf "packing for BPI-M3\n"
+	printf "packing for ${PACK_BOARD}\n"
 
 	ln -s ${LICHEE_OUT}/kernel/boot.img boot.fex
 	ln -s ${LICHEE_OUT}/rootfs/rootfs.ext4 rootfs.fex

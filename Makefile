@@ -6,10 +6,12 @@ include chosen_board.mk
 
 SUDO=sudo
 CROSS_COMPILE=$(COMPILE_TOOL)/arm-linux-gnueabi-
-NEW_CROSS_COMPILE=$(NEW_COMPILE_TOOL)/arm-linux-gnueabihf-
+#CROSS_COMPILE=arm-linux-gnueabi-
+#NEW_CROSS_COMPILE=$(NEW_COMPILE_TOOL)/arm-linux-gnueabihf-
+NEW_CROSS_COMPILE=arm-linux-gnueabihf-
 U_CROSS_COMPILE=$(CROSS_COMPILE)
-K_CROSS_COMPILE=$(CROSS_COMPILE)
-#K_CROSS_COMPILE=$(NEW_CROSS_COMPILE)
+#K_CROSS_COMPILE=$(CROSS_COMPILE)
+K_CROSS_COMPILE=$(NEW_CROSS_COMPILE)
 
 #unmark for use new toolchain , this time just for KERNEL TEST ONLY
 #DONOT USE FOR UBOOT this time, 

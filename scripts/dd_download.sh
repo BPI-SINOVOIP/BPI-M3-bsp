@@ -10,19 +10,18 @@ die() {
         exit 1
 }
 
-[ -s "../chosen_board.mk" ] || die "please run ./configure first."
 [ $# -eq 1 ] || die "Usage: $0 /dev/sdc"
 
-set -e
+[ -s "./env.sh" ] || die "please run ./configure first."
 
-. ../chosen_board.mk
+. ./env.sh
 
 O=$1
-P=../download/$BOARD
+P=../output/$BOARD/pack
 
 sudo dd if=$P/boot0_sdcard.fex 	of=$O bs=1k seek=8
 sudo dd if=$P/u-boot.fex 	of=$O bs=1k seek=19096
 sudo dd if=$P/sunxi_mbr.fex 	of=$O bs=1k seek=20480
 sudo dd if=$P/boot-resource.fex	of=$O bs=1k seek=36864
 sudo dd if=$P/env.fex 		of=$O bs=1k seek=69632
-sudo dd if=$P/boot.fex 		of=$O bs=1k seek=86016
+#sudo dd if=$P/boot.fex 		of=$O bs=1k seek=86016

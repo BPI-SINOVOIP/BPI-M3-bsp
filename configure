@@ -6,15 +6,16 @@ SOC=a83t
 MACH=sun8iw6p1
 PLATFORM=
 BOARD=
+TOPDIR=`pwd`
+#TARGET_PLATFORM="BPI"
+#TARGET_PRODUCT="BPI-M3"
 
 CUR_DIR=$PWD
 CROSS_COMPILE=$CUR_DIR/allwinner-tools/toolchain/bin
 NEW_CROSS_COMPILE=$CUR_DIR/allwinner-tools/gcc-linaro-4.9-2015.05-x86_64_arm-linux-gnueabihf/bin
 
 list_boards() {
-	ls -1 sunxi-pack/chips/sun8iw6p1/configs/*/*/*.fex |
-	sed -n -e 's|.*/\([^/]\+\)\.fex$|\1|p' | sort -V |
-        sed -e 's|.*|\t* \0 \0-android|'
+	(cd sunxi-pack/chips/$MACH/configs ; ls -1d BPI* )
 }
 
 # keep the output `sh` friendly
@@ -29,6 +30,25 @@ generate_board_mk() {
 	NEW_COMPILE_TOOL=$NEW_CROSS_COMPILE
 	UBOOT_CONFIG=$MACH
 	KERNEL_CONFIG=sun8iw6p1smp_bpi_defconfig
+	LICHEE_PLATFORM=linux
+	EOT
+
+}
+
+
+generate_board_envsh() {
+	
+	cat <<-EOT
+	export ARCH=arm
+	export BOARD=$BOARD
+	export SOC=$SOC
+	export MACH=$MACH
+	#export CROSS_COMPILE=arm-linux-gnueabihf-
+	export CROSS_COMPILE=arm-linux-gnueabi-
+	export UBOOT_CONFIG=${MACH}_config
+	export KERNEL_CONFIG=sun8iw6p1smp_bpi_defconfig
+	export LICHEE_PLATFORM="linux"
+	export TOPDIR=${TOPDIR}
 	EOT
 
 }
@@ -39,7 +59,7 @@ usage() {
 
 	supported boards:
 	EOT
-	#list_boards  #DK, update later
+	list_boards  #DK, update later
 }
 
 if [ $# -eq 0 ]; then
@@ -48,6 +68,8 @@ if [ $# -eq 0 ]; then
 fi
 
 BOARD=$1
+
+generate_board_envsh "$1" > env.sh
 
 out=chosen_board.mk
 if generate_board_mk "$1" > $out~; then

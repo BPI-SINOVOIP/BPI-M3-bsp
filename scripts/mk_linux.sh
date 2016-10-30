@@ -1,4 +1,5 @@
 #!/bin/sh
+exit
 
 die() {
 	echo "$*" >&2
