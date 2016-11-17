@@ -17,25 +17,31 @@
 
 #include "camera.h"
 
+static unsigned int frame_rate = 0;
+module_param(frame_rate, uint, 0);
+MODULE_PARM_DESC(frame_rate,
+"frame_rate=0 (default with no parameters), frame_rate=1 (7.5 FPS), frame_rate=2 (15 FPS), frame_rate=3 (30 FPS) (default=0 - or no parms - default settings)");
 
 MODULE_AUTHOR("raymonxiu");
-MODULE_DESCRIPTION("A low-level driver for ov5640 sensors");
+MODULE_AUTHOR("@lex");
+
+MODULE_DESCRIPTION("A low-level driver for ov5640 sensors (A83T / H3 / A20)");
 MODULE_LICENSE("GPL");
 
 #define AF_WIN_NEW_COORD
 //for internel driver debug
 #define DEV_DBG_EN      0
 #if(DEV_DBG_EN == 1)    
-#define vfe_dev_dbg(x,arg...) printk("[OV5640]"x,##arg)
+#define vfe_dev_dbg(x,arg...) printk("[OV5640@lex]"x,##arg)
 #else
 #define vfe_dev_dbg(x,arg...) 
 #endif
-#define vfe_dev_err(x,arg...) printk("[OV5640]"x,##arg)
-#define vfe_dev_print(x,arg...) printk("[OV5640]"x,##arg)
+#define vfe_dev_err(x,arg...) printk("[OV5640@lex]"x,##arg)
+#define vfe_dev_print(x,arg...) printk("[OV5640@lex]"x,##arg)
 
 #define CAP_BDG 0
 #if(CAP_BDG == 1)
-#define vfe_dev_cap_dbg(x,arg...) printk("[OV5640_CAP_DBG]"x,##arg)
+#define vfe_dev_cap_dbg(x,arg...) printk("[OV5640_CAP_DBG@lex]"x,##arg)
 #else
 #define vfe_dev_cap_dbg(x,arg...)
 #endif
@@ -84,10 +90,12 @@ static int A80_VERSION = 0 ;
 #define FLASH_MODE_POL 1
 #ifdef _FLASH_FUNC_
 #include "../flash_light/flash.h"
+
 static struct flash_dev_info fl_info;
 static unsigned int to_flash=0;
 static unsigned int flash_auto_level=0x1c;
 #endif
+
 #define CONTINUEOUS_AF
 //#define AUTO_FPS
 #define DENOISE_LV_AUTO
@@ -114,6 +122,32 @@ unsigned int cap_manual_gain=0x10;
 #define MAX_FRM_CAP 1
 #endif
 
+enum ov5640_frame_rate {
+    ov5640_default_fps,    
+    ov5640_7_fps,
+	ov5640_15_fps,
+	ov5640_30_fps,
+    ov5640_60_fps,
+    ov5640_90_fps,
+    ov5640_120_fps,
+    ov5640_max_fps
+};
+
+enum ov5640_win_sizes {
+	WIN_SIZE_QSXGA_2592x1936,
+	WIN_SIZE_QXGA_2048x1536,
+	WIN_SIZE_1080P_1920x1080,
+	WIN_SIZE_UXGA_1600x1200,
+	WIN_SIZE_UXGA_1280x960,
+	WIN_SIZE_720P_1280x720,
+	WIN_SIZE_XGA_1024x768,
+	WIN_SIZE_SVGA_800x600,
+	WIN_SIZE_VGA_640x480,
+	/* WIN_SIZE_CIF_352x288, */
+	WIN_SIZE_QVGA_320x240,
+	WIN_SIZE_QCIF_176x144,
+	N_WIN_SIZES
+};
 
 /*
  * Our nominal (default) frame rate.
@@ -145,1266 +179,2997 @@ static inline struct sensor_info *to_state(struct v4l2_subdev *sd)
 
 
 /*
+ * 
  * The default register settings
  *
  */
 
 static struct regval_list sensor_default_regs[] = {
-  {0x3103,0x11},//
-  {0x3008,0x82},//reset
-  {REG_DLY,0x1e},//delay 30ms
-  {0x3008,0x42},//power down
-  {0x3103,0x03},//
-  {0x3017,0x00},//disable oe
-  {0x3018,0x00},//
-  //pll and clock setting
-  {0x3034,0x18},//
-  {0x3035,0x21},//
-  {0x3036,0x46},//0x46->30fps
-  {0x3037,0x13},//////div
-  {0x3108,0x01},//
-  {0x3824,0x01},//
-  
-  {0x3630,0x36},//
-  {0x3631,0x0e},//
-  {0x3632,0xe2},//
-  {0x3633,0x12},//
-  {0x3621,0xe0},//
-  {0x3704,0xa0},//
-  {0x3703,0x5a},//
-  {0x3715,0x78},//
-  {0x3717,0x01},//
-  {0x370b,0x60},//
-  {0x3705,0x1a},//
-  {0x3905,0x02},//
-  {0x3906,0x10},//
-  {0x3901,0x0a},//
-  {0x3731,0x12},//
-  {0x3600,0x08},//
-  {0x3601,0x33},//
-//  {0x302d,0x60},//
-  {0x3620,0x52},//
-  {0x371b,0x20},//
-  {0x471c,0x50},//
-  {0x3a13,0x43},//
-  {0x3a18,0x00},//
-  {0x3a19,0x88},//
-  {0x3635,0x13},//
-  {0x3636,0x03},//
-  {0x3634,0x40},//
-  {0x3622,0x01},//
-  {0x3c01,0x34},//
-  {0x3c04,0x28},//
-  {0x3c05,0x98},//
-  {0x3c06,0x00},//
-  {0x3c07,0x08},//
-  {0x3c08,0x00},//
-  {0x3c09,0x1c},//
-  {0x3c0a,0x9c},//
-  {0x3c0b,0x40},//
-//  {0x3820,0x41},// binning
-//  {0x3821,0x41},// binning
-  {0x3814,0x31},//
-  {0x3815,0x31},//
-  {0x3800,0x00},//
-  {0x3801,0x00},//
-  {0x3802,0x00},//
-  {0x3803,0x04},//
-  {0x3804,0x0a},//
-  {0x3805,0x3f},//
-  {0x3806,0x07},//
-  {0x3807,0x9b},//
-  {0x3808,0x02},//
-  {0x3809,0x80},//
-  {0x380a,0x01},//
-  {0x380b,0xe0},//
-  {0x380c,0x07},//
-  {0x380d,0x68},//
-  {0x380e,0x03},//
-  {0x380f,0xd8},//
-  {0x3810,0x00},//
-  {0x3811,0x10},//
-  {0x3812,0x00},//
-  {0x3813,0x06},//
-  {0x3618,0x00},//
-  {0x3612,0x29},//
-  {0x3708,0x64},//
-  {0x3709,0x52},//
-  {0x370c,0x03},//
-  {0x3a00,0x78},
-  {0x3a02,0x03},//
-  {0x3a03,0xd8},//
-  {0x3a08,0x01},//
-  {0x3a09,0x27},//
-  {0x3a0a,0x00},//
-  {0x3a0b,0xf6},//
-  {0x3a0e,0x03},//
-  {0x3a0d,0x04},//
-  {0x3a14,0x03},//
-  {0x3a15,0xd8},//
-  {0x4001,0x02},//
-  {0x4004,0x02},//
-  {0x3000,0x00},//
-  {0x3002,0x1c},//
-  {0x3004,0xff},//
-  {0x3006,0xc3},//
-  {0x300e,0x58},//
-//  {0x302e,0x00},//
-  
-  {0x302c,0x42},//bit[7:6]: output drive capability
-            //00: 1x   01: 2x  10: 3x  11: 4x
-
-  {0x4300,0x30},//
-  {0x501f,0x00},//
-  {0x4713,0x03},//
-  {0x4407,0x04},//
-  {0x440e,0x00},//
-  {0x460b,0x35},//
-  {0x460c,0x20},//
-  {0x4837,0x22},
-  {0x5000,0xa7},//
-  {0x5001,0xa3},//
-  
-  {0x4740,0x21},//hsync,vsync,clock pol,reference to application note,spec is wrong
-                  
-  //AWB   
-	{0x3406,0x00},  //0x00}, // LA      ORG
-  {0x5180,0xff},  //0xff},	// 0xff    0xff
-	{0x5181,0xf2},  //0x50}, // 0xf2    0x50               	
-	{0x5182,0x00},  //0x11}, // 0x00    0x11              	
-	{0x5183,0x14},  //0x14}, // 0x14    0x14             	
-	{0x5184,0x25},  //0x25}, // 0x25    0x25             	
-	{0x5185,0x24},  //0x24}, // 0x24    0x24             	
-	{0x5186,0x16},  //0x1c}, // 0x09    0x1c              	
-	{0x5187,0x16},  //0x18}, // 0x09    0x18              	
-	{0x5188,0x16},  //0x18}, // 0x09    0x18              	
-	{0x5189,0x6e},  //0x6e}, // 0x75    0x6e             	
-	{0x518a,0x68},  //0x68}, // 0x54    0x68             	
-	{0x518b,0xe0},  //0xa8}, // 0xe0    0xa8             	
-	{0x518c,0xb2},  //0xa8}, // 0xb2    0xa8             	
-	{0x518d,0x42},  //0x3d}, // 0x42    0x3d             	
-	{0x518e,0x3e},  //0x3d}, // 0x3d    0x3d             	
-	{0x518f,0x4c},  //0x54}, // 0x56    0x54             	
-	{0x5190,0x56},  //0x54}, // 0x46    0x54             	
-	{0x5191,0xf8},  //0xf8}, // 0xf8    0xf8             	
-	{0x5192,0x04},  //0x04}, // 0x04    0x04              	
-	{0x5193,0x70},  //0x70}, // 0x70    0x70             	
-	{0x5194,0xf0},  //0xf0}, // 0xf0    0xf0             	
-	{0x5195,0xf0},  //0xf0}, // 0xf0    0xf0             	
-	{0x5196,0x03},  //0x03}, // 0x03    0x03              	
-	{0x5197,0x01},  //0x01}, // 0x01    0x01              	
-	{0x5198,0x04},  //0x05}, // 0x04    0x05              	
-	{0x5199,0x12},  //0x7c}, // 0x12    0x7c
-	{0x519a,0x04},  //0x04}, // 0x04    0x04
-	{0x519b,0x00},  //0x00}, // 0x00    0x00
-	{0x519c,0x06},  //0x06}, // 0x06    0x06
-	{0x519d,0x82},  //0x79}, // 0x82    0x79
-	{0x519e,0x38},  //0x38}, // 0x38    0x38
-  //Color                   // LA      ORG      
-	{0x5381,0x1e},  //0x1e}, // 0x1e    0x1e
-	{0x5382,0x5b},  //0x5b}, // 0x5b    0x5b
-	{0x5383,0x14},  //0x08}, // 0x08    0x08
-	{0x5384,0x05},  //0x0a}, // 0x0a    0x05
-	{0x5385,0x77},  //0x7e}, // 0x7e    0x72
-	{0x5386,0x7c},  //0x88}, // 0x88    0x77
-	{0x5387,0x72},  //0x7c}, // 0x7c    0x6d
-	{0x5388,0x58},  //0x6c}, // 0x6c    0x4d
-	{0x5389,0x1a},  //0x10}, // 0x10    0x20
-	{0x538a,0x01},  //0x01}, // 0x01    0x01
-	{0x538b,0x98},  //0x98}, // 0x98    0x98
-  //Sharpness/Denoise     
-  {0x5300,0x08}, 
-  {0x5301,0x30},      
-  {0x5302,0x30}, 
-  {0x5303,0x10}, 
-	{0x5308,0x25}, //sharpness/noise auto
-  {0x5304,0x08}, 
-  {0x5305,0x30}, 
-  {0x5306,0x1c}, 
-  {0x5307,0x2c}, 
-  {0x5309,0x08}, 
-  {0x530a,0x30}, 
-  {0x530b,0x04}, 
-  {0x530c,0x06}, 
-
-	//Gamma        
-  {0x5480,0x01},  //???     // LA     ORG
-  {0x5481,0x06},  //0x08},  // 0x08     0x06
-  {0x5482,0x12},  //0x14},  // 0x14     0x15
-  {0x5483,0x1e},  //0x28},  // 0x28     0x28
-  {0x5484,0x4a},  //0x51},  // 0x51     0x3b
-  {0x5485,0x58},  //0x65},  // 0x65     0x50
-  {0x5486,0x65},  //0x71},  // 0x71     0x5d
-  {0x5487,0x72},  //0x7d},  // 0x7d     0x6a
-  {0x5488,0x7d},  //0x87},  // 0x87     0x75
-  {0x5489,0x88},  //0x91},  // 0x91     0x80
-  {0x548a,0x92},  //0x9a},  // 0x9a     0x8a
-  {0x548b,0xa3},  //0xaa},  // 0xaa     0x9b
-  {0x548c,0xb2},  //0xb8},  // 0xb8     0xaa
-  {0x548d,0xc8},  //0xcd},  // 0xcd     0xc0
-  {0x548e,0xdd},  //0xdd},  // 0xdd     0xd5
-  {0x548f,0xf0},  //0xea},  // 0xea     0xe8
-  {0x5490,0x15},  //0x1d},  // 0x1d     0x20
+    //{0x3103, 0x11},             //
+    //{0x3008, 0x82},             //reset
+    //{REG_DLY, 0x1e},            //delay 30ms
     
-  //UV  
-  {0x5580,0x06}, 
-  {0x5583,0x40}, 
-  {0x5584,0x10}, 
-  {0x5589,0x10}, 
-  {0x558a,0x00}, 
-  {0x558b,0xf8}, 
-  {0x501d,0x40}, 
-  
-//  {0x5587,0x05},
-//  {0x5588,0x09},
-  //Lens Shading 
-  {0x5800,0x15},    //0xa7}, //LA        org
-  {0x5801,0x10},    //0x23}, //0x23      0x17
-  {0x5802,0x0D},    //0x14}, //0x14      0x10
-  {0x5803,0x0D},    //0x0f}, //0x0f      0x0e
-  {0x5804,0x0F},    //0x0f}, //0x0f      0x0e
-  {0x5805,0x15},    //0x12}, //0x12      0x11
-  {0x5806,0x0A},    //0x26}, //0x26      0x1b
-  {0x5807,0x07},    //0x0c}, //0x0c      0x0b
-  {0x5808,0x05},    //0x08}, //0x08      0x07
-  {0x5809,0x05},    //0x05}, //0x05      0x05
-  {0x580A,0x07},    //0x05}, //0x05      0x06
-  {0x580B,0x0B},    //0x08}, //0x08      0x09
-  {0x580C,0x07},    //0x0d}, //0x0d      0x0e
-  {0x580D,0x03},    //0x08}, //0x08      0x06
-  {0x580E,0x01},    //0x03}, //0x03      0x02
-  {0x580F,0x01},    //0x00}, //0x00      0x00
-  {0x5810,0x03},    //0x00}, //0x00      0x00
-  {0x5811,0x07},    //0x03}, //0x03      0x03
-  {0x5812,0x07},    //0x09}, //0x09      0x09
-  {0x5813,0x03},    //0x07}, //0x07      0x06
-  {0x5814,0x01},    //0x03}, //0x03      0x03
-  {0x5815,0x01},    //0x00}, //0x00      0x00
-  {0x5816,0x03},    //0x01}, //0x01      0x00
-  {0x5817,0x06},    //0x03}, //0x03      0x03
-  {0x5818,0x0D},    //0x08}, //0x08      0x09
-  {0x5819,0x08},    //0x0d}, //0x0d      0x0b
-  {0x581A,0x06},    //0x08}, //0x08      0x08
-  {0x581B,0x06},    //0x05}, //0x05      0x05
-  {0x581C,0x07},    //0x06}, //0x06      0x05
-  {0x581D,0x0B},    //0x08}, //0x08      0x08
-  {0x581E,0x14},    //0x0e}, //0x0e      0x0e
-  {0x581F,0x13},    //0x29}, //0x29      0x18
-  {0x5820,0x0E},    //0x17}, //0x17      0x12
-  {0x5821,0x0E},    //0x11}, //0x11      0x0f
-  {0x5822,0x12},    //0x11}, //0x11      0x0f
-  {0x5823,0x12},    //0x15}, //0x15      0x12
-  {0x5824,0x46},    //0x28}, //0x28      0x1a
-  {0x5825,0x26},    //0x46}, //0x46      0x0a
-  {0x5826,0x06},    //0x26}, //0x26      0x0a
-  {0x5827,0x46},    //0x08}, //0x08      0x0a
-  {0x5828,0x44},    //0x26}, //0x26      0x0a
-  {0x5829,0x26},    //0x64}, //0x64      0x46
-  {0x582A,0x24},    //0x26}, //0x26      0x2a
-  {0x582B,0x42},    //0x24}, //0x24      0x24
-  {0x582C,0x24},    //0x22}, //0x22      0x44
-  {0x582D,0x46},    //0x24}, //0x24      0x24
-  {0x582E,0x24},    //0x24}, //0x24      0x28
-  {0x582F,0x42},    //0x06}, //0x06      0x08
-  {0x5830,0x60},    //0x22}, //0x22      0x42
-  {0x5831,0x42},    //0x40}, //0x40      0x40
-  {0x5832,0x24},    //0x42}, //0x42      0x42
-  {0x5833,0x26},    //0x24}, //0x24      0x28
-  {0x5834,0x24},    //0x26}, //0x26      0x0a
-  {0x5835,0x24},    //0x24}, //0x24      0x26
-  {0x5836,0x24},    //0x22}, //0x22      0x24
-  {0x5837,0x46},    //0x22}, //0x22      0x26
-  {0x5838,0x44},    //0x26}, //0x26      0x28
-  {0x5839,0x46},    //0x44}, //0x44      0x4a
-  {0x583A,0x26},    //0x24}, //0x24      0x0a
-  {0x583B,0x48},    //0x26}, //0x26      0x0c
-  {0x583C,0x44},    //0x28}, //0x28      0x2a
-  {0x583D,0xBF},    //0x42}, //0x42      0x28
-   
-  //EV
-  {0x3a0f,0x30}, 
-  {0x3a10,0x28}, 
-  {0x3a1b,0x30}, 
-  {0x3a1e,0x26}, 
-  {0x3a11,0x60}, 
-  {0x3a1f,0x14}, 
+    {0x3008, 0x42},             //power down
+    {0x3103, 0x03},             //
+    {0x3017, 0x00},             //disable oe
+    {0x3018, 0x00},             //
+    
+    //pll and clock setting
+    {0x3034, 0x18},             //
+    {0x3035, 0x21},             //0x11:60fps 0x21:30fps 0x41:15fps
+    {0x3036, 0x46},             //0x46->30fps
+    {0x3037, 0x13},             //////div
+    {0x3108, 0x01},             //
+    
+    {0x3824, 0x01},             //
 
-  {0x5025,0x00}, 
-  
-	{0x3031,0x08}, //disable internal LDO
-//  {0x4005,0x1a},
-//  //power down release
-	{0x503d,0x00}, //0xd2 square test pattern
-  {0x3008,0x02}, 
-  //{REG_TERM,VAL_TERM},
-};                                                           
+    {0x3630, 0x36},             //
+    {0x3631, 0x0e},             //
+    {0x3632, 0xe2},             //
+    {0x3633, 0x12},             //
+    {0x3621, 0xe0},             //
+    {0x3704, 0xa0},             //
+    {0x3703, 0x5a},             //
+    {0x3715, 0x78},             //
+    {0x3717, 0x01},             //
+    {0x370b, 0x60},             //
+    {0x3705, 0x1a},             //
+    {0x3905, 0x02},             //
+    {0x3906, 0x10},             //
+    {0x3901, 0x0a},             //
+    {0x3731, 0x12},             //
+    {0x3600, 0x08},             //
+    {0x3601, 0x33},             //
+    {0x302d, 0x60},             //
+    {0x3620, 0x52},             //
+    {0x371b, 0x20},             //
+    {0x471c, 0x50},             //
+    {0x3a13, 0x43},             //
+    {0x3a18, 0x00},             //
+    {0x3a19, 0x88},             //
+    {0x3635, 0x13},             //
+    {0x3636, 0x03},             //
+    {0x3634, 0x40},             //
+    {0x3622, 0x01},             //
+    {0x3c01, 0x34},             //
+    {0x3c04, 0x28},             //
+    {0x3c05, 0x98},             //
+    {0x3c06, 0x00},             //
+    {0x3c07, 0x08},             //
+    {0x3c08, 0x00},             //
+    {0x3c09, 0x1c},             //
+    {0x3c0a, 0x9c},             //
+    {0x3c0b, 0x40},             //
+    //  {0x3820,0x41},// binning
+    //  {0x3821,0x41},// binning
+    {0x3814, 0x31},             //
+    {0x3815, 0x31},             //
+    {0x3800, 0x00},             //
+    {0x3801, 0x00},             //
+    {0x3802, 0x00},             //
+    {0x3803, 0x04},             //
+    {0x3804, 0x0a},             //
+    {0x3805, 0x3f},             //
+    {0x3806, 0x07},             //
+    {0x3807, 0x9b},             //
+    {0x3808, 0x02},             //
+    {0x3809, 0x80},             //
+    {0x380a, 0x01},             //
+    {0x380b, 0xe0},             //
+    {0x380c, 0x07},             //
+    {0x380d, 0x68},             //
+    {0x380e, 0x03},             //
+    {0x380f, 0xd8},             //
+    {0x3810, 0x00},             //
+    {0x3811, 0x10},             //
+    {0x3812, 0x00},             //
+    {0x3813, 0x06},             //
+    {0x3618, 0x00},             //
+    {0x3612, 0x29},             //
+    {0x3708, 0x64},             //
+    {0x3709, 0x52},             //
+    {0x370c, 0x03},             //
+    {0x3a00, 0x78},
+    {0x3a02, 0x03},             //
+    {0x3a03, 0xd8},             //
+    {0x3a08, 0x01},             //
+    {0x3a09, 0x27},             //
+    {0x3a0a, 0x00},             //
+    {0x3a0b, 0xf6},             //
+    {0x3a0e, 0x03},             //
+    {0x3a0d, 0x04},             //
+    {0x3a14, 0x03},             //
+    {0x3a15, 0xd8},             //
+    {0x4001, 0x02},             //
+    {0x4004, 0x02},             //
+    {0x3000, 0x00},             //
+    {0x3002, 0x1c},             //
+    {0x3004, 0xff},             //
+    {0x3006, 0xc3},             //
+    {0x300e, 0x58},             //
+    //  {0x302e,0x00},//
 
-//for capture                                                                         
-static struct regval_list sensor_qsxga_regs[] = { //qsxga: 2592*1936
-  //capture 5Mega 7.5fps
-  //power down
-//  {0x3008,0x42},
-  //pll and clock setting
-  {0x3820,0x40},
-  {0x3821,0x06},
-  {0x3034,0x18},                                  
-#ifndef FPGA_VER
-  {0x3035,0x21},    
-#else
-  {0x3035,0x41},                         
-#endif                              
-  {0x3036,0x54},                                                                
-  {0x3037,0x13},                                  
-  {0x3108,0x01},                                  
-  {0x3824,0x01},                                  
-  {REG_DLY,0x05},//delay 5ms              
-  //timing                                              
-  //2592*1936                                           
-  {0x3808,0x0a}, //H size MSB                    
-  {0x3809,0x20}, //H size LSB                    
-  {0x380a,0x07}, //V size MSB                    
-  {0x380b,0x90}, //V size LSB                    
-  {0x380c,0x0b}, //HTS MSB                       
-  {0x380d,0x1c}, //HTS LSB                       
-  {0x380e,0x07}, //VTS MSB                       
-  {0x380f,0xb0}, //LSB                           
-#ifndef FPGA_VER
-  //banding step                                        
-  {0x3a08,0x00}, //50HZ step MSB                 
-  {0x3a09,0x93}, //50HZ step LSB                 
-  {0x3a0a,0x00}, //60HZ step MSB                 
-  {0x3a0b,0x7b}, //60HZ step LSB                 
-  {0x3a0e,0x0d}, //50HZ step max                 
-  {0x3a0d,0x10}, //60HZ step max                 
-#else
-  //banding step                                        
-  //{0x3a08,0x00}, //50HZ step MSB                 
-  //{0x3a09,0x49}, //50HZ step LSB                 
-  //{0x3a0a,0x00}, //60HZ step MSB                 
-  //{0x3a0b,0x3d}, //60HZ step LSB                 
-  //{0x3a0e,0x1a}, //50HZ step max                 
-  //{0x3a0d,0x20}, //60HZ step max 
+    {0x302c, 0x42},             //bit[7:6]: output drive capability
+                                //00: 1x   01: 2x  10: 3x  11: 4x
 
-  {0x3a08,0x00}, //50HZ step MSB                 
-  {0x3a09,0x93}, //50HZ step LSB                 
-  {0x3a0a,0x00}, //60HZ step MSB                 
-  {0x3a0b,0x7b}, //60HZ step LSB                 
-  {0x3a0e,0x0d}, //50HZ step max                 
-  {0x3a0d,0x10}, //60HZ step max                 
+    {0x4300, 0x30},             //
+    {0x501f, 0x00},             //
+    {0x4713, 0x03},             //
+    {0x4407, 0x04},             //
+    {0x440e, 0x00},             //
+    {0x460b, 0x35},             //
+    {0x460c, 0x20},             //
+    {0x4837, 0x22},
+    {0x5000, 0xa7},             //
+    {0x5001, 0xa3},             //
 
-#endif                                                                                                
-  {0x3503,0x07}, //AEC disable                                                                                             
-  {0x350c,0x00},                                   
-  {0x350d,0x00},         
-  {0x3c07,0x07}, //light meter 1 thereshold                                 
-                                                                   
-  {0x3814,0x11}, //horizton subsample
-  {0x3815,0x11}, //vertical subsample
-  {0x3800,0x00}, //x address start high byte
-  {0x3801,0x00}, //x address start low byte  
-  {0x3802,0x00},  //y address start high byte 
-  {0x3803,0x00}, //y address start low byte 
-  {0x3804,0x0a}, //x address end high byte
-  {0x3805,0x3f}, //x address end low byte 
-  {0x3806,0x07}, //y address end high byte
-  {0x3807,0x9f}, //y address end low byte 
-  {0x3810,0x00}, //isp hortizontal offset high byte
-  {0x3811,0x10}, //isp hortizontal offset low byte
-  {0x3812,0x00}, //isp vertical offset high byte
-  {0x3813,0x04},  //isp vertical offset low byte 
-  
-//  {0x5308,0x65},    //sharpen manual    
-//  {0x5302,0x20}, //sharpness      
-                                                     
-  {0x4002,0xc5},  //BLC related                  
-  {0x4005,0x1a}, // BLC related               
-                                                                               
-  {0x3618,0x04},                                 
-  {0x3612,0x2b},                                 
-  {0x3709,0x12},                                 
-  {0x370c,0x00},                                 
-  {0x3a02,0x07}, //60HZ max exposure limit MSB   
-  {0x3a03,0xb0}, //60HZ max exposure limit LSB   
-  {0x3a14,0x07}, //50HZ max exposure limit MSB   
-  {0x3a15,0xb0}, //50HZ max exposure limit LSB   
-  {0x4004,0x06}, //BLC line number               
-  {0x4837,0x2c},//PCLK period                    
-  {0x5001,0xa3},//ISP effect    
-  
-  {0x302c,0x42},//bit[7:6]: output drive capability
-            //00: 1x   01: 2x  10: 3x  11: 4x      
-  //power down release
-//  {0x3008,0x02}, 
-//  {REG_DLY,0x32},//delay 50ms  
-  //{REG_TERM,VAL_TERM},           
+    // DVP control registers ( 0x4709 ~ 0x4745 )
+    {0x4740, 0x21},             //hsync,vsync,clock pol,reference to application note,spec is wrong
+
+    //AWB   
+    {0x3406, 0x00},             //0x00}, // LA      ORG
+    {0x5180, 0xff},             //0xff},        // 0xff    0xff
+    {0x5181, 0xf2},             //0x50}, // 0xf2    0x50                
+    {0x5182, 0x00},             //0x11}, // 0x00    0x11                
+    {0x5183, 0x14},             //0x14}, // 0x14    0x14                
+    {0x5184, 0x25},             //0x25}, // 0x25    0x25                
+    {0x5185, 0x24},             //0x24}, // 0x24    0x24                
+    {0x5186, 0x16},             //0x1c}, // 0x09    0x1c                
+    {0x5187, 0x16},             //0x18}, // 0x09    0x18                
+    {0x5188, 0x16},             //0x18}, // 0x09    0x18                
+    {0x5189, 0x6e},             //0x6e}, // 0x75    0x6e                
+    {0x518a, 0x68},             //0x68}, // 0x54    0x68                
+    {0x518b, 0xe0},             //0xa8}, // 0xe0    0xa8                
+    {0x518c, 0xb2},             //0xa8}, // 0xb2    0xa8                
+    {0x518d, 0x42},             //0x3d}, // 0x42    0x3d                
+    {0x518e, 0x3e},             //0x3d}, // 0x3d    0x3d                
+    {0x518f, 0x4c},             //0x54}, // 0x56    0x54                
+    {0x5190, 0x56},             //0x54}, // 0x46    0x54                
+    {0x5191, 0xf8},             //0xf8}, // 0xf8    0xf8                
+    {0x5192, 0x04},             //0x04}, // 0x04    0x04                
+    {0x5193, 0x70},             //0x70}, // 0x70    0x70                
+    {0x5194, 0xf0},             //0xf0}, // 0xf0    0xf0                
+    {0x5195, 0xf0},             //0xf0}, // 0xf0    0xf0                
+    {0x5196, 0x03},             //0x03}, // 0x03    0x03                
+    {0x5197, 0x01},             //0x01}, // 0x01    0x01                
+    {0x5198, 0x04},             //0x05}, // 0x04    0x05                
+    {0x5199, 0x12},             //0x7c}, // 0x12    0x7c
+    {0x519a, 0x04},             //0x04}, // 0x04    0x04
+    {0x519b, 0x00},             //0x00}, // 0x00    0x00
+    {0x519c, 0x06},             //0x06}, // 0x06    0x06
+    {0x519d, 0x82},             //0x79}, // 0x82    0x79
+    {0x519e, 0x38},             //0x38}, // 0x38    0x38
+    //Color                   // LA      ORG      
+    {0x5381, 0x1e},             //0x1e}, // 0x1e    0x1e
+    {0x5382, 0x5b},             //0x5b}, // 0x5b    0x5b
+    {0x5383, 0x14},             //0x08}, // 0x08    0x08
+    {0x5384, 0x05},             //0x0a}, // 0x0a    0x05
+    {0x5385, 0x77},             //0x7e}, // 0x7e    0x72
+    {0x5386, 0x7c},             //0x88}, // 0x88    0x77
+    {0x5387, 0x72},             //0x7c}, // 0x7c    0x6d
+    {0x5388, 0x58},             //0x6c}, // 0x6c    0x4d
+    {0x5389, 0x1a},             //0x10}, // 0x10    0x20
+    {0x538a, 0x01},             //0x01}, // 0x01    0x01
+    {0x538b, 0x98},             //0x98}, // 0x98    0x98
+    //Sharpness/Denoise     
+    {0x5300, 0x08},
+    {0x5301, 0x30},
+    {0x5302, 0x30},
+    {0x5303, 0x10},
+    {0x5308, 0x25},             //sharpness/noise auto
+    {0x5304, 0x08},
+    {0x5305, 0x30},
+    {0x5306, 0x1c},
+    {0x5307, 0x2c},
+    {0x5309, 0x08},
+    {0x530a, 0x30},
+    {0x530b, 0x04},
+    {0x530c, 0x06},
+
+    //Gamma        
+    {0x5480, 0x01},             //???     // LA     ORG
+    {0x5481, 0x06},             //0x08},  // 0x08     0x06
+    {0x5482, 0x12},             //0x14},  // 0x14     0x15
+    {0x5483, 0x1e},             //0x28},  // 0x28     0x28
+    {0x5484, 0x4a},             //0x51},  // 0x51     0x3b
+    {0x5485, 0x58},             //0x65},  // 0x65     0x50
+    {0x5486, 0x65},             //0x71},  // 0x71     0x5d
+    {0x5487, 0x72},             //0x7d},  // 0x7d     0x6a
+    {0x5488, 0x7d},             //0x87},  // 0x87     0x75
+    {0x5489, 0x88},             //0x91},  // 0x91     0x80
+    {0x548a, 0x92},             //0x9a},  // 0x9a     0x8a
+    {0x548b, 0xa3},             //0xaa},  // 0xaa     0x9b
+    {0x548c, 0xb2},             //0xb8},  // 0xb8     0xaa
+    {0x548d, 0xc8},             //0xcd},  // 0xcd     0xc0
+    {0x548e, 0xdd},             //0xdd},  // 0xdd     0xd5
+    {0x548f, 0xf0},             //0xea},  // 0xea     0xe8
+    {0x5490, 0x15},             //0x1d},  // 0x1d     0x20
+
+    //UV  
+    {0x5580, 0x06},
+    {0x5583, 0x40},
+    {0x5584, 0x10},
+    {0x5589, 0x10},
+    {0x558a, 0x00},
+    {0x558b, 0xf8},
+    {0x501d, 0x40},
+
+    //  {0x5587,0x05},
+    //  {0x5588,0x09},
+    //Lens Shading 
+    {0x5800, 0x15},             //0xa7}, //LA        org
+    {0x5801, 0x10},             //0x23}, //0x23      0x17
+    {0x5802, 0x0D},             //0x14}, //0x14      0x10
+    {0x5803, 0x0D},             //0x0f}, //0x0f      0x0e
+    {0x5804, 0x0F},             //0x0f}, //0x0f      0x0e
+    {0x5805, 0x15},             //0x12}, //0x12      0x11
+    {0x5806, 0x0A},             //0x26}, //0x26      0x1b
+    {0x5807, 0x07},             //0x0c}, //0x0c      0x0b
+    {0x5808, 0x05},             //0x08}, //0x08      0x07
+    {0x5809, 0x05},             //0x05}, //0x05      0x05
+    {0x580A, 0x07},             //0x05}, //0x05      0x06
+    {0x580B, 0x0B},             //0x08}, //0x08      0x09
+    {0x580C, 0x07},             //0x0d}, //0x0d      0x0e
+    {0x580D, 0x03},             //0x08}, //0x08      0x06
+    {0x580E, 0x01},             //0x03}, //0x03      0x02
+    {0x580F, 0x01},             //0x00}, //0x00      0x00
+    {0x5810, 0x03},             //0x00}, //0x00      0x00
+    {0x5811, 0x07},             //0x03}, //0x03      0x03
+    {0x5812, 0x07},             //0x09}, //0x09      0x09
+    {0x5813, 0x03},             //0x07}, //0x07      0x06
+    {0x5814, 0x01},             //0x03}, //0x03      0x03
+    {0x5815, 0x01},             //0x00}, //0x00      0x00
+    {0x5816, 0x03},             //0x01}, //0x01      0x00
+    {0x5817, 0x06},             //0x03}, //0x03      0x03
+    {0x5818, 0x0D},             //0x08}, //0x08      0x09
+    {0x5819, 0x08},             //0x0d}, //0x0d      0x0b
+    {0x581A, 0x06},             //0x08}, //0x08      0x08
+    {0x581B, 0x06},             //0x05}, //0x05      0x05
+    {0x581C, 0x07},             //0x06}, //0x06      0x05
+    {0x581D, 0x0B},             //0x08}, //0x08      0x08
+    {0x581E, 0x14},             //0x0e}, //0x0e      0x0e
+    {0x581F, 0x13},             //0x29}, //0x29      0x18
+    {0x5820, 0x0E},             //0x17}, //0x17      0x12
+    {0x5821, 0x0E},             //0x11}, //0x11      0x0f
+    {0x5822, 0x12},             //0x11}, //0x11      0x0f
+    {0x5823, 0x12},             //0x15}, //0x15      0x12
+    {0x5824, 0x46},             //0x28}, //0x28      0x1a
+    {0x5825, 0x26},             //0x46}, //0x46      0x0a
+    {0x5826, 0x06},             //0x26}, //0x26      0x0a
+    {0x5827, 0x46},             //0x08}, //0x08      0x0a
+    {0x5828, 0x44},             //0x26}, //0x26      0x0a
+    {0x5829, 0x26},             //0x64}, //0x64      0x46
+    {0x582A, 0x24},             //0x26}, //0x26      0x2a
+    {0x582B, 0x42},             //0x24}, //0x24      0x24
+    {0x582C, 0x24},             //0x22}, //0x22      0x44
+    {0x582D, 0x46},             //0x24}, //0x24      0x24
+    {0x582E, 0x24},             //0x24}, //0x24      0x28
+    {0x582F, 0x42},             //0x06}, //0x06      0x08
+    {0x5830, 0x60},             //0x22}, //0x22      0x42
+    {0x5831, 0x42},             //0x40}, //0x40      0x40
+    {0x5832, 0x24},             //0x42}, //0x42      0x42
+    {0x5833, 0x26},             //0x24}, //0x24      0x28
+    {0x5834, 0x24},             //0x26}, //0x26      0x0a
+    {0x5835, 0x24},             //0x24}, //0x24      0x26
+    {0x5836, 0x24},             //0x22}, //0x22      0x24
+    {0x5837, 0x46},             //0x22}, //0x22      0x26
+    {0x5838, 0x44},             //0x26}, //0x26      0x28
+    {0x5839, 0x46},             //0x44}, //0x44      0x4a
+    {0x583A, 0x26},             //0x24}, //0x24      0x0a
+    {0x583B, 0x48},             //0x26}, //0x26      0x0c
+    {0x583C, 0x44},             //0x28}, //0x28      0x2a
+    {0x583D, 0xBF},             //0x42}, //0x42      0x28
+
+    //EV
+    {0x3a0f, 0x30},
+    {0x3a10, 0x28},
+    {0x3a1b, 0x30},
+    {0x3a1e, 0x26},
+    {0x3a11, 0x60},
+    {0x3a1f, 0x14},
+
+    {0x5025, 0x00},
+
+    {0x3031, 0x08},             //disable internal LDO
+    {0x4005, 0x1a},              //power down release
+    {0x503d, 0x00},             //0xd2 square test pattern
+    {0x3008, 0x02},
 };
 
-static struct regval_list sensor_qxga_regs[] = { //qxga: 2048*1536
-  //capture 3Mega 7.5fps
-  //power down
-//  {0x3008,0x42},
-  //pll and clock setting
-  {0x3034,0x18},                               
-#ifndef FPGA_VER
-  {0x3035,0x21},                          
-#else
-  {0x3035,0x41},                         
-#endif                               
-  {0x3036,0x54},                               
-  {0x3037,0x13},                               
-  {0x3108,0x01},                               
-  {0x3824,0x01},                               
-  {REG_DLY,0x05},//delay 5ms              
-  //timing                                           
-  //2048*1536                                        
-  {0x3808,0x08}, //H size MSB                 
-  {0x3809,0x00}, //H size LSB                 
-  {0x380a,0x06}, //V size MSB                 
-  {0x380b,0x00}, //V size LSB                 
-  {0x380c,0x0b}, //HTS MSB                    
-  {0x380d,0x1c}, //HTS LSB                    
-  {0x380e,0x07}, //VTS MSB                    
-  {0x380f,0xb0}, //LSB                        
-#ifndef FPGA_VER
-  //banding step                                        
-  {0x3a08,0x00}, //50HZ step MSB                 
-  {0x3a09,0x93}, //50HZ step LSB                 
-  {0x3a0a,0x00}, //60HZ step MSB                 
-  {0x3a0b,0x7b}, //60HZ step LSB                 
-  {0x3a0e,0x0d}, //50HZ step max                 
-  {0x3a0d,0x10}, //60HZ step max                 
-#else
-  //banding step                                        
-  {0x3a08,0x00}, //50HZ step MSB                 
-  {0x3a09,0x49}, //50HZ step LSB                 
-  {0x3a0a,0x00}, //60HZ step MSB                 
-  {0x3a0b,0x3d}, //60HZ step LSB                 
-  {0x3a0e,0x1a}, //50HZ step max                 
-  {0x3a0d,0x20}, //60HZ step max 
-#endif        
-                                                     
-//  {0x3503,0x07}, //AEC disable                                             
-  {0x350c,0x00},                              
-  {0x350d,0x00},                              
-  {0x3c07,0x07}, //light meter 1 thereshold   
-                                                     
-  {0x3814,0x11}, //horizton subsample
-  {0x3815,0x11}, //vertical subsample
-  {0x3800,0x00}, //x address start high byte
-  {0x3801,0x00}, //x address start low byte  
-  {0x3802,0x00},  //y address start high byte 
-  {0x3803,0x00}, //y address start low byte 
-  {0x3804,0x0a}, //x address end high byte
-  {0x3805,0x3f}, //x address end low byte 
-  {0x3806,0x07}, //y address end high byte
-  {0x3807,0x9f}, //y address end low byte 
-  {0x3810,0x00}, //isp hortizontal offset high byte
-  {0x3811,0x10}, //isp hortizontal offset low byte
-  {0x3812,0x00}, //isp vertical offset high byte
-  {0x3813,0x04},  //isp vertical offset low byte 
-  
-//  {0x5308,0x65},    //sharpen manual                                                   
-//  {0x5302,0x20}, //sharpness                    
-                                       
-  {0x4002,0xc5},  //BLC related               
-  {0x4005,0x1a}, // BLC related                              
-                                                                               
-  {0x3618,0x04},                              
-  {0x3612,0x2b},                              
-  {0x3709,0x12},                              
-  {0x370c,0x00}, 
-  {0x3a02,0x07}, //60HZ max exposure limit MSB
-  {0x3a03,0xb0}, //60HZ max exposure limit LSB
-  {0x3a14,0x07}, //50HZ max exposure limit MSB
-  {0x3a15,0xb0}, //50HZ max exposure limit LSB
-  {0x4004,0x06}, //BLC line number                                         
-  {0x4837,0x2c},//PCLK period                              
-  {0x5001,0xa3},//ISP effect  
-  {0x302c,0x42},//bit[7:6]: output drive capability
-            //00: 1x   01: 2x  10: 3x  11: 4x   
-  //power down release
-//  {0x3008,0x02},     
-//  {REG_DLY,0x32},//delay 50ms
-  //{REG_TERM,VAL_TERM},           
-};                                      
+// ======================
+// for capture
+// ======================
+static struct regval_list sensor_qsxga_7FPS_regs[] = {
+    //qsxga: 2592*1936
+    //capture 5Mega 7.5fps
+    //power down
+    {0x3008,0x42},
+    
+    //pll and clock setting
+    {0x3820, 0x40},
+    {0x3821, 0x06},
+    
+    {0x3034, 0x18},
+    {0x3035, 0x21},
+    {0x3036, 0x54},
+    {0x3037, 0x13},
+    {0x3108, 0x01},
+    
+    {0x3824, 0x01},
+    {REG_DLY, 0x05},            //delay 5ms
+    
+    //timing                                              
+    //2592*1936                                           
+    {0x3808, 0x0a},             //H size MSB                    
+    {0x3809, 0x20},             //H size LSB                    
+    {0x380a, 0x07},             //V size MSB                    
+    {0x380b, 0x90},             //V size LSB                    
+    {0x380c, 0x0b},             //HTS MSB                       
+    {0x380d, 0x1c},             //HTS LSB                       
+    {0x380e, 0x07},             //VTS MSB                       
+    {0x380f, 0xb0},             //LSB                           
 
-static struct regval_list sensor_uxga_regs[] = { //UXGA: 1600*1200
-    //capture 2Mega 7.5fps
-  //power down
-//  {0x3008,0x42},
-  //pll and clock setting                                                                                                                        
-  {0x3034,0x18},                                                                                                             
-#ifndef FPGA_VER
-  {0x3035,0x21},                          
-#else
-  {0x3035,0x41},                         
-#endif                                                                                                           
-  {0x3036,0x54},                                                                                                             
-  {0x3037,0x13},                                                                                                             
-  {0x3108,0x01},                                                                                                             
-  {0x3824,0x01},                                                                                                             
-  {REG_DLY,0x05},//delay 5ms                                        
-  //timing                                                                                                                             
-  //1600*1200                                                                                                                          
-  {0x3808,0x06}, //H size MSB                                                                                             
-  {0x3809,0x40}, //H size LSB                                                                                             
-  {0x380a,0x04}, //V size MSB                                                                                             
-  {0x380b,0xb0}, //V size LSB                                                                                             
-  {0x380c,0x0b}, //HTS MSB                                                                                                
-  {0x380d,0x1c}, //HTS LSB                                                                                                
-  {0x380e,0x07}, //VTS MSB                                                                                                
-  {0x380f,0xb0}, //LSB                                                                                                    
-#ifndef FPGA_VER
-  //banding step                                        
-  {0x3a08,0x00}, //50HZ step MSB                 
-  {0x3a09,0x93}, //50HZ step LSB                 
-  {0x3a0a,0x00}, //60HZ step MSB                 
-  {0x3a0b,0x7b}, //60HZ step LSB                 
-  {0x3a0e,0x0d}, //50HZ step max                 
-  {0x3a0d,0x10}, //60HZ step max                 
-#else
-  //banding step                                        
-  {0x3a08,0x00}, //50HZ step MSB                 
-  {0x3a09,0x49}, //50HZ step LSB                 
-  {0x3a0a,0x00}, //60HZ step MSB                 
-  {0x3a0b,0x3d}, //60HZ step LSB                 
-  {0x3a0e,0x1a}, //50HZ step max                 
-  {0x3a0d,0x20}, //60HZ step max 
-#endif                                                                                          
-                                                                                                                                       
-//  {0x3503,0x07}, //AEC disable                                                                                                                                                                                                                  
-  {0x350c,0x00},                                                                                                                 
-  {0x350d,0x00},                                                                                                                 
-  {0x3c07,0x07}, //light meter 1 thereshold                                                                                      
-                                                                                                                                                                                                                        
-  {0x3814,0x11}, //horizton subsample
-  {0x3815,0x11}, //vertical subsample
-  {0x3800,0x00}, //x address start high byte
-  {0x3801,0x00}, //x address start low byte  
-  {0x3802,0x00},  //y address start high byte 
-  {0x3803,0x00}, //y address start low byte 
-  {0x3804,0x0a}, //x address end high byte
-  {0x3805,0x3f}, //x address end low byte 
-  {0x3806,0x07}, //y address end high byte
-  {0x3807,0x9f}, //y address end low byte 
-  {0x3810,0x00}, //isp hortizontal offset high byte
-  {0x3811,0x10}, //isp hortizontal offset low byte
-  {0x3812,0x00}, //isp vertical offset high byte
-  {0x3813,0x04},  //isp vertical offset low byte 
-                                                                                                                                       
-  {0x4002,0xc5}, //BLC related                                                                                                     
-  {0x4005,0x12}, //BLC related                                                                                        
-//  {0x5308,0x65},    //sharpen manual
-//  {0x5302,0x20},//sharpness                                                                                          
-                                                                                                                                                                                                                                       
-  {0x3618,0x04},                                                                                                               
-  {0x3612,0x2b},                                                                                                               
-  {0x3709,0x12},                                                                                                               
-  {0x370c,0x00},                                                                                                               
-  {0x3a02,0x07},//60HZ max exposure limit MSB                                                                                                                  
-  {0x3a03,0xb0},//60HZ max exposure limit LSB                                                                                   
-  {0x3a14,0x07},//50HZ max exposure limit MSB                                                                                   
-  {0x3a15,0xb0},//50HZ max exposure limit LSB                                                                                   
-  {0x4004,0x06},//BLC line number                                                                                               
-                                                                                                                                                                               
-                                                                                                                       
-  {0x4837,0x2c}, //PCLK period                                                                                                  
-  {0x5001,0xa3}, //ISP effect  
-  {0x302c,0x42},//bit[7:6]: output drive capability
-            //00: 1x   01: 2x  10: 3x  11: 4x                                                                                  
-  //power down release
-//  {0x3008,0x02},     
-//  {REG_DLY,0x32},//delay 50ms
-  //{REG_TERM,VAL_TERM},
+    //banding step                                        
+    {0x3a08, 0x00},             //50HZ step MSB                 
+    {0x3a09, 0x93},             //50HZ step LSB                 
+    {0x3a0a, 0x00},             //60HZ step MSB                 
+    {0x3a0b, 0x7b},             //60HZ step LSB                 
+    {0x3a0e, 0x0d},             //50HZ step max                 
+    {0x3a0d, 0x10},             //60HZ step max                 
+
+    // {0x3503, 0x07},             //AEC disable                                                                                             
+    {0x350c, 0x00},
+    {0x350d, 0x00},
+    {0x3c07, 0x07},             //light meter 1 thereshold                                 
+
+    {0x3814, 0x11},             //horizton subsample
+    {0x3815, 0x11},             //vertical subsample
+    {0x3800, 0x00},             //x address start high byte
+    {0x3801, 0x00},             //x address start low byte  
+    {0x3802, 0x00},             //y address start high byte 
+    {0x3803, 0x00},             //y address start low byte 
+    {0x3804, 0x0a},             //x address end high byte
+    {0x3805, 0x3f},             //x address end low byte 
+    {0x3806, 0x07},             //y address end high byte
+    {0x3807, 0x9f},             //y address end low byte 
+    {0x3810, 0x00},             //isp hortizontal offset high byte
+    {0x3811, 0x10},             //isp hortizontal offset low byte
+    {0x3812, 0x00},             //isp vertical offset high byte
+    {0x3813, 0x04},             //isp vertical offset low byte 
+
+    //  {0x5308,0x65},    //sharpen manual    
+    //  {0x5302,0x20}, //sharpness      
+
+    {0x4002, 0xc5},             //BLC related                  
+    {0x4005, 0x1a},             // BLC related               
+
+    {0x3618, 0x04},
+    {0x3612, 0x2b},
+    {0x3709, 0x12},
+    {0x370c, 0x00},
+    {0x3a02, 0x07},             //60HZ max exposure limit MSB   
+    {0x3a03, 0xb0},             //60HZ max exposure limit LSB   
+    {0x3a14, 0x07},             //50HZ max exposure limit MSB   
+    {0x3a15, 0xb0},             //50HZ max exposure limit LSB   
+    {0x4004, 0x06},             //BLC line number               
+    {0x4837, 0x2c},             //PCLK period                    
+    {0x5001, 0xa3},             //ISP effect    
+
+    {0x302c, 0x42},             //bit[7:6]: output drive capability
+    //00: 1x   01: 2x  10: 3x  11: 4x
+    
+    //power down release
+    {0x3008,0x02}, 
 };
 
-#if 1
-static struct regval_list sensor_sxga_regs[] = { //SXGA: 1280*960
-  //capture 1.3Mega 7.5fps
-  //power down
-//  {0x3008,0x42},
-  {0x3820,0x40},
-  {0x3821,0x06},
-  //pll and clock setting                                                                                   
-  {0x3034,0x18},                                                      
-#ifndef FPGA_VER
-  {0x3035,0x11},                          
-#else
-  {0x3035,0x21},                         
-#endif                                                        
-  {0x3036,0x54},                                                      
-  {0x3037,0x13},                                                      
-  {0x3108,0x01},                                                      
-  {0x3824,0x01},                                                      
-  {REG_DLY,0x05},//delay 5ms                                  
-  //timing                                                                                                  
-  //1280*960                                                                                                
-  {0x3808,0x05}, //H size MSB                                                                  
-  {0x3809,0x00}, //H size LSB                                                                  
-  {0x380a,0x03}, //V size MSB                                                                  
-  {0x380b,0xc0}, //V size LSB                                                                  
-  {0x380c,0x0b}, //HTS MSB                                                                     
-  {0x380d,0x1c}, //HTS LSB                                                                     
-  {0x380e,0x07}, //VTS MSB                                                                     
-  {0x380f,0xb0}, //LSB                                                                         
-#ifndef FPGA_VER
-  {0x3a08,0x00}, //50HZ step MSB                 
-  {0x3a09,0x94}, //50HZ step LSB                 
-  {0x3a0a,0x00}, //60HZ step MSB                 
-  {0x3a0b,0x7b}, //60HZ step LSB                 
-  {0x3a0e,0x06}, //50HZ step max                 
-  {0x3a0d,0x08}, //60HZ step max                 
-#else
-  //banding step      0x41                                  
-  //{0x3a08,0x00}, //50HZ step MSB                 
-  //{0x3a09,0x49}, //50HZ step LSB                 
-  //{0x3a0a,0x00}, //60HZ step MSB                 
-  //{0x3a0b,0x3d}, //60HZ step LSB                 
-  //{0x3a0e,0x1a}, //50HZ step max                 
-  //{0x3a0d,0x20}, //60HZ step max 
-  
-	{0x3a08,0x00}, //50HZ step MSB                 
-	{0x3a09,0x94}, //50HZ step LSB                 
-	{0x3a0a,0x00}, //60HZ step MSB                 
-	{0x3a0b,0x7b}, //60HZ step LSB                 
-	{0x3a0e,0x06}, //50HZ step max                 
-	{0x3a0d,0x08}, //60HZ step max                 
+static struct regval_list sensor_qsxga_15FPS_regs[] = {
+    //qsxga: 2592*1936
+    //capture 5Mega ~15fps
+    //power down
+    {0x3008,0x42},
+    
+    //pll and clock setting
+    {0x3820, 0x40},
+    {0x3821, 0x06},
+    
+    {0x3034, 0x1a},
+    {0x3035, 0x21},
+    {0x3036, 0x69},
+    {0x3037, 0x13},
+    {0x3108, 0x01},
+    
+    {0x3824, 0x01},
+    {REG_DLY, 0x05},            //delay 5ms
+    
+    //timing                                              
+    //2592*1936                                           
+    {0x3808, 0x0a},             //H size MSB                    
+    {0x3809, 0x20},             //H size LSB                    
+    {0x380a, 0x07},             //V size MSB                    
+    {0x380b, 0x90},             //V size LSB                    
+    {0x380c, 0x0b},             //HTS MSB                       
+    {0x380d, 0x1c},             //HTS LSB                       
+    {0x380e, 0x07},             //VTS MSB                       
+    {0x380f, 0xb0},             //LSB                           
 
-#endif                                                                      
-                                                                                                            
-  {0x3503,0x00},  //AEC enable                                                                                                                                                          
-  {0x350c,0x00},                                                                                     
-  {0x350d,0x00},                                                                                     
-  {0x3c07,0x07}, //light meter 1 thereshold                                                          
-                                                                                                                                                                
-  {0x3814,0x11}, //horizton subsample
-  {0x3815,0x11}, //vertical subsample
-  {0x3800,0x00}, //x address start high byte
-  {0x3801,0x00}, //x address start low byte  
-  {0x3802,0x00},  //y address start high byte 
-  {0x3803,0x00}, //y address start low byte 
-  {0x3804,0x0a}, //x address end high byte
-  {0x3805,0x3f}, //x address end low byte 
-  {0x3806,0x07}, //y address end high byte
-  {0x3807,0x9f}, //y address end low byte 
-  {0x3810,0x00}, //isp hortizontal offset high byte
-  {0x3811,0x10}, //isp hortizontal offset low byte
-  {0x3812,0x00}, //isp vertical offset high byte
-  {0x3813,0x04},  //isp vertical offset low byte                                                                                                          
-                                                                                              
-  {0x4002,0xc5}, //BLC related                                                           
-  {0x4005,0x12}, //BLC related                                                             
-//  {0x5308,0x65},    //sharpen manual
-//  {0x5302,0x20},//sharpness                                                                            
-                                                                                                                                                                                                
-  {0x3618,0x04},                                                                                    
-  {0x3612,0x2b},                                                                                    
-  {0x3709,0x12},                                                                                    
-  {0x370c,0x00},                                                       
-  {0x3a02,0x07}, //60HZ max exposure limit MSB                                                      
-  {0x3a03,0xb0}, //60HZ max exposure limit LSB                                                      
-  {0x3a14,0x07}, //50HZ max exposure limit MSB                                                      
-  {0x3a15,0xb0}, //50HZ max exposure limit LSB                                                      
-  {0x4004,0x06}, //BLC line number                                                                                  
-                                                                             
-  {0x4837,0x2c}, //PCLK period
-  {0x5001,0xa3}, //ISP effect   
-  {0x302c,0x42},//bit[7:6]: output drive capability
-            //00: 1x   01: 2x  10: 3x  11: 4x   
-  {0x3a18,0x00},//
-  {0x3a19,0xf8},//  
-  //power down release
-//  {0x3008,0x02},     
-//  {REG_DLY,0x32},//delay 50ms
-  //{REG_TERM,VAL_TERM},
-};
-#else
-static struct regval_list sensor_sxga_regs[] = { //1280*960
-  //for video
-//	//power down
-//	{0x30,0x08,0x42},
-  {0x3820,0x41},
-  {0x3821,0x07},
-//	//pll and clock setting
-	{0x3034,0x14},
-#ifndef FPGA_VER
-	{0x3035,0x61},	//0x11:60fps 0x21:30fps 0x61:15fps
-#else
-	{0x3035,0x61},	//0x11:60fps 0x21:30fps 0x41:15fps 0xa1:7.5fps
-#endif
-	{0x3036,0x54},
-	{0x3037,0x13},
-	{0x3108,0x01},
-	{0x3824,0x01},
-	{0xffff,0x05},//delay 5ms
-	//timing
-	//1280x960
-	{0x3808,0x05},	//H size MSB
-	{0x3809,0x00},	//H size LSB
-	{0x380a,0x03},	//V size MSB
-	{0x380b,0xc0},	//V size LSB
-	{0x380c,0x07},	//HTS MSB        
-	{0x380d,0x68},	//HTS LSB   
-	{0x380e,0x03},	//VTS MSB        
-	{0x380f,0xd8},	//LSB       
-#ifndef FPGA_VER
-	//banding step  
-	{0x3a08,0x01},//50HZ step MSB 
-	{0x3a09,0x27},//50HZ step LSB 
-	{0x3a0a,0x00},//60HZ step MSB 
-	{0x3a0b,0xf6},//60HZ step LSB 
-	{0x3a0e,0x03},//50HZ step max 
-	{0x3a0d,0x04},//60HZ step max 
-#else
-	//banding step 
-	{0x3a08,0x00},//50HZ step MSB 
-	{0x3a09,0x93},//50HZ step LSB 
-	{0x3a0a,0x00},//60HZ step MSB 
-	{0x3a0b,0x7b},//60HZ step LSB 
-	{0x3a0e,0x06},//50HZ step max 
-	{0x3a0d,0x08},//60HZ step max 
-#endif	
-  {0x3503,0x00},  //AEC enable
-  {0x350c,0x00},
-  {0x350d,0x00},
-	{0x3c07,0x07}, //light meter 1 thereshold   
-	{0x3814,0x31}, //horizton subsample
-	{0x3815,0x31}, //vertical subsample
-	{0x3800,0x00}, //x address start high byte
-	{0x3801,0x00}, //x address start low byte  
-	{0x3802,0x00},	//y address start high byte 
-	{0x3803,0x04}, //y address start low byte 
-	{0x3804,0x0a}, //x address end high byte
-	{0x3805,0x3f}, //x address end low byte 
-	{0x3806,0x07}, //y address end high byte
-	{0x3807,0x9b}, //y address end low byte 
-	{0x3810,0x00}, //isp hortizontal offset high byte
-	{0x3811,0x10}, //isp hortizontal offset low byte
-	{0x3812,0x00}, //isp vertical offset high byte
-	{0x3813,0x06},	//isp vertical offset low byte
-	
-//	{0x5308,0x65},		//sharpen manual
-//	{0x5302,0x00},		//sharpen offset 1
-	{0x4002,0x45},		//BLC related
-	{0x4005,0x18},		//BLC related
-	
-	{0x3618,0x00},
-	{0x3612,0x29},
-	{0x3709,0x52},
-	{0x370c,0x03},
-	{0x3a02,0x03}, //60HZ max exposure limit MSB 
-	{0x3a03,0xd8}, //60HZ max exposure limit LSB 
-	{0x3a14,0x03}, //50HZ max exposure limit MSB 
-	{0x3a15,0xd8}, //50HZ max exposure limit LSB 
-	
-	{0x4004,0x02}, //BLC line number
-	{0x3002,0x1c}, //reset JFIFO SFIFO JPG
-	{0x3006,0xc3}, //enable xx clock
-	{0x460b,0x37},	//debug mode
-	{0x460c,0x20}, //PCLK Manuale
-	{0x4837,0x2c}, //PCLK period
-	{0x5001,0x83}, //ISP effect
-//	{0x3503,0x00},//AEC enable
-	
-	{0x302c,0x42},//bit[7:6]: output drive capability
-						//00: 1x   01: 2x  10: 3x  11: 4x 
-  {0x3a18,0x00},//
-  {0x3a19,0xf8},//
-//	//power down release
-//	{0x3008,0x02},     
-//	{0xffff,0x32},//delay 50ms
-};
-#endif
+    //banding step                                        
+    {0x3a08, 0x00},             //50HZ step MSB                 
+    {0x3a09, 0x93},             //50HZ step LSB                 
+    {0x3a0a, 0x00},             //60HZ step MSB                 
+    {0x3a0b, 0x7b},             //60HZ step LSB                 
+    {0x3a0e, 0x0d},             //50HZ step max                 
+    {0x3a0d, 0x10},             //60HZ step max                 
 
-static struct regval_list sensor_xga_regs[] = { //XGA: 1024*768
-  //capture 1Mega 7.5fps
-  //power down
-//  {0x3008,0x42},
-  //pll and clock setting
-  {0x3034,0x18},
-#ifndef FPGA_VER
-  {0x3035,0x21},                          
-#else
-  {0x3035,0x41},                         
-#endif
-  {0x3036,0x54},
-  {0x3037,0x13},
-  {0x3108,0x01},
-  {0x3824,0x01},
-  {REG_DLY,0x05},//delay 5ms
-  //timing
-  //1024*768
-  {0x3808,0x04}, //H size MSB
-  {0x3809,0x00}, //H size LSB
-  {0x380a,0x03}, //V size MSB
-  {0x380b,0x00}, //V size LSB
-  {0x380c,0x0b}, //HTS MSB    
-  {0x380d,0x1c}, //HTS LSB     
-  {0x380e,0x07}, //VTS MSB    
-  {0x380f,0xb0}, //LSB
-#ifndef FPGA_VER
-  //banding step                                        
-  {0x3a08,0x00}, //50HZ step MSB                 
-  {0x3a09,0x93}, //50HZ step LSB                 
-  {0x3a0a,0x00}, //60HZ step MSB                 
-  {0x3a0b,0x7b}, //60HZ step LSB                 
-  {0x3a0e,0x0d}, //50HZ step max                 
-  {0x3a0d,0x10}, //60HZ step max                 
-#else
-  //banding step                                        
-  {0x3a08,0x00}, //50HZ step MSB                 
-  {0x3a09,0x49}, //50HZ step LSB                 
-  {0x3a0a,0x00}, //60HZ step MSB                 
-  {0x3a0b,0x3d}, //60HZ step LSB                 
-  {0x3a0e,0x1a}, //50HZ step max                 
-  {0x3a0d,0x20}, //60HZ step max 
-#endif
-//  {0x3503,0x07}, //AEC disable                                                                                              
-  {0x350c,0x00},                              
-  {0x350d,0x00},                              
-  {0x3c07,0x07}, //light meter 1 thereshold   
-                                                      
+    // {0x3503, 0x07},             //AEC disable                                                                                             
+    {0x350c, 0x00},
+    {0x350d, 0x00},
+    {0x3c07, 0x07},             //light meter 1 thereshold                                 
 
-  {0x3814,0x11}, //horizton subsample
-  {0x3815,0x11}, //vertical subsample
-  {0x3800,0x00}, //x address start high byte
-  {0x3801,0x00}, //x address start low byte  
-  {0x3802,0x00},  //y address start high byte 
-  {0x3803,0x00}, //y address start low byte 
-  {0x3804,0x0a}, //x address end high byte
-  {0x3805,0x3f}, //x address end low byte 
-  {0x3806,0x07}, //y address end high byte
-  {0x3807,0x9f}, //y address end low byte 
-  {0x3810,0x00}, //isp hortizontal offset high byte
-  {0x3811,0x10}, //isp hortizontal offset low byte
-  {0x3812,0x00}, //isp vertical offset high byte
-  {0x3813,0x04},  //isp vertical offset low byte
-  
-//  {0x5308,0x65},    //sharpen manual
-//  {0x5302,0x20},    //sharpen offset 1
-  {0x4002,0xc5},    //BLC related
-  {0x4005,0x12},    //BLC related
-     
-  {0x3618,0x00},      
-  {0x3612,0x29},      
-  {0x3709,0x52},      
-  {0x370c,0x03},      
-  {0x3a02,0x03},  //60HZ max exposure limit MSB 
-  {0x3a03,0xd8},  //60HZ max exposure limit LSB     
-  {0x3a14,0x03},  //50HZ max exposure limit MSB     
-  {0x3a15,0xd8},  //50HZ max exposure limit LSB     
-  {0x4004,0x02},  //BLC line number    
-  
-  {0x4837,0x22},  //PCLK period    
-  {0x5001,0xa3},  //ISP effect
-                                                                                                                                                     
-  {0x3618,0x04},                               
-  {0x3612,0x2b},                               
-  {0x3709,0x12},                               
-  {0x370c,0x00},                               
-  {0x3a02,0x07}, //60HZ max exposure limit MSB
-  {0x3a03,0xb0}, //60HZ max exposure limit LSB
-  {0x3a14,0x07}, //50HZ max exposure limit MSB
-  {0x3a15,0xb0}, //50HZ max exposure limit LSB
-  {0x4004,0x06}, //BLC line number            
-  {0x4837,0x2c}, //PCLK period 
-  {0x5001,0xa3}, //ISP effect
-  
-  {0x302c,0x42},//bit[7:6]: output drive capability
-            //00: 1x   01: 2x  10: 3x  11: 4x 
-  //power down release
-//  {0x3008,0x02},     
-//  {REG_DLY,0x32},//delay 50ms
-  //{REG_TERM,VAL_TERM},
+    {0x3814, 0x11},             //horizton subsample
+    {0x3815, 0x11},             //vertical subsample
+    {0x3800, 0x00},             //x address start high byte
+    {0x3801, 0x00},             //x address start low byte  
+    {0x3802, 0x00},             //y address start high byte 
+    {0x3803, 0x00},             //y address start low byte 
+    {0x3804, 0x0a},             //x address end high byte
+    {0x3805, 0x3f},             //x address end low byte 
+    {0x3806, 0x07},             //y address end high byte
+    {0x3807, 0x9f},             //y address end low byte 
+    {0x3810, 0x00},             //isp hortizontal offset high byte
+    {0x3811, 0x10},             //isp hortizontal offset low byte
+    {0x3812, 0x00},             //isp vertical offset high byte
+    {0x3813, 0x04},             //isp vertical offset low byte 
+
+    //  {0x5308,0x65},    //sharpen manual    
+    //  {0x5302,0x20}, //sharpness      
+
+    {0x4002, 0xc5},             //BLC related                  
+    {0x4005, 0x1a},             // BLC related               
+
+    {0x3618, 0x04},
+    {0x3612, 0x2b},
+    {0x3709, 0x12},
+    {0x370c, 0x00},
+    {0x3a02, 0x07},             //60HZ max exposure limit MSB   
+    {0x3a03, 0xb0},             //60HZ max exposure limit LSB   
+    {0x3a14, 0x07},             //50HZ max exposure limit MSB   
+    {0x3a15, 0xb0},             //50HZ max exposure limit LSB   
+    {0x4004, 0x06},             //BLC line number               
+    {0x4837, 0x2c},             //PCLK period                    
+    {0x5001, 0xa3},             //ISP effect    
+
+    {0x302c, 0x42},             //bit[7:6]: output drive capability
+    //00: 1x   01: 2x  10: 3x  11: 4x
+    
+    //power down release
+    {0x3008,0x02}, 
 };
 
-//for video
-static struct regval_list sensor_1080p_regs[] = { //1080: 1920*1080 
-  //power down
-//  {0x3008,0x42},
-  {0x3820,0x40},
-  {0x3821,0x06},
-  //pll and clock setting
-  {0x3034,0x18},
-#ifndef FPGA_VER
-  {0x3035,0x11},  //0x11:30fps 0x21:15fps
-#else
-  {0x3035,0x41},  //0x11:30fps 0x21:15fps 0x41:7.5fps
-#endif  
-  {0x3036,0x54},
-  {0x3037,0x13},
-  {0x3108,0x01},
-  {0x3824,0x01},
-  {REG_DLY,0x05},//delay 5ms
-  //timing
-  //1920x1080
-  {0x3808,0x07},  //H size MSB
-  {0x3809,0x80},  //H size LSB
-  {0x380a,0x04},  //V size MSB
-  {0x380b,0x38},  //V size LSB
-  {0x380c,0x09},  //HTS MSB        
-  {0x380d,0xc4},  //HTS LSB   
-  {0x380e,0x04},  //VTS MSB        
-  {0x380f,0x60},  //VTS LSB       
-#ifndef FPGA_VER
-  //banding step
-  {0x3a08,0x01}, //50HZ step MSB 
-  {0x3a09,0x50}, //50HZ step LSB 
-  {0x3a0a,0x01}, //60HZ step MSB 
-  {0x3a0b,0x18}, //60HZ step LSB 
-  {0x3a0e,0x03}, //50HZ step max 
-  {0x3a0d,0x04}, //60HZ step max 
-#else
-  //banding step
-  {0x3a08,0x00}, //50HZ step MSB 
-  {0x3a09,0x54}, //50HZ step LSB 
-  {0x3a0a,0x00}, //60HZ step MSB 
-  {0x3a0b,0x46}, //60HZ step LSB 
-  {0x3a0e,0x0d}, //50HZ step max 
-  {0x3a0d,0x10}, //60HZ step max 
-#endif  
-  {0x3503,0x00},  //AEC enable
-  {0x350c,0x00},
-  {0x350d,0x00},
-  {0x3c07,0x07}, //light meter 1 thereshold   
-  {0x3814,0x11}, //horizton subsample
-  {0x3815,0x11}, //vertical subsample
-  {0x3800,0x01}, //x address start high byte
-  {0x3801,0x50}, //x address start low byte  
-  {0x3802,0x01},  //y address start high byte 
-  {0x3803,0xb2}, //y address start low byte 
-  {0x3804,0x08}, //x address end high byte
-  {0x3805,0xef}, //x address end low byte 
-  {0x3806,0x05}, //y address end high byte
-  {0x3807,0xf1}, //y address end low byte 
-  {0x3810,0x00}, //isp hortizontal offset high byte
-  {0x3811,0x10}, //isp hortizontal offset low byte
-  {0x3812,0x00}, //isp vertical offset high byte
-  {0x3813,0x04},  //isp vertical offset low byte
-  
-//  {0x5308,0x65},    //sharpen manual
-//  {0x5302,0x00},    //sharpen offset 1
-  {0x4002,0x45},    //BLC related
-  {0x4005,0x18},    //BLC related
-  
-  {0x3618,0x04},
-  {0x3612,0x2b},
-  {0x3709,0x12},
-  {0x370c,0x00},
-  {0x3a02,0x04}, //60HZ max exposure limit MSB 
-  {0x3a03,0x60}, //60HZ max exposure limit LSB 
-  {0x3a14,0x04}, //50HZ max exposure limit MSB 
-  {0x3a15,0x60}, //50HZ max exposure limit LSB 
-  
-  {0x4004,0x06}, //BLC line number
-  {0x3002,0x1c}, //reset JFIFO SFIFO JPG
-  {0x3006,0xc3}, //enable xx clock
-  {0x460b,0x37},  //debug mode
-  {0x460c,0x20}, //PCLK Manuale
-  {0x4837,0x16}, //PCLK period
-  {0x5001,0x83}, //ISP effect
-//  {0x3503,0x00},//AEC enable
-  
-  {0x302c,0x42},//bit[7:6]: output drive capability
-            //00: 1x   01: 2x  10: 3x  11: 4x 
-  {0x3a18,0x00},//
-  {0x3a19,0x80},//
-  //power down release
-//  {0x3008,0x02},     
-//  {REG_DLY,0x32},//delay 50ms
-  //{REG_TERM,VAL_TERM},
+static struct regval_list sensor_qxga_7FPS_regs[] = {
+    //qxga: 2048*1536
+    //capture 3Mega 7.5fps
+    //power down
+    {0x3008,0x42},
+
+    {0x3820, 0x40},
+    {0x3821, 0x06},
+    
+    //pll and clock setting
+    {0x3034, 0x18},
+    {0x3035, 0x21},
+    {0x3036, 0x54},
+    {0x3037, 0x13},
+    {0x3108, 0x01},
+    
+    {0x3824, 0x01},
+    {REG_DLY, 0x05},            //delay 5ms
+                
+    //timing                                           
+    //2048*1536                                        
+    {0x3808, 0x08},             //H size MSB                 
+    {0x3809, 0x00},             //H size LSB                 
+    {0x380a, 0x06},             //V size MSB                 
+    {0x380b, 0x00},             //V size LSB                 
+    {0x380c, 0x0b},             //HTS MSB                    
+    {0x380d, 0x1c},             //HTS LSB                    
+    {0x380e, 0x07},             //VTS MSB                    
+    {0x380f, 0xb0},             //LSB                        
+
+    //banding step                                        
+    {0x3a08, 0x00},             //50HZ step MSB                 
+    {0x3a09, 0x93},             //50HZ step LSB                 
+    {0x3a0a, 0x00},             //60HZ step MSB                 
+    {0x3a0b, 0x7b},             //60HZ step LSB                 
+    {0x3a0e, 0x0d},             //50HZ step max                 
+    {0x3a0d, 0x10},             //60HZ step max                 
+
+    //  {0x3503,0x07}, //AEC disable                                             
+    {0x350c, 0x00},
+    {0x350d, 0x00},
+    {0x3c07, 0x07},             //light meter 1 thereshold   
+
+    {0x3814, 0x11},             //horizton subsample
+    {0x3815, 0x11},             //vertical subsample
+    {0x3800, 0x00},             //x address start high byte
+    {0x3801, 0x00},             //x address start low byte  
+    {0x3802, 0x00},             //y address start high byte 
+    {0x3803, 0x00},             //y address start low byte 
+    {0x3804, 0x0a},             //x address end high byte
+    {0x3805, 0x3f},             //x address end low byte 
+    {0x3806, 0x07},             //y address end high byte
+    {0x3807, 0x9f},             //y address end low byte 
+    {0x3810, 0x00},             //isp hortizontal offset high byte
+    {0x3811, 0x10},             //isp hortizontal offset low byte
+    {0x3812, 0x00},             //isp vertical offset high byte
+    {0x3813, 0x04},             //isp vertical offset low byte 
+
+    //  {0x5308,0x65},    //sharpen manual                                                   
+    //  {0x5302,0x20}, //sharpness                    
+
+    {0x4002, 0xc5},             //BLC related               
+    {0x4005, 0x1a},             // BLC related                              
+
+    {0x3618, 0x04},
+    {0x3612, 0x2b},
+    {0x3709, 0x12},
+    {0x370c, 0x00},
+    {0x3a02, 0x07},             //60HZ max exposure limit MSB
+    {0x3a03, 0xb0},             //60HZ max exposure limit LSB
+    {0x3a14, 0x07},             //50HZ max exposure limit MSB
+    {0x3a15, 0xb0},             //50HZ max exposure limit LSB
+    {0x4004, 0x06},             //BLC line number                                         
+    {0x4837, 0x2c},             //PCLK period                              
+    {0x5001, 0xa3},             //ISP effect  
+    {0x302c, 0x42},             //bit[7:6]: output drive capability
+    //00: 1x   01: 2x  10: 3x  11: 4x   
+    //power down release
+    {0x3008,0x02},     
 };
 
-static struct regval_list sensor_720p_regs[] = { //1280*720
-//  //power down
-//  {0x3008,0x42},
-  {0x3820,0x41},
-  {0x3821,0x07},
-//  //pll and clock setting
-  {0x3034,0x18},
-#ifndef FPGA_VER
-  {0x3035,0x21},  //0x11:60fps 0x21:30fps 0x41:15fps
-#else
-  {0x3035,0x41},  //0x11:60fps 0x21:30fps 0x41:15fps 0xa1:7.5fps
-#endif
-  {0x3036,0x54},
-  {0x3037,0x13},
-  {0x3108,0x01},
-  {0x3824,0x01},
-  {REG_DLY,0x05},//delay 5ms
-  //timing
-  //1280x720
-  {0x3808,0x05},  //H size MSB
-  {0x3809,0x00},  //H size LSB
-  {0x380a,0x02},  //V size MSB
-  {0x380b,0xd0},  //V size LSB
-  {0x380c,0x07},  //HTS MSB        
-  {0x380d,0x64},  //HTS LSB   
-  {0x380e,0x02},  //VTS MSB        
-  {0x380f,0xe4},  //LSB       
-#ifndef FPGA_VER
-  //banding step
-  {0x3a08,0x00}, //50HZ step MSB 
-  {0x3a09,0xdd}, //50HZ step LSB 
-  {0x3a0a,0x00}, //60HZ step MSB 
-  {0x3a0b,0xb8}, //60HZ step LSB 
-  {0x3a0e,0x03}, //50HZ step max 
-  {0x3a0d,0x04}, //60HZ step max 
-#else
-  //banding step
-  {0x3a08,0x00}, //50HZ step MSB 
-  {0x3a09,0xdd}, //50HZ step LSB 
-  {0x3a0a,0x00}, //60HZ step MSB 
-  {0x3a0b,0xb8}, //60HZ step LSB 
-  {0x3a0e,0x03}, //50HZ step max 
-  {0x3a0d,0x04}, //60HZ step max 
+static struct regval_list sensor_qxga_15FPS_regs[] = {
+    //qxga: 2048*1536
+    //preview 3Mega 15fps
+    //power down
+    {0x3008,0x42},
 
-  //banding step
-  //{0x3a08,0x00}, //50HZ step MSB 
-  //{0x3a09,0x6e}, //50HZ step LSB 
-  //{0x3a0a,0x00}, //60HZ step MSB 
-  //{0x3a0b,0x5c}, //60HZ step LSB 
-  //{0x3a0e,0x06}, //50HZ step max 
-  //{0x3a0d,0x08}, //60HZ step max 
-#endif  
-  {0x3503,0x00},  //AEC enable
-  {0x350c,0x00},
-  {0x350d,0x00},
-  {0x3c07,0x07}, //light meter 1 thereshold   
-  {0x3814,0x31}, //horizton subsample
-  {0x3815,0x31}, //vertical subsample
-  {0x3800,0x00}, //x address start high byte
-  {0x3801,0x00}, //x address start low byte  
-  {0x3802,0x00},  //y address start high byte 
-  {0x3803,0xfa}, //y address start low byte 
-  {0x3804,0x0a}, //x address end high byte
-  {0x3805,0x3f}, //x address end low byte 
-  {0x3806,0x06}, //y address end high byte
-  {0x3807,0xa9}, //y address end low byte 
-  {0x3810,0x00}, //isp hortizontal offset high byte
-  {0x3811,0x10}, //isp hortizontal offset low byte
-  {0x3812,0x00}, //isp vertical offset high byte
-  {0x3813,0x04},  //isp vertical offset low byte
-  
-//  {0x5308,0x65},    //sharpen manual
-//  {0x5302,0x00},    //sharpen offset 1
-  {0x4002,0x45},    //BLC related
-  {0x4005,0x18},    //BLC related
-  
-  {0x3618,0x00},
-  {0x3612,0x29},
-  {0x3709,0x52},
-  {0x370c,0x03},
-  {0x3a02,0x02}, //60HZ max exposure limit MSB 
-  {0x3a03,0xe0}, //60HZ max exposure limit LSB 
-  {0x3a14,0x02}, //50HZ max exposure limit MSB 
-  {0x3a15,0xe0}, //50HZ max exposure limit LSB 
-  
-  {0x4004,0x02}, //BLC line number
-  {0x3002,0x1c}, //reset JFIFO SFIFO JPG
-  {0x3006,0xc3}, //enable xx clock
-  {0x460b,0x37},  //debug mode
-  {0x460c,0x20}, //PCLK Manuale
-  {0x4837,0x16}, //PCLK period
-  {0x5001,0x83}, //ISP effect
-//  {0x3503,0x00},//AEC enable
-  
-  {0x302c,0x42},//bit[7:6]: output drive capability
-            //00: 1x   01: 2x  10: 3x  11: 4x 
-  {0x3a18,0x00},//
-  {0x3a19,0xd8},//
-//  //power down release
-//  {0x3008,0x02},     
-//  {REG_DLY,0x32},//delay 50ms
-  //{REG_TERM,VAL_TERM},
+    {0x3820, 0x40},
+    {0x3821, 0x06},
+    
+    //pll and clock setting
+    {0x3034, 0x1a},
+    {0x3035, 0x21},
+    {0x3036, 0x69},
+    {0x3037, 0x13},
+    {0x3108, 0x01},
+    
+    {0x3824, 0x01},
+    {REG_DLY, 0x05},            //delay 5ms
+                
+    //timing                                           
+    //2048*1536                                        
+    {0x3808, 0x08},             //H size MSB                 
+    {0x3809, 0x00},             //H size LSB                 
+    {0x380a, 0x06},             //V size MSB                 
+    {0x380b, 0x00},             //V size LSB                 
+    {0x380c, 0x0b},             //HTS MSB                    
+    {0x380d, 0x1c},             //HTS LSB                    
+    {0x380e, 0x07},             //VTS MSB                    
+    {0x380f, 0xb0},             //LSB                        
+
+    //banding step                                        
+    {0x3a08, 0x00},             //50HZ step MSB                 
+    {0x3a09, 0x93},             //50HZ step LSB                 
+    {0x3a0a, 0x00},             //60HZ step MSB                 
+    {0x3a0b, 0x7b},             //60HZ step LSB                 
+    {0x3a0e, 0x0d},             //50HZ step max                 
+    {0x3a0d, 0x10},             //60HZ step max                 
+
+    // {0x3503,0x07}, //AEC disable                                             
+    {0x350c, 0x00},
+    {0x350d, 0x00},
+    {0x3c07, 0x07},             //light meter 1 thereshold   
+
+    {0x3814, 0x11},             //horizton subsample
+    {0x3815, 0x11},             //vertical subsample
+    {0x3800, 0x00},             //x address start high byte
+    {0x3801, 0x00},             //x address start low byte  
+    {0x3802, 0x00},             //y address start high byte 
+    {0x3803, 0x00},             //y address start low byte 
+    {0x3804, 0x0a},             //x address end high byte
+    {0x3805, 0x3f},             //x address end low byte 
+    {0x3806, 0x07},             //y address end high byte
+    {0x3807, 0x9f},             //y address end low byte 
+    {0x3810, 0x00},             //isp hortizontal offset high byte
+    {0x3811, 0x10},             //isp hortizontal offset low byte
+    {0x3812, 0x00},             //isp vertical offset high byte
+    {0x3813, 0x04},             //isp vertical offset low byte 
+
+    //  {0x5308,0x65},    //sharpen manual                                                   
+    //  {0x5302,0x20}, //sharpness                    
+
+    {0x4002, 0xc5},             //BLC related               
+    {0x4005, 0x1a},             // BLC related                              
+
+    {0x3618, 0x04},
+    {0x3612, 0x2b},
+    {0x3709, 0x12},
+    {0x370c, 0x00},
+    {0x3a02, 0x07},             //60HZ max exposure limit MSB
+    {0x3a03, 0xb0},             //60HZ max exposure limit LSB
+    {0x3a14, 0x07},             //50HZ max exposure limit MSB
+    {0x3a15, 0xb0},             //50HZ max exposure limit LSB
+    {0x4004, 0x06},             //BLC line number                                         
+    {0x4837, 0x2c},             //PCLK period                              
+    {0x5001, 0xa3},             //ISP effect  
+    {0x302c, 0x42},             //bit[7:6]: output drive capability
+    //00: 1x   01: 2x  10: 3x  11: 4x   
+    //power down release
+    {0x3008,0x02},     
 };
 
-static struct regval_list sensor_svga_regs[] = { //SVGA: 800*600
-//  //power down
-//  {0x3008,0x42},
-//  //pll and clock setting
-  {0x3034,0x1a},                
-#ifndef FPGA_VER
-  {0x3035,0x11}, 
-#else
-  {0x3035,0x21}, //0x11:30fps 0x21:15fps
-#endif               
-  {0x3036,0x46},                
-  {0x3037,0x13},                
-  {0x3108,0x01},                
-  {0x3824,0x01},                
-  {REG_DLY,0x05},//delay 5ms
-  //timing                             
-  //800x600                            
-  {0x3808,0x3 }, //H size MSB   
-  {0x3809,0x20}, //H size LSB   
-  {0x380a,0x2 }, //V size MSB   
-  {0x380b,0x58}, //V size LSB   
-  {0x380c,0x07}, //HTS MSB      
-  {0x380d,0x68}, //HTS LSB      
-  {0x380e,0x03}, //VTS MSB      
-  {0x380f,0xd8}, //LSB          
-#ifndef FPGA_VER
-  //banding step  
-  {0x3a08,0x01},//50HZ step MSB 
-  {0x3a09,0x27},//50HZ step LSB 
-  {0x3a0a,0x00},//60HZ step MSB 
-  {0x3a0b,0xf6},//60HZ step LSB 
-  {0x3a0e,0x03},//50HZ step max 
-  {0x3a0d,0x04},//60HZ step max 
-#else
-  //banding step 
-  {0x3a08,0x00},//50HZ step MSB 
-  {0x3a09,0x93},//50HZ step LSB 
-  {0x3a0a,0x00},//60HZ step MSB 
-  {0x3a0b,0x7b},//60HZ step LSB 
-  {0x3a0e,0x06},//50HZ step max 
-  {0x3a0d,0x08},//60HZ step max 
-#endif  
-  
-//  {0x3503,0x00},  //AEC enable
-  {0x3c07,0x08},   //light meter 1 thereshold   
-  
-  {0x3814,0x31}, //horizton subsample
-  {0x3815,0x31}, //vertical subsample
-  {0x3800,0x00}, //x address start high byte
-  {0x3801,0x00}, //x address start low byte  
-  {0x3802,0x00},  //y address start high byte 
-  {0x3803,0x04}, //y address start low byte 
-  {0x3804,0x0a}, //x address end high byte
-  {0x3805,0x3f}, //x address end low byte 
-  {0x3806,0x07}, //y address end high byte
-  {0x3807,0x9b}, //y address end low byte 
-  {0x3810,0x00}, //isp hortizontal offset high byte
-  {0x3811,0x10}, //isp hortizontal offset low byte
-  {0x3812,0x00}, //isp vertical offset high byte
-  {0x3813,0x06},  //isp vertical offset low byte
-  
-//  {0x5308,0x65},    //sharpen manual
-//  {0x5302,0x00},    //sharpen offset 1
-  {0x4002,0x45},    //BLC related
-  {0x4005,0x18},    //BLC related
-     
-  {0x3618,0x00},      
-  {0x3612,0x29},      
-  {0x3709,0x52},      
-  {0x370c,0x03},      
-  {0x3a02,0x03},  //60HZ max exposure limit MSB 
-  {0x3a03,0xd8},  //60HZ max exposure limit LSB     
-  {0x3a14,0x03},  //50HZ max exposure limit MSB     
-  {0x3a15,0xd8},  //50HZ max exposure limit LSB     
-  {0x4004,0x02},  //BLC line number    
-  
-  {0x4837,0x22},  //PCLK period    
-  {0x5001,0xa3},  //ISP effect
-  
-  {0x302c,0x42},//bit[7:6]: output drive capability
-            //00: 1x   01: 2x  10: 3x  11: 4x 
-//  //power down release
-//  {0x3008,0x02},     
-//  {REG_DLY,0x32},//delay 50ms
-  //{REG_TERM,VAL_TERM},
-};
 
-static struct regval_list sensor_vga_regs[] = { //VGA:  640*480
-  
-  //timing                             
-  //640x480   
-  //power down
-//  {0x3008,0x42},
-  {0x3820,0x41},
-  {0x3821,0x07},
-//  //pll and clock setting
-  {0x3034,0x1a},                
-#ifndef FPGA_VER
-  {0x3035,0x11}, 
-#else
-  {0x3035,0x41},
+
+/*
+ *  MIPI works 1080@30FPS, why not in DVP (How to get this working???)
+ *
+ */
+
+// 1080P 1920x1080
+//for video 120 FPS (actually 30FPS for testing)
+static struct regval_list sensor_1080p_120FPS_regs[] = {
+    //1080: 1920*1080 
+    //power down
+    {0x3008, 0x42},
+
+	{0x3820, 0x40},
+    {0x3821, 0x06},
+    {0x3800, 0x00},
+    {0x3801, 0x00},
+	{0x3802, 0x00},
+    {0x3803, 0x00},
+    {0x3804, 0x0a},
+	{0x3805, 0x3f},
+    {0x3806, 0x07},
+    {0x3807, 0x9f},
+	{0x3808, 0x0a},
+    {0x3809, 0x20},
+    {0x380a, 0x07},
+	{0x380b, 0x98},
+    {0x380c, 0x0b},
+    {0x380d, 0x1c},
+	{0x380e, 0x07},
+    {0x380f, 0xb0},
+    {0x3810, 0x00},
+    
+	{0x3811, 0x10},
+    {0x3812, 0x00},
+    {0x3813, 0x04},
+    {0x3814, 0x11},
+	{0x3815, 0x11},
+
+	{0x3618, 0x04},
+    {0x3612, 0x29},
+    {0x3708, 0x21},
+	{0x3709, 0x12},
+    {0x370c, 0x00},
+    {0x3a02, 0x03},
+	{0x3a03, 0xd8},
+    {0x3a08, 0x01},
+    {0x3a09, 0x27},
+	{0x3a0a, 0x00},
+    {0x3a0b, 0xf6},
+    {0x3a0e, 0x03},
+	{0x3a0d, 0x04},
+    {0x3a14, 0x03},
+    {0x3a15, 0xd8},
+	{0x4001, 0x02},
+    {0x4004, 0x06},
+    {0x4713, 0x03},
+	{0x4407, 0x04},
+    {0x460b, 0x35},
+    {0x460c, 0x22},
+    
+    {0x5001, 0x83},
+
+    {0x3034, 0x18},
+	{0x3035, 0x11},
+	{0x3036, 0x54},
+	{0x3037, 0x13},
+	{0x3108, 0x01},
+
+    {0x3824, 0x04},
+    {REG_DLY, 0x05},            //delay 5ms
+
+#if 0    
+    {0x3034, 0x1a},
+	{0x3035, 0x21},
+	{0x3036, 0x69},
+	{0x3037, 0x13},
+	{0x3108, 0x01},
 #endif    
-  {0x3036,0x46},                
-  {0x3037,0x13},                
-  {0x3108,0x01},                
-  {0x3824,0x01},                
-  {REG_DLY,0x05}, //delay 50ms 
-                           
-  {0x3808,0x02}, //H size MSB   
-  {0x3809,0x80}, //H size LSB   
-  {0x380a,0x01}, //V size MSB   
-  {0x380b,0xe0}, //V size LSB   
-  {0x380c,0x07}, //HTS MSB      
-  {0x380d,0x68}, //HTS LSB      
-  {0x380e,0x03}, //VTS MSB      
-  {0x380f,0xd8}, //LSB          
-              
-#ifndef FPGA_VER
-  //banding step  
-  {0x3a08,0x01},//50HZ step MSB 
-  {0x3a09,0x27},//50HZ step LSB 
-  {0x3a0a,0x00},//60HZ step MSB 
-  {0x3a0b,0xf6},//60HZ step LSB 
-  {0x3a0e,0x03},//50HZ step max 
-  {0x3a0d,0x04},//60HZ step max 
-#else
-  //banding step 
-  {0x3a08,0x00},//50HZ step MSB 
-  {0x3a09,0x93},//50HZ step LSB 
-  {0x3a0a,0x00},//60HZ step MSB 
-  {0x3a0b,0x7b},//60HZ step LSB 
-  {0x3a0e,0x06},//50HZ step max 
-  {0x3a0d,0x08},//60HZ step max 
-#endif  
-  {0x3618,0x00},      
-  {0x3612,0x29},      
-  {0x3709,0x52},      
-  {0x370c,0x03},      
-  {0x3a02,0x03},  //60HZ max exposure limit MSB 
-  {0x3a03,0xd8},  //60HZ max exposure limit LSB     
-  {0x3a14,0x03},  //50HZ max exposure limit MSB     
-  {0x3a15,0xd8},  //50HZ max exposure limit LSB     
-  {0x4004,0x02},  //BLC line number 
-  
-  {0x3503,0x00},  //AEC enable
-  {0x350c,0x00},
-  {0x350d,0x00},
-  {0x3c07,0x08},   //light meter 1 thereshold   
-  
-  {0x3814,0x31}, //horizton subsample
-  {0x3815,0x31}, //vertical subsample
-  {0x3800,0x00}, //x address start high byte
-  {0x3801,0x00}, //x address start low byte  
-  {0x3802,0x00},  //y address start high byte 
-  {0x3803,0x04}, //y address start low byte 
-  {0x3804,0x0a}, //x address end high byte
-  {0x3805,0x3f}, //x address end low byte 
-  {0x3806,0x07}, //y address end high byte
-  {0x3807,0x9b}, //y address end low byte 
-  {0x3810,0x00}, //isp hortizontal offset high byte
-  {0x3811,0x10}, //isp hortizontal offset low byte
-  {0x3812,0x00}, //isp vertical offset high byte
-  {0x3813,0x06},  //isp vertical offset low byte
-  
-//  {0x5308,0x65},    //sharpen manual
-//  {0x5302,0x00},    //sharpen offset 1
-  {0x4002,0x45},    //BLC related
-  {0x4005,0x18},    //BLC related
-     
-   
-  
-  {0x4837,0x22},  //PCLK period    
-  {0x5001,0xa3},  //ISP effect
-#ifndef FPGA_VER  
-  {0x302c,0x02},//bit[7:6]: output drive capability
-            //00: 1x   01: 2x  10: 3x  11: 4x 
-#else
-	{0x302c,0x02},
-#endif
-  {0x3a18,0x00},//
-  {0x3a19,0xf8},//
 
-//  //power down release
-//  {0x3008,0x02},     
-//  {REG_DLY,0x32},//delay 50ms
-  //{REG_TERM,VAL_TERM},
+#if 0
+    {0x3034, 0x18},             //
+    {0x3035, 0x21},             //0x11:60fps 0x21:30fps 0x41:15fps
+    {0x3036, 0x46},             //0x46->30fps
+    {0x3037, 0x13},             //////div
+    {0x3108, 0x01},             //
+    
+    {0x3824, 0x01},             //
+#endif    
+    
+    /*
+    {0x3034, 0x1a},
+    {0x3035, 0x11},
+	{0x3036, 0x54},
+    */
+    // {0x3824, 0x04},
+    // {0x3824, 0x02},
+    {0x3824, 0x01},
+    {REG_DLY, 0x05},            //delay 5ms
+    
+    {0x3c07, 0x07},
+    {0x3c08, 0x00},
+	{0x3c09, 0x1c},
+    {0x3c0a, 0x9c},
+    {0x3c0b, 0x40},
+    
+	{0x3800, 0x01},
+    {0x3801, 0x50},
+    {0x3802, 0x01},
+	{0x3803, 0xb2},
+    {0x3804, 0x08},
+    {0x3805, 0xef},
+	{0x3806, 0x05},
+    {0x3807, 0xf1},
+    {0x3808, 0x07},
+	{0x3809, 0x80},
+    {0x380a, 0x04},
+    {0x380b, 0x38},
+	{0x380c, 0x09},
+    {0x380d, 0xc4},
+    {0x380e, 0x04},
+	{0x380f, 0x60},
+    {0x3612, 0x2b},
+    {0x3708, 0x64},
+	{0x3a02, 0x04},
+    {0x3a03, 0x60},
+    {0x3a08, 0x01},
+	{0x3a09, 0x50},
+    {0x3a0a, 0x01},
+    {0x3a0b, 0x18},
+	{0x3a0e, 0x03},
+    {0x3a0d, 0x04},
+    {0x3a14, 0x04},
+	{0x3a15, 0x60},
+    {0x4713, 0x02},
+    {0x4407, 0x04},
+	{0x460b, 0x37},
+    {0x460c, 0x20},
+	{0x4005, 0x1a},
+
+    //power down release
+    {0x3008, 0x02},
+	{0x3503, 0x00},
+};
+
+// 1080P 1920x1080
+//for video 60 FPS (actually 30FPS)
+static struct regval_list sensor_1080p_60FPS_regs[] = {
+    //1080: 1920*1080 
+    //power down
+    {0x3008, 0x42},
+
+	{0x3820, 0x40},
+    {0x3821, 0x06},
+    {0x3800, 0x00},
+    {0x3801, 0x00},
+	{0x3802, 0x00},
+    {0x3803, 0x00},
+    {0x3804, 0x0a},
+	{0x3805, 0x3f},
+    {0x3806, 0x07},
+    {0x3807, 0x9f},
+	{0x3808, 0x0a},
+    {0x3809, 0x20},
+    {0x380a, 0x07},
+	{0x380b, 0x98},
+    {0x380c, 0x0b},
+    {0x380d, 0x1c},
+	{0x380e, 0x07},
+    {0x380f, 0xb0},
+    {0x3810, 0x00},
+    
+	{0x3811, 0x10},
+    {0x3812, 0x00},
+    {0x3813, 0x04},
+    {0x3814, 0x11},
+	{0x3815, 0x11},
+
+	{0x3618, 0x04},
+    {0x3612, 0x29},
+    {0x3708, 0x21},
+	{0x3709, 0x12},
+    {0x370c, 0x00},
+    {0x3a02, 0x03},
+	{0x3a03, 0xd8},
+    {0x3a08, 0x01},
+    {0x3a09, 0x27},
+	{0x3a0a, 0x00},
+    {0x3a0b, 0xf6},
+    {0x3a0e, 0x03},
+	{0x3a0d, 0x04},
+    {0x3a14, 0x03},
+    {0x3a15, 0xd8},
+	{0x4001, 0x02},
+    {0x4004, 0x06},
+    {0x4713, 0x03},
+	{0x4407, 0x04},
+    {0x460b, 0x35},
+    {0x460c, 0x22},
+    
+    {0x5001, 0x83},
+
+    {0x3034, 0x1a},
+    {0x3035, 0x11},             //30fps
+    {0x3036, 0x46},
+    {0x3037, 0x13},
+    {0x3108, 0x01},
+
+    {0x3824, 0x04},
+    {REG_DLY, 0x05},            //delay 5ms
+
+    
+
+#if 0    
+    {0x3034, 0x1a},
+	{0x3035, 0x21},
+	{0x3036, 0x69},
+	{0x3037, 0x13},
+	{0x3108, 0x01},
+    /*
+    {0x3034, 0x1a},
+    {0x3035, 0x11},
+	{0x3036, 0x54},
+    */
+    // {0x3824, 0x04},
+    // {0x3824, 0x02},
+    {0x3824, 0x01},
+    {REG_DLY, 0x05},            //delay 5ms
+#endif    
+    
+    {0x3c07, 0x07},
+    {0x3c08, 0x00},
+	{0x3c09, 0x1c},
+    {0x3c0a, 0x9c},
+    {0x3c0b, 0x40},
+    
+	{0x3800, 0x01},
+    {0x3801, 0x50},
+    {0x3802, 0x01},
+	{0x3803, 0xb2},
+    {0x3804, 0x08},
+    {0x3805, 0xef},
+	{0x3806, 0x05},
+    {0x3807, 0xf1},
+    {0x3808, 0x07},
+	{0x3809, 0x80},
+    {0x380a, 0x04},
+    {0x380b, 0x38},
+	{0x380c, 0x09},
+    {0x380d, 0xc4},
+    {0x380e, 0x04},
+	{0x380f, 0x60},
+    {0x3612, 0x2b},
+    {0x3708, 0x64},
+	{0x3a02, 0x04},
+    {0x3a03, 0x60},
+    {0x3a08, 0x01},
+	{0x3a09, 0x50},
+    {0x3a0a, 0x01},
+    {0x3a0b, 0x18},
+	{0x3a0e, 0x03},
+    {0x3a0d, 0x04},
+    {0x3a14, 0x04},
+	{0x3a15, 0x60},
+    {0x4713, 0x02},
+    {0x4407, 0x04},
+	{0x460b, 0x37},
+    {0x460c, 0x20},
+	{0x4005, 0x1a},
+
+    //power down release
+    {0x3008, 0x02},
+	{0x3503, 0x00},
+};
+
+// 1080P 1920x1080
+//for video 30 FPS
+static struct regval_list sensor_1080p_30FPS_regs[] = {
+    //1080: 1920*1080 
+    //power down
+    {0x3008, 0x42},
+
+	{0x3820, 0x40},
+    {0x3821, 0x06},
+    {0x3800, 0x00},
+    {0x3801, 0x00},
+	{0x3802, 0x00},
+    {0x3803, 0x00},
+    {0x3804, 0x0a},
+	{0x3805, 0x3f},
+    {0x3806, 0x07},
+    {0x3807, 0x9f},
+	{0x3808, 0x0a},
+    {0x3809, 0x20},
+    {0x380a, 0x07},
+	{0x380b, 0x98},
+    {0x380c, 0x0b},
+    {0x380d, 0x1c},
+	{0x380e, 0x07},
+    {0x380f, 0xb0},
+    {0x3810, 0x00},
+    
+	{0x3811, 0x10},
+    {0x3812, 0x00},
+    {0x3813, 0x04},
+    {0x3814, 0x11},
+	{0x3815, 0x11},
+
+	{0x3618, 0x04},
+    {0x3612, 0x29},
+    {0x3708, 0x21},
+	{0x3709, 0x12},
+    {0x370c, 0x00},
+    {0x3a02, 0x03},
+	{0x3a03, 0xd8},
+    {0x3a08, 0x01},
+    {0x3a09, 0x27},
+	{0x3a0a, 0x00},
+    {0x3a0b, 0xf6},
+    {0x3a0e, 0x03},
+	{0x3a0d, 0x04},
+    {0x3a14, 0x03},
+    {0x3a15, 0xd8},
+	{0x4001, 0x02},
+    {0x4004, 0x06},
+    {0x4713, 0x03},
+	{0x4407, 0x04},
+    {0x460b, 0x35},
+    {0x460c, 0x22},
+    
+    {0x5001, 0x83},
+    
+    {0x3034, 0x18},
+	{0x3035, 0x11},
+	{0x3036, 0x54},
+	{0x3037, 0x13},
+	{0x3108, 0x01},
+    /*
+    {0x3034, 0x1a},
+    {0x3035, 0x11},
+	{0x3036, 0x54},
+    */
+    // {0x3824, 0x04},
+    {0x3824, 0x02},
+    {REG_DLY, 0x05},            //delay 5ms
+    
+    {0x3c07, 0x07},
+    {0x3c08, 0x00},
+	{0x3c09, 0x1c},
+    {0x3c0a, 0x9c},
+    {0x3c0b, 0x40},
+    
+	{0x3800, 0x01},
+    {0x3801, 0x50},
+    {0x3802, 0x01},
+	{0x3803, 0xb2},
+    {0x3804, 0x08},
+    {0x3805, 0xef},
+	{0x3806, 0x05},
+    {0x3807, 0xf1},
+    {0x3808, 0x07},
+	{0x3809, 0x80},
+    {0x380a, 0x04},
+    {0x380b, 0x38},
+	{0x380c, 0x09},
+    {0x380d, 0xc4},
+    {0x380e, 0x04},
+	{0x380f, 0x60},
+    {0x3612, 0x2b},
+    {0x3708, 0x64},
+	{0x3a02, 0x04},
+    {0x3a03, 0x60},
+    {0x3a08, 0x01},
+	{0x3a09, 0x50},
+    {0x3a0a, 0x01},
+    {0x3a0b, 0x18},
+	{0x3a0e, 0x03},
+    {0x3a0d, 0x04},
+    {0x3a14, 0x04},
+	{0x3a15, 0x60},
+    {0x4713, 0x02},
+    {0x4407, 0x04},
+	{0x460b, 0x37},
+    {0x460c, 0x20},
+	{0x4005, 0x1a},
+
+    //power down release
+    {0x3008, 0x02},
+	{0x3503, 0x00},
+};
+
+// 1080P 1920x1080
+//for capture 15 FPS
+static struct regval_list sensor_1080p_15FPS_regs[] = {
+    //1080: 1920*1080 
+    //power down
+    {0x3008, 0x42},
+
+    {0x3c07, 0x07},
+    {0x5189, 0x72},
+
+    {0x3503, 0x00},
+
+    {0x5302, 0x30},
+    {0x5303, 0x10},
+    {0x5306, 0x10},
+    {0x5307, 0x20},
+
+    {0x3820, 0x40},
+    {0x3821, 0x06},
+
+    {0x3800, 0x01},
+    {0x3801, 0x50},
+    {0x3802, 0x01},
+    {0x3803, 0xb2},
+    {0x3804, 0x08},
+    {0x3805, 0xef},
+    {0x3806, 0x05},
+    {0x3807, 0xf1},
+    
+    {0x3808, 0x07},             //1920x1080
+    {0x3809, 0x80},
+    {0x380a, 0x04},
+    {0x380b, 0x38},
+    
+    {0x3810, 0x00},
+    {0x3811, 0x10},
+    {0x3812, 0x00},
+    {0x3813, 0x04},
+    {0x3814, 0x11},
+    {0x3815, 0x11},
+
+    {0x3034, 0x18}, // 0x1a
+    {0x3035, 0x21},             //15fps
+    {0x3036, 0x46},
+    {0x3037, 0x13},
+    {0x3108, 0x01},
+
+    {0x3824, 0x04},
+    {REG_DLY, 0x05},            //delay 5ms
+
+#if 0
+    {0x3034, 0x18},
+    {0x3035, 0x21},
+    {0x3036, 0x54},
+    {0x3037, 0x13},
+    {0x3108, 0x01},
+
+    {0x3824, 0x04},
+    {REG_DLY, 0x05},            //delay 5ms
+#endif    
+
+    {0x380c, 0x09},
+    {0x380d, 0xc4},
+    {0x380e, 0x04},
+    {0x380f, 0x60},
+
+    {0x3a08, 0x00},
+    {0x3a09, 0x70},
+    {0x3a0e, 0x0a},
+    {0x3a0a, 0x00},
+    {0x3a0b, 0x5d},
+    {0x3a0d, 0x0c},
+
+    {0x3a00, 0x38},
+    {0x3a02, 0x04},
+    {0x3a03, 0x60},
+    {0x3a14, 0x17},
+    {0x3a15, 0x76},
+
+    {0x3618, 0x04},
+    {0x3612, 0x2b},
+    {0x3709, 0x12},
+    {0x370c, 0x00},
+
+    {0x4004, 0x06},
+    {0x3002, 0x1c},
+    {0x3006, 0xc3},
+    // {0x3824, 0x04},
+    // {REG_DLY, 0x05},            //delay 5ms
+    {0x5001, 0x83},
+
+    {0x4713, 0x02},
+    {0x4407, 0x04},
+    {0x460b, 0x37},
+    {0x460c, 0x20},
+    {0x4837, 0x0a},
+
+    {0x3008, 0x02},
+
+    {0x3023, 0x01},
+    {0x3022, 0x04},
+    {0x302c, 0xc3},
+    
+};
+
+// 1080P 1920x1080
+//for capture 7.5 FPS
+static struct regval_list sensor_1080p_7FPS_regs[] = {
+    //1080: 1920*1080 
+    //power down
+    {0x3008, 0x42},
+
+    {0x3c07, 0x07},
+    {0x5189, 0x72},
+
+    {0x3503, 0x00},
+
+    {0x5302, 0x30},
+    {0x5303, 0x10},
+    {0x5306, 0x10},
+    {0x5307, 0x20},
+
+    {0x3820, 0x40},
+    {0x3821, 0x06},
+
+    {0x3800, 0x01},
+    {0x3801, 0x50},
+    {0x3802, 0x01},
+    {0x3803, 0xb2},
+    {0x3804, 0x08},
+    {0x3805, 0xef},
+    {0x3806, 0x05},
+    {0x3807, 0xf1},
+    
+    {0x3808, 0x07},             //1920x1080
+    {0x3809, 0x80},
+    {0x380a, 0x04},
+    {0x380b, 0x38},
+    
+    {0x3810, 0x00},
+    {0x3811, 0x10},
+    {0x3812, 0x00},
+    {0x3813, 0x04},
+    {0x3814, 0x11},
+    {0x3815, 0x11},
+
+    {0x3034, 0x18},
+    {0x3035, 0x21},
+    {0x3036, 0x54},
+    {0x3037, 0x13},
+    {0x3108, 0x01},
+
+    {0x3824, 0x04},
+    /* {0x3824, 0x04}, */
+    {REG_DLY, 0x05},            //delay 5ms
+
+    {0x380c, 0x09},
+    {0x380d, 0xc4},
+    {0x380e, 0x04},
+    {0x380f, 0x60},
+
+    {0x3a08, 0x00},
+    {0x3a09, 0x70},
+    {0x3a0e, 0x0a},
+    {0x3a0a, 0x00},
+    {0x3a0b, 0x5d},
+    {0x3a0d, 0x0c},
+
+    {0x3a00, 0x38},
+    {0x3a02, 0x04},
+    {0x3a03, 0x60},
+    {0x3a14, 0x17},
+    {0x3a15, 0x76},
+
+    {0x3618, 0x04},
+    {0x3612, 0x2b},
+    {0x3709, 0x12},
+    {0x370c, 0x00},
+
+    {0x4004, 0x06},
+    {0x3002, 0x1c},
+    {0x3006, 0xc3},
+    /* {0x3824, 0x04}, */
+    // {REG_DLY, 0x05},            //delay 5ms
+    {0x5001, 0x83},
+
+    {0x4713, 0x02},
+    {0x4407, 0x04},
+    {0x460b, 0x37},
+    {0x460c, 0x20},
+    {0x4837, 0x0a},
+
+    {0x3008, 0x02},
+
+    {0x3023, 0x01},
+    {0x3022, 0x04},
+    {0x302c, 0xc3},
+    
+};
+
+
+static struct regval_list sensor_uxga_7FPS_regs[] = {
+    //UXGA: 1600*1200
+    //capture 2Mega 7.5fps
+    //power down
+    {0x3008,0x42},
+
+    {0x3820, 0x40},
+    {0x3821, 0x06},
+    
+    //pll and clock setting                                                                                                                        
+    {0x3034, 0x18},
+    {0x3035, 0x21},
+    {0x3036, 0x54},
+    {0x3037, 0x13},
+    {0x3108, 0x01},
+
+    {0x3824, 0x01},
+    {REG_DLY, 0x05},            //delay 5ms
+                                         
+    //timing                                                                                                                             
+    //1600*1200                                                                                                                          
+    {0x3808, 0x06},             //H size MSB                                                                                             
+    {0x3809, 0x40},             //H size LSB                                                                                             
+    {0x380a, 0x04},             //V size MSB                                                                                             
+    {0x380b, 0xb0},             //V size LSB                                                                                             
+    {0x380c, 0x0b},             //HTS MSB                                                                                                
+    {0x380d, 0x1c},             //HTS LSB                                                                                                
+    {0x380e, 0x07},             //VTS MSB                                                                                                
+    {0x380f, 0xb0},             //LSB                                                                                                    
+
+    //banding step                                        
+    {0x3a08, 0x00},             //50HZ step MSB                 
+    {0x3a09, 0x93},             //50HZ step LSB                 
+    {0x3a0a, 0x00},             //60HZ step MSB                 
+    {0x3a0b, 0x7b},             //60HZ step LSB                 
+    {0x3a0e, 0x0d},             //50HZ step max                 
+    {0x3a0d, 0x10},             //60HZ step max                 
+
+    //  {0x3503,0x07}, //AEC disable                                                                                                                                                                                                                  
+    {0x350c, 0x00},
+    {0x350d, 0x00},
+    {0x3c07, 0x07},             //light meter 1 thereshold                                                                                      
+
+    {0x3814, 0x11},             //horizton subsample
+    {0x3815, 0x11},             //vertical subsample
+    {0x3800, 0x00},             //x address start high byte
+    {0x3801, 0x00},             //x address start low byte  
+    {0x3802, 0x00},             //y address start high byte 
+    {0x3803, 0x00},             //y address start low byte 
+    {0x3804, 0x0a},             //x address end high byte
+    {0x3805, 0x3f},             //x address end low byte 
+    {0x3806, 0x07},             //y address end high byte
+    {0x3807, 0x9f},             //y address end low byte 
+    {0x3810, 0x00},             //isp hortizontal offset high byte
+    {0x3811, 0x10},             //isp hortizontal offset low byte
+    {0x3812, 0x00},             //isp vertical offset high byte
+    {0x3813, 0x04},             //isp vertical offset low byte 
+
+    {0x4002, 0xc5},             //BLC related                                                                                                     
+    {0x4005, 0x12},             //BLC related                                                                                        
+    //  {0x5308,0x65},    //sharpen manual
+    //  {0x5302,0x20},//sharpness                                                                                          
+
+    {0x3618, 0x04},
+    {0x3612, 0x2b},
+    {0x3709, 0x12},
+    {0x370c, 0x00},
+    {0x3a02, 0x07},             //60HZ max exposure limit MSB                                                                                                                  
+    {0x3a03, 0xb0},             //60HZ max exposure limit LSB                                                                                   
+    {0x3a14, 0x07},             //50HZ max exposure limit MSB                                                                                   
+    {0x3a15, 0xb0},             //50HZ max exposure limit LSB                                                                                   
+    {0x4004, 0x06},             //BLC line number                                                                                               
+
+
+    {0x4837, 0x2c},             //PCLK period                                                                                                  
+    {0x5001, 0xa3},             //ISP effect  
+    {0x302c, 0x42},             //bit[7:6]: output drive capability
+    //00: 1x   01: 2x  10: 3x  11: 4x                                                                                  
+    //power down release
+    {0x3008,0x02},     
+};
+
+
+static struct regval_list sensor_uxga_15FPS_regs[] = {
+    //UXGA: 1600*1200
+    //capture 2Mega ~15fps
+    //power down
+    {0x3008,0x42},
+
+    {0x3820, 0x40},
+    {0x3821, 0x06},
+    
+    //pll and clock setting                                                                                                                        
+    {0x3034, 0x18},
+    {0x3035, 0x11},
+    {0x3036, 0x54},
+    {0x3037, 0x13},
+    {0x3108, 0x01},
+    
+    {0x3824, 0x01},
+    {REG_DLY, 0x05},            //delay 5ms
+                                         
+    //timing                                                                                                                             
+    //1600*1200                                                                                                                          
+    {0x3808, 0x06},             //H size MSB                                                                                             
+    {0x3809, 0x40},             //H size LSB                                                                                             
+    {0x380a, 0x04},             //V size MSB                                                                                             
+    {0x380b, 0xb0},             //V size LSB                                                                                             
+    {0x380c, 0x0b},             //HTS MSB                                                                                                
+    {0x380d, 0x1c},             //HTS LSB                                                                                                
+    {0x380e, 0x07},             //VTS MSB                                                                                                
+    {0x380f, 0xb0},             //LSB                                                                                                    
+
+    //banding step                                        
+    {0x3a08, 0x00},             //50HZ step MSB                 
+    {0x3a09, 0x93},             //50HZ step LSB                 
+    {0x3a0a, 0x00},             //60HZ step MSB                 
+    {0x3a0b, 0x7b},             //60HZ step LSB                 
+    {0x3a0e, 0x0d},             //50HZ step max                 
+    {0x3a0d, 0x10},             //60HZ step max                 
+
+    //  {0x3503,0x07}, //AEC disable                                                                                                                                                                                                                  
+    {0x350c, 0x00},
+    {0x350d, 0x00},
+    {0x3c07, 0x07},             //light meter 1 thereshold                                                                                      
+
+    {0x3814, 0x11},             //horizton subsample
+    {0x3815, 0x11},             //vertical subsample
+    {0x3800, 0x00},             //x address start high byte
+    {0x3801, 0x00},             //x address start low byte  
+    {0x3802, 0x00},             //y address start high byte 
+    {0x3803, 0x00},             //y address start low byte 
+    {0x3804, 0x0a},             //x address end high byte
+    {0x3805, 0x3f},             //x address end low byte 
+    {0x3806, 0x07},             //y address end high byte
+    {0x3807, 0x9f},             //y address end low byte 
+    {0x3810, 0x00},             //isp hortizontal offset high byte
+    {0x3811, 0x10},             //isp hortizontal offset low byte
+    {0x3812, 0x00},             //isp vertical offset high byte
+    {0x3813, 0x04},             //isp vertical offset low byte 
+
+    {0x4002, 0xc5},             //BLC related                                                                                                     
+    {0x4005, 0x12},             //BLC related                                                                                        
+    //  {0x5308,0x65},    //sharpen manual
+    //  {0x5302,0x20},//sharpness                                                                                          
+
+    {0x3618, 0x04},
+    {0x3612, 0x2b},
+    {0x3709, 0x12},
+    {0x370c, 0x00},
+    {0x3a02, 0x07},             //60HZ max exposure limit MSB                                                                                                                  
+    {0x3a03, 0xb0},             //60HZ max exposure limit LSB                                                                                   
+    {0x3a14, 0x07},             //50HZ max exposure limit MSB                                                                                   
+    {0x3a15, 0xb0},             //50HZ max exposure limit LSB                                                                                   
+    {0x4004, 0x06},             //BLC line number                                                                                               
+
+
+    {0x4837, 0x2c},             //PCLK period                                                                                                  
+    {0x5001, 0xa3},             //ISP effect  
+    {0x302c, 0x42},             //bit[7:6]: output drive capability
+    //00: 1x   01: 2x  10: 3x  11: 4x                                                                                  
+    //power down release
+    {0x3008,0x02},     
+};
+
+static struct regval_list sensor_uxga_30FPS_regs[] = {
+    //UXGA: 1600*1200
+    //capture 2Mega ~30fps
+    //power down
+    {0x3008,0x42},
+
+    {0x3820, 0x40},
+    {0x3821, 0x06},
+    
+    //pll and clock setting                                                                                                                        
+    {0x3034, 0x18},
+    {0x3035, 0x11},
+    {0x3036, 0x54},
+    {0x3037, 0x13},
+    {0x3108, 0x01},
+    
+    {0x3824, 0x01},
+    {REG_DLY, 0x05},            //delay 5ms
+                                         
+    //timing                                                                                                                             
+    //1600*1200                                                                                                                          
+    {0x3808, 0x06},             //H size MSB                                                                                             
+    {0x3809, 0x40},             //H size LSB                                                                                             
+    {0x380a, 0x04},             //V size MSB                                                                                             
+    {0x380b, 0xb0},             //V size LSB                                                                                             
+    {0x380c, 0x0b},             //HTS MSB                                                                                                
+    {0x380d, 0x1c},             //HTS LSB                                                                                                
+    {0x380e, 0x07},             //VTS MSB                                                                                                
+    {0x380f, 0xb0},             //LSB                                                                                                    
+
+    //banding step                                        
+    {0x3a08, 0x00},             //50HZ step MSB                 
+    {0x3a09, 0x93},             //50HZ step LSB                 
+    {0x3a0a, 0x00},             //60HZ step MSB                 
+    {0x3a0b, 0x7b},             //60HZ step LSB                 
+    {0x3a0e, 0x0d},             //50HZ step max                 
+    {0x3a0d, 0x10},             //60HZ step max                 
+
+    //  {0x3503,0x07}, //AEC disable                                                                                                                                                                                                                  
+    {0x350c, 0x00},
+    {0x350d, 0x00},
+    {0x3c07, 0x07},             //light meter 1 thereshold                                                                                      
+
+    {0x3814, 0x11},             //horizton subsample
+    {0x3815, 0x11},             //vertical subsample
+    {0x3800, 0x00},             //x address start high byte
+    {0x3801, 0x00},             //x address start low byte  
+    {0x3802, 0x00},             //y address start high byte 
+    {0x3803, 0x00},             //y address start low byte 
+    {0x3804, 0x0a},             //x address end high byte
+    {0x3805, 0x3f},             //x address end low byte 
+    {0x3806, 0x07},             //y address end high byte
+    {0x3807, 0x9f},             //y address end low byte 
+    {0x3810, 0x00},             //isp hortizontal offset high byte
+    {0x3811, 0x10},             //isp hortizontal offset low byte
+    {0x3812, 0x00},             //isp vertical offset high byte
+    {0x3813, 0x04},             //isp vertical offset low byte 
+
+    {0x4002, 0xc5},             //BLC related                                                                                                     
+    {0x4005, 0x12},             //BLC related                                                                                        
+    //  {0x5308,0x65},    //sharpen manual
+    //  {0x5302,0x20},//sharpness                                                                                          
+
+    {0x3618, 0x04},
+    {0x3612, 0x2b},
+    {0x3709, 0x12},
+    {0x370c, 0x00},
+    {0x3a02, 0x07},             //60HZ max exposure limit MSB                                                                                                                  
+    {0x3a03, 0xb0},             //60HZ max exposure limit LSB                                                                                   
+    {0x3a14, 0x07},             //50HZ max exposure limit MSB                                                                                   
+    {0x3a15, 0xb0},             //50HZ max exposure limit LSB                                                                                   
+    {0x4004, 0x06},             //BLC line number                                                                                               
+
+
+    {0x4837, 0x2c},             //PCLK period                                                                                                  
+    {0x5001, 0xa3},             //ISP effect  
+    {0x302c, 0x42},             //bit[7:6]: output drive capability
+    //00: 1x   01: 2x  10: 3x  11: 4x                                                                                  
+    //power down release
+    {0x3008,0x02},     
+};
+
+
+
+static struct regval_list sensor_sxga_7FPS_regs[] = {
+    //SXGA: 1280*960
+    //capture 1.3Mega 7.5fps
+    //power down
+    {0x3008,0x42},
+    
+    {0x3820, 0x40},
+    {0x3821, 0x06},
+    
+    //pll and clock setting                                                                                                                        
+    {0x3034, 0x18},
+    {0x3035, 0x21},
+    {0x3036, 0x54},
+    {0x3037, 0x13},
+    {0x3108, 0x01},
+    
+    {0x3824, 0x01},
+    {REG_DLY, 0x05},            //delay 5ms
+                            
+    //timing                                                                                                  
+    //1280*960                                                                                                
+    {0x3808, 0x05},             //H size MSB                                                                  
+    {0x3809, 0x00},             //H size LSB                                                                  
+    {0x380a, 0x03},             //V size MSB                                                                  
+    {0x380b, 0xc0},             //V size LSB                                                                  
+    {0x380c, 0x0b},             //HTS MSB                                                                     
+    {0x380d, 0x1c},             //HTS LSB                                                                     
+    {0x380e, 0x07},             //VTS MSB                                                                     
+    {0x380f, 0xb0},             //LSB                                                                         
+
+    {0x3a08, 0x00},             //50HZ step MSB                 
+    {0x3a09, 0x94},             //50HZ step LSB                 
+    {0x3a0a, 0x00},             //60HZ step MSB                 
+    {0x3a0b, 0x7b},             //60HZ step LSB                 
+    {0x3a0e, 0x06},             //50HZ step max                 
+    {0x3a0d, 0x08},             //60HZ step max                 
+
+    {0x3503, 0x00},             //AEC enable                                                                                                                                                          
+    {0x350c, 0x00},
+    {0x350d, 0x00},
+    {0x3c07, 0x07},             //light meter 1 thereshold                                                          
+
+    {0x3814, 0x11},             //horizton subsample
+    {0x3815, 0x11},             //vertical subsample
+    {0x3800, 0x00},             //x address start high byte
+    {0x3801, 0x00},             //x address start low byte  
+    {0x3802, 0x00},             //y address start high byte 
+    {0x3803, 0x00},             //y address start low byte 
+    {0x3804, 0x0a},             //x address end high byte
+    {0x3805, 0x3f},             //x address end low byte 
+    {0x3806, 0x07},             //y address end high byte
+    {0x3807, 0x9f},             //y address end low byte 
+    {0x3810, 0x00},             //isp hortizontal offset high byte
+    {0x3811, 0x10},             //isp hortizontal offset low byte
+    {0x3812, 0x00},             //isp vertical offset high byte
+    {0x3813, 0x04},             //isp vertical offset low byte                                                                                                          
+
+    {0x4002, 0xc5},             //BLC related                                                           
+    {0x4005, 0x12},             //BLC related                                                             
+    //  {0x5308,0x65},    //sharpen manual
+    //  {0x5302,0x20},//sharpness                                                                            
+
+    {0x3618, 0x04},
+    {0x3612, 0x2b},
+    {0x3709, 0x12},
+    {0x370c, 0x00},
+    {0x3a02, 0x07},             //60HZ max exposure limit MSB                                                      
+    {0x3a03, 0xb0},             //60HZ max exposure limit LSB                                                      
+    {0x3a14, 0x07},             //50HZ max exposure limit MSB                                                      
+    {0x3a15, 0xb0},             //50HZ max exposure limit LSB                                                      
+    {0x4004, 0x06},             //BLC line number                                                                                  
+
+    {0x4837, 0x2c},             //PCLK period
+    {0x5001, 0xa3},             //ISP effect   
+    {0x302c, 0x42},             //bit[7:6]: output drive capability
+
+    //00: 1x   01: 2x  10: 3x  11: 4x   
+    {0x3a18, 0x00},             //
+    {0x3a19, 0xf8},             //  
+    //power down release
+    {0x3008,0x02},     
+};
+
+
+static struct regval_list sensor_sxga_15FPS_regs[] = {
+    //SXGA: 1280*960
+    //capture 1.3Mega ~15fps
+    //power down
+    {0x3008,0x42},
+    
+    {0x3820, 0x40},
+    {0x3821, 0x06},
+    
+    //pll and clock setting                                                                                   
+    {0x3034, 0x18},
+    {0x3035, 0x11},
+    {0x3036, 0x54},
+    {0x3037, 0x13},
+    {0x3108, 0x01},
+    
+    {0x3824, 0x01},
+    {REG_DLY, 0x05},            //delay 5ms
+                            
+    //timing                                                                                                  
+    //1280*960                                                                                                
+    {0x3808, 0x05},             //H size MSB                                                                  
+    {0x3809, 0x00},             //H size LSB                                                                  
+    {0x380a, 0x03},             //V size MSB                                                                  
+    {0x380b, 0xc0},             //V size LSB                                                                  
+    {0x380c, 0x0b},             //HTS MSB                                                                     
+    {0x380d, 0x1c},             //HTS LSB                                                                     
+    {0x380e, 0x07},             //VTS MSB                                                                     
+    {0x380f, 0xb0},             //LSB                                                                         
+
+    {0x3a08, 0x00},             //50HZ step MSB                 
+    {0x3a09, 0x94},             //50HZ step LSB                 
+    {0x3a0a, 0x00},             //60HZ step MSB                 
+    {0x3a0b, 0x7b},             //60HZ step LSB                 
+    {0x3a0e, 0x06},             //50HZ step max                 
+    {0x3a0d, 0x08},             //60HZ step max                 
+
+    {0x3503, 0x00},             //AEC enable                                                                                                                                                          
+    {0x350c, 0x00},
+    {0x350d, 0x00},
+    {0x3c07, 0x07},             //light meter 1 thereshold                                                          
+
+    {0x3814, 0x11},             //horizton subsample
+    {0x3815, 0x11},             //vertical subsample
+    {0x3800, 0x00},             //x address start high byte
+    {0x3801, 0x00},             //x address start low byte  
+    {0x3802, 0x00},             //y address start high byte 
+    {0x3803, 0x00},             //y address start low byte 
+    {0x3804, 0x0a},             //x address end high byte
+    {0x3805, 0x3f},             //x address end low byte 
+    {0x3806, 0x07},             //y address end high byte
+    {0x3807, 0x9f},             //y address end low byte 
+    {0x3810, 0x00},             //isp hortizontal offset high byte
+    {0x3811, 0x10},             //isp hortizontal offset low byte
+    {0x3812, 0x00},             //isp vertical offset high byte
+    {0x3813, 0x04},             //isp vertical offset low byte                                                                                                          
+
+    {0x4002, 0xc5},             //BLC related                                                           
+    {0x4005, 0x12},             //BLC related                                                             
+    //  {0x5308,0x65},    //sharpen manual
+    //  {0x5302,0x20},//sharpness                                                                            
+
+    {0x3618, 0x04},
+    {0x3612, 0x2b},
+    {0x3709, 0x12},
+    {0x370c, 0x00},
+    {0x3a02, 0x07},             //60HZ max exposure limit MSB                                                      
+    {0x3a03, 0xb0},             //60HZ max exposure limit LSB                                                      
+    {0x3a14, 0x07},             //50HZ max exposure limit MSB                                                      
+    {0x3a15, 0xb0},             //50HZ max exposure limit LSB                                                      
+    {0x4004, 0x06},             //BLC line number                                                                                  
+
+    {0x4837, 0x2c},             //PCLK period
+    {0x5001, 0xa3},             //ISP effect   
+    {0x302c, 0x42},             //bit[7:6]: output drive capability
+
+    //00: 1x   01: 2x  10: 3x  11: 4x   
+    {0x3a18, 0x00},             //
+    {0x3a19, 0xf8},             //  
+    //power down release
+    {0x3008,0x02},     
+};
+
+static struct regval_list sensor_sxga_30FPS_regs[] = {
+    //SXGA: 1280*960
+    //capture 1.3Mega ~30fps
+    //power down
+    {0x3008,0x42},
+    
+    {0x3820, 0x40},
+    {0x3821, 0x06},
+    
+    //pll and clock setting                                                                                   
+    {0x3034, 0x18},
+    {0x3035, 0x11},
+    {0x3036, 0x54},
+    {0x3037, 0x13},
+    {0x3108, 0x01},
+
+    
+    {0x3824, 0x01},
+    {REG_DLY, 0x05},            //delay 5ms
+                            
+    //timing                                                                                                  
+    //1280*960                                                                                                
+    {0x3808, 0x05},             //H size MSB                                                                  
+    {0x3809, 0x00},             //H size LSB                                                                  
+    {0x380a, 0x03},             //V size MSB                                                                  
+    {0x380b, 0xc0},             //V size LSB                                                                  
+    {0x380c, 0x0b},             //HTS MSB                                                                     
+    {0x380d, 0x1c},             //HTS LSB                                                                     
+    {0x380e, 0x07},             //VTS MSB                                                                     
+    {0x380f, 0xb0},             //LSB                                                                         
+
+    {0x3a08, 0x00},             //50HZ step MSB                 
+    {0x3a09, 0x94},             //50HZ step LSB                 
+    {0x3a0a, 0x00},             //60HZ step MSB                 
+    {0x3a0b, 0x7b},             //60HZ step LSB                 
+    {0x3a0e, 0x06},             //50HZ step max                 
+    {0x3a0d, 0x08},             //60HZ step max                 
+
+    {0x3503, 0x00},             //AEC enable                                                                                                                                                          
+    {0x350c, 0x00},
+    {0x350d, 0x00},
+    {0x3c07, 0x07},             //light meter 1 thereshold                                                          
+
+    {0x3814, 0x11},             //horizton subsample
+    {0x3815, 0x11},             //vertical subsample
+    {0x3800, 0x00},             //x address start high byte
+    {0x3801, 0x00},             //x address start low byte  
+    {0x3802, 0x00},             //y address start high byte 
+    {0x3803, 0x00},             //y address start low byte 
+    {0x3804, 0x0a},             //x address end high byte
+    {0x3805, 0x3f},             //x address end low byte 
+    {0x3806, 0x07},             //y address end high byte
+    {0x3807, 0x9f},             //y address end low byte 
+    {0x3810, 0x00},             //isp hortizontal offset high byte
+    {0x3811, 0x10},             //isp hortizontal offset low byte
+    {0x3812, 0x00},             //isp vertical offset high byte
+    {0x3813, 0x04},             //isp vertical offset low byte                                                                                                          
+
+    {0x4002, 0xc5},             //BLC related                                                           
+    {0x4005, 0x12},             //BLC related                                                             
+    //  {0x5308,0x65},    //sharpen manual
+    //  {0x5302,0x20},//sharpness                                                                            
+
+    {0x3618, 0x04},
+    {0x3612, 0x2b},
+    {0x3709, 0x12},
+    {0x370c, 0x00},
+    {0x3a02, 0x07},             //60HZ max exposure limit MSB                                                      
+    {0x3a03, 0xb0},             //60HZ max exposure limit LSB                                                      
+    {0x3a14, 0x07},             //50HZ max exposure limit MSB                                                      
+    {0x3a15, 0xb0},             //50HZ max exposure limit LSB                                                      
+    {0x4004, 0x06},             //BLC line number                                                                                  
+
+    {0x4837, 0x2c},             //PCLK period
+    {0x5001, 0xa3},             //ISP effect   
+    {0x302c, 0x42},             //bit[7:6]: output drive capability
+
+    //00: 1x   01: 2x  10: 3x  11: 4x   
+    {0x3a18, 0x00},             //
+    {0x3a19, 0xf8},             //  
+    //power down release
+    {0x3008,0x02},     
+};
+
+
+
+static struct regval_list sensor_xga_7FPS_regs[] = {
+    //XGA: 1024*768
+    //capture 1Mega 7.5fps
+    //power down
+    {0x3008,0x42},
+
+    {0x3820, 0x40},
+    {0x3821, 0x06},
+    
+    //pll and clock setting
+    {0x3034, 0x18},
+    {0x3035, 0x21},
+    {0x3036, 0x54},
+    {0x3037, 0x13},
+    {0x3108, 0x01},
+    
+    {0x3824, 0x01},
+    {REG_DLY, 0x05},            //delay 5ms
+    
+    //timing
+    //1024*768
+    {0x3808, 0x04},             //H size MSB
+    {0x3809, 0x00},             //H size LSB
+    {0x380a, 0x03},             //V size MSB
+    {0x380b, 0x00},             //V size LSB
+    {0x380c, 0x0b},             //HTS MSB    
+    {0x380d, 0x1c},             //HTS LSB     
+    {0x380e, 0x07},             //VTS MSB    
+    {0x380f, 0xb0},             //LSB
+
+    //banding step  
+    {0x3a08, 0x00},             //50HZ step MSB                 
+    {0x3a09, 0x93},             //50HZ step LSB                 
+    {0x3a0a, 0x00},             //60HZ step MSB                 
+    {0x3a0b, 0x7b},             //60HZ step LSB                 
+    {0x3a0e, 0x0d},             //50HZ step max                 
+    {0x3a0d, 0x10},             //60HZ step max                 
+
+    //  {0x3503,0x07}, //AEC disable                                                                                              
+    {0x350c, 0x00},
+    {0x350d, 0x00},
+    {0x3c07, 0x07},             //light meter 1 thereshold   
+
+
+    {0x3814, 0x11},             //horizton subsample
+    {0x3815, 0x11},             //vertical subsample
+    {0x3800, 0x00},             //x address start high byte
+    {0x3801, 0x00},             //x address start low byte  
+    {0x3802, 0x00},             //y address start high byte 
+    {0x3803, 0x00},             //y address start low byte 
+    {0x3804, 0x0a},             //x address end high byte
+    {0x3805, 0x3f},             //x address end low byte 
+    {0x3806, 0x07},             //y address end high byte
+    {0x3807, 0x9f},             //y address end low byte 
+    {0x3810, 0x00},             //isp hortizontal offset high byte
+    {0x3811, 0x10},             //isp hortizontal offset low byte
+    {0x3812, 0x00},             //isp vertical offset high byte
+    {0x3813, 0x04},             //isp vertical offset low byte
+
+    //  {0x5308,0x65},    //sharpen manual
+    //  {0x5302,0x20},    //sharpen offset 1
+    {0x4002, 0xc5},             //BLC related
+    {0x4005, 0x12},             //BLC related
+
+    {0x3618, 0x04},
+    {0x3612, 0x2b},
+    {0x3709, 0x12},
+    {0x370c, 0x00},
+    {0x3a02, 0x07},             //60HZ max exposure limit MSB
+    {0x3a03, 0xb0},             //60HZ max exposure limit LSB
+    {0x3a14, 0x07},             //50HZ max exposure limit MSB
+    {0x3a15, 0xb0},             //50HZ max exposure limit LSB
+    {0x4004, 0x06},             //BLC line number            
+    {0x4837, 0x2c},             //PCLK period
+    {0x5001, 0xa3},             //ISP effect
+
+    {0x302c, 0x42},             //bit[7:6]: output drive capability
+    //00: 1x   01: 2x  10: 3x  11: 4x
+    
+    //power down release
+    {0x3008,0x02},     
+};
+
+static struct regval_list sensor_xga_15FPS_regs[] = {
+    //XGA: 1024*768
+    //capture 1Mega ~15fps
+    //power down
+    {0x3008,0x42},
+
+    {0x3820, 0x40},
+    {0x3821, 0x06},
+    
+    //pll and clock setting                                                                                   
+    {0x3034, 0x18},
+    {0x3035, 0x11},
+    {0x3036, 0x54},
+    {0x3037, 0x13},
+    {0x3108, 0x01},
+    
+    {0x3824, 0x01},
+    {REG_DLY, 0x05},            //delay 5ms
+    
+    //timing
+    //1024*768
+    {0x3808, 0x04},             //H size MSB
+    {0x3809, 0x00},             //H size LSB
+    {0x380a, 0x03},             //V size MSB
+    {0x380b, 0x00},             //V size LSB
+    {0x380c, 0x0b},             //HTS MSB    
+    {0x380d, 0x1c},             //HTS LSB     
+    {0x380e, 0x07},             //VTS MSB    
+    {0x380f, 0xb0},             //LSB
+
+    //banding step  
+    {0x3a08, 0x00},             //50HZ step MSB                 
+    {0x3a09, 0x93},             //50HZ step LSB                 
+    {0x3a0a, 0x00},             //60HZ step MSB                 
+    {0x3a0b, 0x7b},             //60HZ step LSB                 
+    {0x3a0e, 0x0d},             //50HZ step max                 
+    {0x3a0d, 0x10},             //60HZ step max                 
+
+    //  {0x3503,0x07}, //AEC disable                                                                                              
+    {0x350c, 0x00},
+    {0x350d, 0x00},
+    {0x3c07, 0x07},             //light meter 1 thereshold   
+
+
+    {0x3814, 0x11},             //horizton subsample
+    {0x3815, 0x11},             //vertical subsample
+    {0x3800, 0x00},             //x address start high byte
+    {0x3801, 0x00},             //x address start low byte  
+    {0x3802, 0x00},             //y address start high byte 
+    {0x3803, 0x00},             //y address start low byte 
+    {0x3804, 0x0a},             //x address end high byte
+    {0x3805, 0x3f},             //x address end low byte 
+    {0x3806, 0x07},             //y address end high byte
+    {0x3807, 0x9f},             //y address end low byte 
+    {0x3810, 0x00},             //isp hortizontal offset high byte
+    {0x3811, 0x10},             //isp hortizontal offset low byte
+    {0x3812, 0x00},             //isp vertical offset high byte
+    {0x3813, 0x04},             //isp vertical offset low byte
+
+    //  {0x5308,0x65},    //sharpen manual
+    //  {0x5302,0x20},    //sharpen offset 1
+    {0x4002, 0xc5},             //BLC related
+    {0x4005, 0x12},             //BLC related
+
+    {0x3618, 0x04},
+    {0x3612, 0x2b},
+    {0x3709, 0x12},
+    {0x370c, 0x00},
+    {0x3a02, 0x07},             //60HZ max exposure limit MSB
+    {0x3a03, 0xb0},             //60HZ max exposure limit LSB
+    {0x3a14, 0x07},             //50HZ max exposure limit MSB
+    {0x3a15, 0xb0},             //50HZ max exposure limit LSB
+    {0x4004, 0x06},             //BLC line number            
+    {0x4837, 0x2c},             //PCLK period
+    {0x5001, 0xa3},             //ISP effect
+
+    {0x302c, 0x42},             //bit[7:6]: output drive capability
+    //00: 1x   01: 2x  10: 3x  11: 4x
+    
+    //power down release
+    {0x3008,0x02},     
+};
+
+static struct regval_list sensor_xga_30FPS_regs[] = {
+    //XGA: 1024*768
+    //capture 1Mega 7.5fps
+    //power down
+    {0x3008,0x42},
+
+    {0x3820, 0x40},
+    {0x3821, 0x06},
+    
+    //pll and clock setting
+    {0x3034, 0x18},
+    {0x3035, 0x21},
+    {0x3036, 0x69},
+    {0x3037, 0x13},
+    {0x3108, 0x01},
+
+    
+    {0x3824, 0x01},
+    {REG_DLY, 0x05},            //delay 5ms
+    
+    //timing
+    //1024*768
+    {0x3808, 0x04},             //H size MSB
+    {0x3809, 0x00},             //H size LSB
+    {0x380a, 0x03},             //V size MSB
+    {0x380b, 0x00},             //V size LSB
+    {0x380c, 0x0b},             //HTS MSB    
+    {0x380d, 0x1c},             //HTS LSB     
+    {0x380e, 0x07},             //VTS MSB    
+    {0x380f, 0xb0},             //LSB
+
+    //banding step  
+    {0x3a08, 0x00},             //50HZ step MSB                 
+    {0x3a09, 0x93},             //50HZ step LSB                 
+    {0x3a0a, 0x00},             //60HZ step MSB                 
+    {0x3a0b, 0x7b},             //60HZ step LSB                 
+    {0x3a0e, 0x0d},             //50HZ step max                 
+    {0x3a0d, 0x10},             //60HZ step max                 
+
+    //  {0x3503,0x07}, //AEC disable                                                                                              
+    {0x350c, 0x00},
+    {0x350d, 0x00},
+    {0x3c07, 0x07},             //light meter 1 thereshold   
+
+
+    {0x3814, 0x11},             //horizton subsample
+    {0x3815, 0x11},             //vertical subsample
+    {0x3800, 0x00},             //x address start high byte
+    {0x3801, 0x00},             //x address start low byte  
+    {0x3802, 0x00},             //y address start high byte 
+    {0x3803, 0x00},             //y address start low byte 
+    {0x3804, 0x0a},             //x address end high byte
+    {0x3805, 0x3f},             //x address end low byte 
+    {0x3806, 0x07},             //y address end high byte
+    {0x3807, 0x9f},             //y address end low byte 
+    {0x3810, 0x00},             //isp hortizontal offset high byte
+    {0x3811, 0x10},             //isp hortizontal offset low byte
+    {0x3812, 0x00},             //isp vertical offset high byte
+    {0x3813, 0x04},             //isp vertical offset low byte
+
+    //  {0x5308,0x65},    //sharpen manual
+    //  {0x5302,0x20},    //sharpen offset 1
+    {0x4002, 0xc5},             //BLC related
+    {0x4005, 0x12},             //BLC related
+
+    {0x3618, 0x04},
+    {0x3612, 0x2b},
+    {0x3709, 0x12},
+    {0x370c, 0x00},
+    {0x3a02, 0x07},             //60HZ max exposure limit MSB
+    {0x3a03, 0xb0},             //60HZ max exposure limit LSB
+    {0x3a14, 0x07},             //50HZ max exposure limit MSB
+    {0x3a15, 0xb0},             //50HZ max exposure limit LSB
+    {0x4004, 0x06},             //BLC line number            
+    {0x4837, 0x2c},             //PCLK period
+    {0x5001, 0xa3},             //ISP effect
+
+    {0x302c, 0x42},             //bit[7:6]: output drive capability
+    //00: 1x   01: 2x  10: 3x  11: 4x
+    
+    //power down release
+    {0x3008,0x02},     
+};
+
+
+
+
+static struct regval_list sensor_720p_7FPS_regs[] = {
+    //1280*720
+    // power down
+    {0x3008,0x42},
+
+    //pll and clock setting
+    {0x3034, 0x1a},
+    {0x3035, 0x41},             //0x11:60fps 0x21:30fps 0x41:15fps
+    {0x3036, 0x69}, // {0x3036, 0x54},
+    {0x3037, 0x13},
+    {0x3108, 0x01},
+
+    {0x3824, 0x01},
+    {REG_DLY, 0x05},            //delay 5ms
+	
+    
+    {0x3c07, 0x07},
+	{0x3820, 0x41},
+    {0x3821, 0x07},
+    {0x3814, 0x31},
+	{0x3815, 0x31},
+    {0x3800, 0x00},
+    {0x3801, 0x00},
+	{0x3802, 0x00},
+    {0x3803, 0xfa},
+    {0x3804, 0x0a},
+	{0x3805, 0x3f},
+    {0x3806, 0x06},
+    {0x3807, 0xa9},
+	{0x3808, 0x05},
+    {0x3809, 0x00},
+    {0x380a, 0x02},
+	{0x380b, 0xd0},
+    {0x380c, 0x07},
+    {0x380d, 0x64},
+	{0x380e, 0x02},
+    {0x380f, 0xe4},
+    {0x3813, 0x04},
+	{0x3618, 0x00},
+    {0x3612, 0x29},
+    {0x3709, 0x52},
+	{0x370c, 0x03},
+    {0x3a02, 0x02},
+    {0x3a03, 0xe0},
+	{0x3a14, 0x02},
+    {0x3a15, 0xe0},
+    
+    {0x4004, 0x02},
+	{0x3002, 0x1c},
+    {0x3006, 0xc3},
+    {0x4713, 0x03},
+	{0x4407, 0x04},
+    {0x460b, 0x37},
+    {0x460c, 0x20},
+	{0x4837, 0x16},
+    
+    
+    {0x5001, 0xa3},
+    //power down release
+    {0x3008, 0x02},
+	{0x3503, 0x00},
+};
+
+
+static struct regval_list sensor_720p_15FPS_regs[] = {
+    //1280*720
+    // power down
+    {0x3008,0x42},
+    
+    {0x3820, 0x41},
+    {0x3821, 0x07},
+    
+    //  //pll and clock setting
+    {0x3034, 0x18},
+    {0x3035, 0x21},             //0x11:60fps 0x21:30fps 0x41:15fps
+    {0x3036, 0x5C}, // {0x3036, 0x54},
+    {0x3037, 0x13},
+    {0x3108, 0x01},
+    
+    {0x3824, 0x01},
+    {REG_DLY, 0x05},            //delay 5ms
+    
+    //timing
+    //1280x720
+    {0x3808, 0x05},             //H size MSB
+    {0x3809, 0x00},             //H size LSB
+    {0x380a, 0x02},             //V size MSB
+    {0x380b, 0xd0},             //V size LSB
+    {0x380c, 0x07},             //HTS MSB        
+    {0x380d, 0x64},             //HTS LSB   
+    {0x380e, 0x02},             //VTS MSB        
+    {0x380f, 0xe4},             //LSB       
+
+    //banding step
+    {0x3a08, 0x00},             //50HZ step MSB 
+    {0x3a09, 0xdd},             //50HZ step LSB 
+    {0x3a0a, 0x00},             //60HZ step MSB 
+    {0x3a0b, 0xb8},             //60HZ step LSB 
+    {0x3a0e, 0x03},             //50HZ step max 
+    {0x3a0d, 0x04},             //60HZ step max 
+
+    
+    // {0x350c, 0x00},
+    // {0x350d, 0x00},
+    
+    {0x3c07, 0x07},             //light meter 1 thereshold   
+    {0x3814, 0x31},             //horizton subsample
+    {0x3815, 0x31},             //vertical subsample
+    {0x3800, 0x00},             //x address start high byte
+    {0x3801, 0x00},             //x address start low byte  
+    {0x3802, 0x00},             //y address start high byte 
+    {0x3803, 0xfa},             //y address start low byte 
+    {0x3804, 0x0a},             //x address end high byte
+    {0x3805, 0x3f},             //x address end low byte 
+    {0x3806, 0x06},             //y address end high byte
+    {0x3807, 0xa9},             //y address end low byte 
+    {0x3810, 0x00},             //isp hortizontal offset high byte
+    {0x3811, 0x10},             //isp hortizontal offset low byte
+    {0x3812, 0x00},             //isp vertical offset high byte
+    {0x3813, 0x04},             //isp vertical offset low byte
+
+    {0x5308,0x65},    //sharpen manual
+    {0x5302,0x00},    //sharpen offset 1
+    {0x4002, 0x45},             //BLC related
+    {0x4005, 0x18},             //BLC related
+
+    {0x3618, 0x00},
+    {0x3612, 0x29},
+    {0x3709, 0x52},
+    {0x370c, 0x03},
+    {0x3a02, 0x02},             //60HZ max exposure limit MSB 
+    {0x3a03, 0xe0},             //60HZ max exposure limit LSB 
+    {0x3a14, 0x02},             //50HZ max exposure limit MSB 
+    {0x3a15, 0xe0},             //50HZ max exposure limit LSB 
+
+    {0x4004, 0x02},             //BLC line number
+    {0x3002, 0x1c},             //reset JFIFO SFIFO JPG
+    {0x3006, 0xc3},             //enable xx clock
+    {0x460b, 0x37},             //debug mode
+    {0x460c, 0x20},             //PCLK Manuale
+    {0x4837, 0x16},             //PCLK period
+    {0x5001, 0x83},             //ISP effect
+    //  {0x3503,0x00},//AEC enable
+
+    
+    // {0x3a18, 0x00},             //
+    // {0x3a19, 0xd8},             //
+
+    {0x302c, 0xc2},             //bit[7:6]: output drive capability
+    //00: 1x   01: 2x  10: 3x  11: 4x 
+    {0x3503, 0x00},             //AEC enable
+    //  //power down release
+    {0x3008,0x02},     
+};
+
+
+static struct regval_list sensor_720p_30FPS_regs[] = {
+    //1280*720
+    // power down
+    {0x3008,0x42},
+    
+    {0x3820, 0x41},
+    {0x3821, 0x07},
+    
+    //  //pll and clock setting
+    {0x3034, 0x1a},
+    {0x3035, 0x21},             //0x11:60fps 0x21:30fps 0x41:15fps
+    {0x3036, 0x69}, // {0x3036, 0x46}, // {0x3036, 0x54},
+    {0x3037, 0x13},
+    {0x3108, 0x01},
+    
+    {0x3824, 0x04},
+    {REG_DLY, 0x05},            //delay 5ms
+    
+    //timing
+    //1280x720
+    {0x3808, 0x05},             //H size MSB
+    {0x3809, 0x00},             //H size LSB
+    {0x380a, 0x02},             //V size MSB
+    {0x380b, 0xd0},             //V size LSB
+    {0x380c, 0x07},             //HTS MSB        
+    {0x380d, 0x64},             //HTS LSB   
+    {0x380e, 0x02},             //VTS MSB        
+    {0x380f, 0xe4},             //LSB       
+
+    //banding step
+    {0x3a08, 0x00},             //50HZ step MSB 
+    {0x3a09, 0xdd},             //50HZ step LSB 
+    {0x3a0a, 0x00},             //60HZ step MSB 
+    {0x3a0b, 0xb8},             //60HZ step LSB 
+    {0x3a0e, 0x03},             //50HZ step max 
+    {0x3a0d, 0x04},             //60HZ step max 
+
+    
+    // {0x350c, 0x00},
+    // {0x350d, 0x00},
+    
+    {0x3c07, 0x07},             //light meter 1 thereshold   
+    {0x3814, 0x31},             //horizton subsample
+    {0x3815, 0x31},             //vertical subsample
+    {0x3800, 0x00},             //x address start high byte
+    {0x3801, 0x00},             //x address start low byte  
+    {0x3802, 0x00},             //y address start high byte 
+    {0x3803, 0xfa},             //y address start low byte 
+    {0x3804, 0x0a},             //x address end high byte
+    {0x3805, 0x3f},             //x address end low byte 
+    {0x3806, 0x06},             //y address end high byte
+    {0x3807, 0xa9},             //y address end low byte 
+    {0x3810, 0x00},             //isp hortizontal offset high byte
+    {0x3811, 0x10},             //isp hortizontal offset low byte
+    {0x3812, 0x00},             //isp vertical offset high byte
+    {0x3813, 0x04},             //isp vertical offset low byte
+
+    {0x5308,0x65},    //sharpen manual
+    {0x5302,0x00},    //sharpen offset 1
+    {0x4002, 0x45},             //BLC related
+    {0x4005, 0x18},             //BLC related
+
+    {0x3618, 0x00},
+    {0x3612, 0x29},
+    {0x3709, 0x52},
+    {0x370c, 0x03},
+    {0x3a02, 0x02},             //60HZ max exposure limit MSB 
+    {0x3a03, 0xe0},             //60HZ max exposure limit LSB 
+    {0x3a14, 0x02},             //50HZ max exposure limit MSB 
+    {0x3a15, 0xe0},             //50HZ max exposure limit LSB 
+
+    {0x4004, 0x02},             //BLC line number
+    {0x3002, 0x1c},             //reset JFIFO SFIFO JPG
+    {0x3006, 0xc3},             //enable xx clock
+    {0x460b, 0x37},             //debug mode
+    {0x460c, 0x20},             //PCLK Manuale
+    {0x4837, 0x16},             //PCLK period
+    {0x5001, 0x83},             //ISP effect
+    //  {0x3503,0x00},//AEC enable
+
+    
+    // {0x3a18, 0x00},             //
+    // {0x3a19, 0xd8},             //
+
+    {0x302c, 0xc2},             //bit[7:6]: output drive capability
+    //00: 1x   01: 2x  10: 3x  11: 4x 
+    {0x3503, 0x00},             //AEC enable
+    //  //power down release
+    {0x3008,0x02},     
+};
+
+
+static struct regval_list sensor_svga_30FPS_regs[] = {
+    //SVGA: 800*600
+    // ~30 FPS
+    //power down
+    {0x3008, 0x42},
+
+    {0x3820, 0x41},
+    {0x3821, 0x07},
+    
+    // pll and clock setting
+    {0x3034, 0x1a},
+    {0x3035, 0x21},
+    {0x3036, 0x69},
+    {0x3037, 0x13},
+    {0x3108, 0x01},
+    
+    {0x3824, 0x01},
+    {REG_DLY, 0x05},            //delay 5ms
+    
+    //timing                             
+    //800x600                            
+    {0x3808, 0x3},              //H size MSB   
+    {0x3809, 0x20},             //H size LSB   
+    {0x380a, 0x2},              //V size MSB   
+    {0x380b, 0x58},             //V size LSB   
+    {0x380c, 0x07},             //HTS MSB      
+    {0x380d, 0x68},             //HTS LSB      
+    {0x380e, 0x03},             //VTS MSB      
+    {0x380f, 0xd8},             //LSB          
+
+    //banding step  
+    {0x3a08, 0x01},             //50HZ step MSB 
+    {0x3a09, 0x27},             //50HZ step LSB 
+    {0x3a0a, 0x00},             //60HZ step MSB 
+    {0x3a0b, 0xf6},             //60HZ step LSB 
+    {0x3a0e, 0x03},             //50HZ step max 
+    {0x3a0d, 0x04},             //60HZ step max 
+
+    //  {0x3503,0x00},  //AEC enable
+    {0x3c07, 0x08},             //light meter 1 thereshold   
+
+    {0x3814, 0x31},             //horizton subsample
+    {0x3815, 0x31},             //vertical subsample
+    {0x3800, 0x00},             //x address start high byte
+    {0x3801, 0x00},             //x address start low byte  
+    {0x3802, 0x00},             //y address start high byte 
+    {0x3803, 0x04},             //y address start low byte 
+    {0x3804, 0x0a},             //x address end high byte
+    {0x3805, 0x3f},             //x address end low byte 
+    {0x3806, 0x07},             //y address end high byte
+    {0x3807, 0x9b},             //y address end low byte 
+    {0x3810, 0x00},             //isp hortizontal offset high byte
+    {0x3811, 0x10},             //isp hortizontal offset low byte
+    {0x3812, 0x00},             //isp vertical offset high byte
+    {0x3813, 0x06},             //isp vertical offset low byte
+
+    //  {0x5308,0x65},          //sharpen manual
+    //  {0x5302,0x00},          //sharpen offset 1
+    {0x4002, 0x45},             //BLC related
+    {0x4005, 0x18},             //BLC related
+
+    {0x3618, 0x00},
+    {0x3612, 0x29},
+    {0x3709, 0x52},
+    {0x370c, 0x03},
+    {0x3a02, 0x03},             //60HZ max exposure limit MSB 
+    {0x3a03, 0xd8},             //60HZ max exposure limit LSB     
+    {0x3a14, 0x03},             //50HZ max exposure limit MSB     
+    {0x3a15, 0xd8},             //50HZ max exposure limit LSB     
+    {0x4004, 0x02},             //BLC line number    
+
+    {0x4837, 0x22},             //PCLK period    
+    {0x5001, 0xa3},             //ISP effect
+
+    {0x302c, 0x42},             //bit[7:6]: output drive capability
+                                //00: 1x   01: 2x  10: 3x  11: 4x 
+    //  //power down release
+    {0x3008, 0x02},     
+};
+
+static struct regval_list sensor_svga_15FPS_regs[] = {
+    //SVGA: 800*600
+    // ~15 FPS
+    //power down
+    {0x3008, 0x42},
+
+    {0x3820, 0x41},
+    {0x3821, 0x07},
+    
+    // pll and clock setting
+    {0x3034, 0x1a},
+    {0x3035, 0x21},
+    {0x3036, 0x46},
+    {0x3037, 0x13},
+    {0x3108, 0x01},
+    
+    {0x3824, 0x01},
+    {REG_DLY, 0x05},            //delay 5ms
+    
+    //timing                             
+    //800x600                            
+    {0x3808, 0x3},              //H size MSB   
+    {0x3809, 0x20},             //H size LSB   
+    {0x380a, 0x2},              //V size MSB   
+    {0x380b, 0x58},             //V size LSB   
+    {0x380c, 0x07},             //HTS MSB      
+    {0x380d, 0x68},             //HTS LSB      
+    {0x380e, 0x03},             //VTS MSB      
+    {0x380f, 0xd8},             //LSB          
+
+    //banding step  
+    {0x3a08, 0x01},             //50HZ step MSB 
+    {0x3a09, 0x27},             //50HZ step LSB 
+    {0x3a0a, 0x00},             //60HZ step MSB 
+    {0x3a0b, 0xf6},             //60HZ step LSB 
+    {0x3a0e, 0x03},             //50HZ step max 
+    {0x3a0d, 0x04},             //60HZ step max 
+
+    //  {0x3503,0x00},  //AEC enable
+    {0x3c07, 0x08},             //light meter 1 thereshold   
+
+    {0x3814, 0x31},             //horizton subsample
+    {0x3815, 0x31},             //vertical subsample
+    {0x3800, 0x00},             //x address start high byte
+    {0x3801, 0x00},             //x address start low byte  
+    {0x3802, 0x00},             //y address start high byte 
+    {0x3803, 0x04},             //y address start low byte 
+    {0x3804, 0x0a},             //x address end high byte
+    {0x3805, 0x3f},             //x address end low byte 
+    {0x3806, 0x07},             //y address end high byte
+    {0x3807, 0x9b},             //y address end low byte 
+    {0x3810, 0x00},             //isp hortizontal offset high byte
+    {0x3811, 0x10},             //isp hortizontal offset low byte
+    {0x3812, 0x00},             //isp vertical offset high byte
+    {0x3813, 0x06},             //isp vertical offset low byte
+
+    //  {0x5308,0x65},          //sharpen manual
+    //  {0x5302,0x00},          //sharpen offset 1
+    {0x4002, 0x45},             //BLC related
+    {0x4005, 0x18},             //BLC related
+
+    {0x3618, 0x00},
+    {0x3612, 0x29},
+    {0x3709, 0x52},
+    {0x370c, 0x03},
+    {0x3a02, 0x03},             //60HZ max exposure limit MSB 
+    {0x3a03, 0xd8},             //60HZ max exposure limit LSB     
+    {0x3a14, 0x03},             //50HZ max exposure limit MSB     
+    {0x3a15, 0xd8},             //50HZ max exposure limit LSB     
+    {0x4004, 0x02},             //BLC line number    
+
+    {0x4837, 0x22},             //PCLK period    
+    {0x5001, 0xa3},             //ISP effect
+
+    {0x302c, 0x42},             //bit[7:6]: output drive capability
+                                //00: 1x   01: 2x  10: 3x  11: 4x 
+    //  //power down release
+    {0x3008, 0x02},     
+};
+
+static struct regval_list sensor_svga_7FPS_regs[] = {
+    //SVGA: 800*600
+    // ~15 FPS
+    //power down
+    {0x3008, 0x42},
+
+    {0x3820, 0x41},
+    {0x3821, 0x07},
+    
+    // pll and clock setting
+    {0x3034, 0x1a},
+    {0x3035, 0x21},
+    {0x3036, 0x46},
+    {0x3037, 0x13},
+    {0x3108, 0x01},
+    
+    {0x3824, 0x01},
+    {REG_DLY, 0x05},            //delay 5ms
+    
+    //timing                             
+    //800x600                            
+    {0x3808, 0x3},              //H size MSB   
+    {0x3809, 0x20},             //H size LSB   
+    {0x380a, 0x2},              //V size MSB   
+    {0x380b, 0x58},             //V size LSB   
+    {0x380c, 0x07},             //HTS MSB      
+    {0x380d, 0x68},             //HTS LSB      
+    {0x380e, 0x03},             //VTS MSB      
+    {0x380f, 0xd8},             //LSB          
+
+    //banding step  
+    {0x3a08, 0x01},             //50HZ step MSB 
+    {0x3a09, 0x27},             //50HZ step LSB 
+    {0x3a0a, 0x00},             //60HZ step MSB 
+    {0x3a0b, 0xf6},             //60HZ step LSB 
+    {0x3a0e, 0x03},             //50HZ step max 
+    {0x3a0d, 0x04},             //60HZ step max 
+
+    {0x3503,0x00},  //AEC enable
+    {0x3c07, 0x08},             //light meter 1 thereshold   
+
+    {0x3814, 0x31},             //horizton subsample
+    {0x3815, 0x31},             //vertical subsample
+    {0x3800, 0x00},             //x address start high byte
+    {0x3801, 0x00},             //x address start low byte  
+    {0x3802, 0x00},             //y address start high byte 
+    {0x3803, 0x04},             //y address start low byte 
+    {0x3804, 0x0a},             //x address end high byte
+    {0x3805, 0x3f},             //x address end low byte 
+    {0x3806, 0x07},             //y address end high byte
+    {0x3807, 0x9b},             //y address end low byte 
+    {0x3810, 0x00},             //isp hortizontal offset high byte
+    {0x3811, 0x10},             //isp hortizontal offset low byte
+    {0x3812, 0x00},             //isp vertical offset high byte
+    {0x3813, 0x06},             //isp vertical offset low byte
+
+    {0x5308,0x65},          //sharpen manual
+    {0x5302,0x00},          //sharpen offset 1
+    
+    {0x4002, 0x45},             //BLC related
+    {0x4005, 0x18},             //BLC related
+
+    {0x3618, 0x00},
+    {0x3612, 0x29},
+    {0x3709, 0x52},
+    {0x370c, 0x03},
+    {0x3a02, 0x03},             //60HZ max exposure limit MSB 
+    {0x3a03, 0xd8},             //60HZ max exposure limit LSB     
+    {0x3a14, 0x03},             //50HZ max exposure limit MSB     
+    {0x3a15, 0xd8},             //50HZ max exposure limit LSB     
+    {0x4004, 0x02},             //BLC line number    
+
+    {0x4837, 0x22},             //PCLK period    
+    {0x5001, 0xa3},             //ISP effect
+
+    {0x302c, 0x42},             //bit[7:6]: output drive capability
+                                //00: 1x   01: 2x  10: 3x  11: 4x 
+    //  //power down release
+    {0x3008, 0x02},     
+};
+
+
+static struct regval_list sensor_vga_15FPS_regs[] = {
+    //VGA:  640*480 30FPS
+    //timing                             
+    //640x480   
+    //power down
+    {0x3008, 0x42},
+    
+    {0x3820, 0x41},
+    {0x3821, 0x07},
+    //  //pll and clock setting
+  	{0x3034, 0x1a},
+    {0x3035, 0x21},
+    {0x3036, 0x46},
+	{0x3037, 0x13},
+    {0x3108, 0x01},
+
+    
+    {0x3824, 0x01},
+    {REG_DLY, 0x05},            //delay 50ms 
+
+    {0x3808, 0x02},             //H size MSB   
+    {0x3809, 0x80},             //H size LSB   
+    {0x380a, 0x01},             //V size MSB   
+    {0x380b, 0xe0},             //V size LSB   
+    {0x380c, 0x07},             //HTS MSB      
+    {0x380d, 0x68},             //HTS LSB      
+    {0x380e, 0x03},             //VTS MSB      
+    {0x380f, 0xd8},             //LSB          
+
+    //banding step  
+    {0x3a08, 0x01},             //50HZ step MSB 
+    {0x3a09, 0x27},             //50HZ step LSB 
+    {0x3a0a, 0x00},             //60HZ step MSB 
+    {0x3a0b, 0xf6},             //60HZ step LSB 
+    {0x3a0e, 0x03},             //50HZ step max 
+    {0x3a0d, 0x04},             //60HZ step max 
+
+    {0x3618, 0x00},
+    {0x3612, 0x29},
+    {0x3709, 0x52},
+    {0x370c, 0x03},
+    {0x3a02, 0x03},             //60HZ max exposure limit MSB 
+    {0x3a03, 0xd8},             //60HZ max exposure limit LSB     
+    {0x3a14, 0x03},             //50HZ max exposure limit MSB     
+    {0x3a15, 0xd8},             //50HZ max exposure limit LSB     
+    {0x4004, 0x02},             //BLC line number 
+
+    {0x3503, 0x00},             //AEC enable
+    {0x350c, 0x00},
+    {0x350d, 0x00},
+    {0x3c07, 0x08},             //light meter 1 thereshold   
+
+    {0x3814, 0x31},             //horizton subsample
+    {0x3815, 0x31},             //vertical subsample
+    {0x3800, 0x00},             //x address start high byte
+    {0x3801, 0x00},             //x address start low byte  
+    {0x3802, 0x00},             //y address start high byte 
+    {0x3803, 0x04},             //y address start low byte 
+    {0x3804, 0x0a},             //x address end high byte
+    {0x3805, 0x3f},             //x address end low byte 
+    {0x3806, 0x07},             //y address end high byte
+    {0x3807, 0x9b},             //y address end low byte 
+    {0x3810, 0x00},             //isp hortizontal offset high byte
+    {0x3811, 0x10},             //isp hortizontal offset low byte
+    {0x3812, 0x00},             //isp vertical offset high byte
+    {0x3813, 0x06},             //isp vertical offset low byte
+
+    //  {0x5308,0x65},          //sharpen manual
+    //  {0x5302,0x00},          //sharpen offset 1
+    {0x4002, 0x45},             //BLC related
+    {0x4005, 0x18},             //BLC related
+
+    {0x4837, 0x22},             //PCLK period    
+    {0x5001, 0xa3},             //ISP effect
+    {0x302c, 0x02},             //bit[7:6]: output drive capability
+    {0x3a18, 0x00},             //
+    {0x3a19, 0xf8},             //
+
+    
+    //  power down release
+	{0x3008, 0x02},
+    
+};
+
+
+
+static struct regval_list sensor_vga_60FPS_regs[] = {
+    //VGA:  640*480
+    //timing                             
+    //640x480   
+    //power down
+    {0x3008, 0x42},
+
+    {0x3820, 0x41},
+    {0x3821, 0x07},
+
+    {0x3503, 0x00},             //AEC enable
+    {0x3814, 0x71},
+    {0x3815, 0x35},
+    {0x3800, 0x00},
+    {0x3801, 0x00},
+    {0x3802, 0x00},
+    {0x3803, 0x00},
+    {0x3804, 0x0a},
+    {0x3805, 0x3f},
+    {0x3806, 0x07},
+    {0x3807, 0x9f},
+    {0x3808, 0x02},
+    {0x3809, 0x80},
+    {0x380a, 0x01},
+    {0x380b, 0xe0},
+    {0x380c, 0x07},
+    {0x380d, 0x58},
+    {0x380e, 0x01},
+    {0x380f, 0xf0},
+    {0x3810, 0x00},
+    {0x3811, 0x08},
+    {0x3812, 0x00},
+    {0x3813, 0x02},
+
+    {0x5001, 0x83},
+    {0x3034, 0x18},
+    {0x3035, 0x22},
+    {0x3036, 0x70},
+    {0x3037, 0x13},
+    {0x3108, 0x01},
+    
+    {0x3824, 0x02},
+    {REG_DLY, 0x05},            //delay 50ms 
+    
+    {0x3a02, 0x01},
+    {0x3a03, 0xf0},
+    {0x3a08, 0x01},
+    {0x3a09, 0x2a},
+    {0x3a0a, 0x00},
+    {0x3a0b, 0xf8},
+    {0x3a0e, 0x01},
+    {0x3a0d, 0x02},
+    {0x3a13, 0x43},
+    {0x3a14, 0x01},
+    {0x3a15, 0xf0},
+    {0x4837, 0x44},
+
+    //  power down release
+    {0x3008, 0x02},     
+};
+
+
+static struct regval_list sensor_vga_30FPS_regs[] = {
+    //VGA:  640*480 30FPS
+    //timing                             
+    //640x480   
+    //power down
+    {0x3008, 0x42},
+    
+    {0x3820, 0x41},
+    {0x3821, 0x07},
+    //  //pll and clock setting
+    {0x3034, 0x1a},
+    {0x3035, 0x11},
+    {0x3036, 0x46},
+    {0x3037, 0x13},
+    {0x3108, 0x01},
+    
+    {0x3824, 0x01},
+    {REG_DLY, 0x05},            //delay 50ms 
+
+    {0x3808, 0x02},             //H size MSB   
+    {0x3809, 0x80},             //H size LSB   
+    {0x380a, 0x01},             //V size MSB   
+    {0x380b, 0xe0},             //V size LSB   
+    {0x380c, 0x07},             //HTS MSB      
+    {0x380d, 0x68},             //HTS LSB      
+    {0x380e, 0x03},             //VTS MSB      
+    {0x380f, 0xd8},             //LSB          
+
+    //banding step  
+    {0x3a08, 0x01},             //50HZ step MSB 
+    {0x3a09, 0x27},             //50HZ step LSB 
+    {0x3a0a, 0x00},             //60HZ step MSB 
+    {0x3a0b, 0xf6},             //60HZ step LSB 
+    {0x3a0e, 0x03},             //50HZ step max 
+    {0x3a0d, 0x04},             //60HZ step max 
+
+    {0x3618, 0x00},
+    {0x3612, 0x29},
+    {0x3709, 0x52},
+    {0x370c, 0x03},
+    {0x3a02, 0x03},             //60HZ max exposure limit MSB 
+    {0x3a03, 0xd8},             //60HZ max exposure limit LSB     
+    {0x3a14, 0x03},             //50HZ max exposure limit MSB     
+    {0x3a15, 0xd8},             //50HZ max exposure limit LSB     
+    {0x4004, 0x02},             //BLC line number 
+
+    {0x3503, 0x00},             //AEC enable
+    {0x350c, 0x00},
+    {0x350d, 0x00},
+    {0x3c07, 0x08},             //light meter 1 thereshold   
+
+    {0x3814, 0x31},             //horizton subsample
+    {0x3815, 0x31},             //vertical subsample
+    {0x3800, 0x00},             //x address start high byte
+    {0x3801, 0x00},             //x address start low byte  
+    {0x3802, 0x00},             //y address start high byte 
+    {0x3803, 0x04},             //y address start low byte 
+    {0x3804, 0x0a},             //x address end high byte
+    {0x3805, 0x3f},             //x address end low byte 
+    {0x3806, 0x07},             //y address end high byte
+    {0x3807, 0x9b},             //y address end low byte 
+    {0x3810, 0x00},             //isp hortizontal offset high byte
+    {0x3811, 0x10},             //isp hortizontal offset low byte
+    {0x3812, 0x00},             //isp vertical offset high byte
+    {0x3813, 0x06},             //isp vertical offset low byte
+
+    //  {0x5308,0x65},          //sharpen manual
+    //  {0x5302,0x00},          //sharpen offset 1
+    {0x4002, 0x45},             //BLC related
+    {0x4005, 0x18},             //BLC related
+
+    {0x4837, 0x22},             //PCLK period    
+    {0x5001, 0xa3},             //ISP effect
+    {0x302c, 0x02},             //bit[7:6]: output drive capability
+    {0x3a18, 0x00},             //
+    {0x3a19, 0xf8},             //
+
+    //  power down release
+    {0x3008, 0x02},     
+};
+
+
+/* CIF: 352x288 */
+/*
+static struct regval_list sensor_cif_regs[] = {
+    {0x3008, 0x42},
+
+    {0x3008, 0x02},     
+};
+*/
+
+/* QVGA: 320x240 */
+static struct regval_list sensor_qvga_30FPS_regs[] = {
+   //power down
+    {0x3008, 0x42},
+
+    {0x3c07, 0x08},
+    {0x3820, 0x41},
+    {0x3821, 0x07},
+	{0x3814, 0x31},
+    {0x3815, 0x31},
+    {0x3800, 0x00},
+	{0x3801, 0x00},
+    {0x3802, 0x00},
+    {0x3803, 0x04},
+	{0x3804, 0x0a},
+    {0x3805, 0x3f},
+    {0x3806, 0x07},
+	{0x3807, 0x9b},
+    {0x3808, 0x01},
+    {0x3809, 0x40},
+	{0x380a, 0x00},
+    {0x380b, 0xf0},
+    {0x380c, 0x07},
+	{0x380d, 0x68},
+    {0x380e, 0x03},
+    {0x380f, 0xd8},
+	{0x3813, 0x06},
+    {0x3618, 0x00},
+    {0x3612, 0x29},
+	{0x3709, 0x52},
+    {0x370c, 0x03},
+    {0x3a02, 0x0b},
+	{0x3a03, 0x88},
+    {0x3a14, 0x0b},
+    {0x3a15, 0x88},
+	{0x4004, 0x02},
+    {0x3002, 0x1c},
+    {0x3006, 0xc3},
+	{0x4713, 0x03},
+    {0x4407, 0x04},
+    {0x460b, 0x35},
+	{0x460c, 0x22},
+    {0x4837, 0x22},
+    
+    {0x3824, 0x02},
+    {REG_DLY, 0x05},            //delay 50ms
+    
+	{0x5001, 0xa3},
+    {0x3034, 0x1a},
+    {0x3035, 0x11},
+	{0x3036, 0x46},
+    {0x3037, 0x13},    
+
+    //  power down release
+    {0x3008, 0x02},     
+};
+
+
+/* QCIF 176 x 144 */
+static struct regval_list sensor_qcif_30FPS_regs[] = {
+   //power down
+    {0x3008, 0x42},
+
+    {0x3c07, 0x08},
+    {0x3820, 0x41},
+    {0x3821, 0x07},
+	{0x3814, 0x31},
+    {0x3815, 0x31},
+    {0x3800, 0x00},
+	{0x3801, 0x00},
+    {0x3802, 0x00},
+    {0x3803, 0x04},
+	{0x3804, 0x0a},
+    {0x3805, 0x3f},
+    {0x3806, 0x07},
+	{0x3807, 0x9b},
+    {0x3808, 0x00},
+    {0x3809, 0xb0}, /* 176 */
+	{0x380a, 0x00},
+    {0x380b, 0x90}, /* 144 */
+    {0x380c, 0x07},
+	{0x380d, 0x68},
+    {0x380e, 0x03},
+    {0x380f, 0xd8},
+	{0x3813, 0x06},
+    {0x3618, 0x00},
+    {0x3612, 0x29},
+	{0x3709, 0x52},
+    {0x370c, 0x03},
+    {0x3a02, 0x0b},
+	{0x3a03, 0x88},
+    {0x3a14, 0x0b},
+    {0x3a15, 0x88},
+	{0x4004, 0x02},
+    {0x3002, 0x1c},
+    {0x3006, 0xc3},
+	{0x4713, 0x03},
+    {0x4407, 0x04},
+    {0x460b, 0x35},
+	{0x460c, 0x22},
+    {0x4837, 0x22},
+
+    {0x3824, 0x02},
+    {REG_DLY, 0x05},            //delay 50ms
+    
+	{0x5001, 0xa3},
+    {0x3034, 0x1a},
+    {0x3035, 0x11}, // 30 fps
+	{0x3036, 0x46}, // {0x3036, 0x54}, // {0x3036, 0x5c}, // 
+    {0x3037, 0x13},    
+
+    //  power down release
+    {0x3008, 0x02},     
+};
+
+/* QCIF 176 x 144 */
+static struct regval_list sensor_qcif_60FPS_regs[] = {
+   //power down
+    {0x3008, 0x42},
+
+    {0x3c07, 0x08},
+    {0x3820, 0x41},
+    {0x3821, 0x07},
+	{0x3814, 0x31},
+    {0x3815, 0x31},
+    {0x3800, 0x00},
+	{0x3801, 0x00},
+    {0x3802, 0x00},
+    {0x3803, 0x04},
+	{0x3804, 0x0a},
+    {0x3805, 0x3f},
+    {0x3806, 0x07},
+	{0x3807, 0x9b},
+    {0x3808, 0x00},
+    {0x3809, 0xb0}, /* 176 */
+	{0x380a, 0x00},
+    {0x380b, 0x90}, /* 144 */
+    {0x380c, 0x07},
+	{0x380d, 0x68},
+    {0x380e, 0x03},
+    {0x380f, 0xd8},
+	{0x3813, 0x06},
+    {0x3618, 0x00},
+    {0x3612, 0x29},
+	{0x3709, 0x52},
+    {0x370c, 0x03},
+    {0x3a02, 0x0b},
+	{0x3a03, 0x88},
+    {0x3a14, 0x0b},
+    {0x3a15, 0x88},
+	{0x4004, 0x02},
+    {0x3002, 0x1c},
+    {0x3006, 0xc3},
+	{0x4713, 0x03},
+    {0x4407, 0x04},
+    {0x460b, 0x35},
+	{0x460c, 0x22},
+    {0x4837, 0x22},
+
+    {0x3824, 0x04},
+    {REG_DLY, 0x05},            //delay 50ms
+    
+	{0x5001, 0xa3},
+    {0x3034, 0x1a},
+    {0x3035, 0x11}, // 30 fps
+	{0x3036, 0x69}, // {0x3036, 0x54}, // {0x3036, 0x5c}, // 
+    {0x3037, 0x13},    
+
+    //  power down release
+    {0x3008, 0x02},     
+};
+
+/* QCIF 176 x 144 */
+static struct regval_list sensor_qcif_15FPS_regs[] = {
+   //power down
+    {0x3008, 0x42},
+
+    {0x3c07, 0x08},
+    {0x3820, 0x41},
+    {0x3821, 0x07},
+	{0x3814, 0x31},
+    {0x3815, 0x31},
+    {0x3800, 0x00},
+	{0x3801, 0x00},
+    {0x3802, 0x00},
+    {0x3803, 0x04},
+	{0x3804, 0x0a},
+    {0x3805, 0x3f},
+    {0x3806, 0x07},
+	{0x3807, 0x9b},
+    {0x3808, 0x00},
+    {0x3809, 0xb0}, /* 176 */
+	{0x380a, 0x00},
+    {0x380b, 0x90}, /* 144 */
+    {0x380c, 0x07},
+	{0x380d, 0x68},
+    {0x380e, 0x03},
+    {0x380f, 0xd8},
+	{0x3813, 0x06},
+    {0x3618, 0x00},
+    {0x3612, 0x29},
+	{0x3709, 0x52},
+    {0x370c, 0x03},
+    {0x3a02, 0x0b},
+	{0x3a03, 0x88},
+    {0x3a14, 0x0b},
+    {0x3a15, 0x88},
+	{0x4004, 0x02},
+    {0x3002, 0x1c},
+    {0x3006, 0xc3},
+	{0x4713, 0x03},
+    {0x4407, 0x04},
+    {0x460b, 0x35},
+	{0x460c, 0x22},
+    {0x4837, 0x22},
+
+    {0x3824, 0x01},
+    {REG_DLY, 0x05},            //delay 50ms
+    
+	{0x5001, 0xa3},
+    {0x3034, 0x1a},
+    {0x3035, 0x69}, // 60 fps
+	{0x3036, 0x46}, // {0x3036, 0x54}, // {0x3036, 0x5c}, // 
+    {0x3037, 0x13},    
+
+    //  power down release
+    {0x3008, 0x02},     
+};
+
+/* QCIF 176 x 144 */
+static struct regval_list sensor_qcif_7FPS_regs[] = {
+   //power down
+    {0x3008, 0x42},
+
+    {0x3c07, 0x08},
+    {0x3820, 0x41},
+    {0x3821, 0x07},
+	{0x3814, 0x31},
+    {0x3815, 0x31},
+    {0x3800, 0x00},
+	{0x3801, 0x00},
+    {0x3802, 0x00},
+    {0x3803, 0x04},
+	{0x3804, 0x0a},
+    {0x3805, 0x3f},
+    {0x3806, 0x07},
+	{0x3807, 0x9b},
+    {0x3808, 0x00},
+    {0x3809, 0xb0}, /* 176 */
+	{0x380a, 0x00},
+    {0x380b, 0x90}, /* 144 */
+    {0x380c, 0x07},
+	{0x380d, 0x68},
+    {0x380e, 0x03},
+    {0x380f, 0xd8},
+	{0x3813, 0x06},
+    {0x3618, 0x00},
+    {0x3612, 0x29},
+	{0x3709, 0x52},
+    {0x370c, 0x03},
+    {0x3a02, 0x0b},
+	{0x3a03, 0x88},
+    {0x3a14, 0x0b},
+    {0x3a15, 0x88},
+	{0x4004, 0x02},
+    {0x3002, 0x1c},
+    {0x3006, 0xc3},
+	{0x4713, 0x03},
+    {0x4407, 0x04},
+    {0x460b, 0x35},
+	{0x460c, 0x22},
+    {0x4837, 0x22},
+
+    {0x3824, 0x01},
+    {REG_DLY, 0x05},            //delay 50ms
+    
+	{0x5001, 0xa3},
+    {0x3034, 0x1a},
+    {0x3035, 0x11},
+    {0x3036, 0x69},
+    {0x3037, 0x13},
+    {0x3108, 0x01},
+    
+
+    //  power down release
+    {0x3008, 0x02},     
 };
 
 #ifdef AUTO_FPS	
@@ -2547,6 +4312,11 @@ static struct regval_list sensor_fmt_yuv422_uyvy[] = {
   //{REG_TERM,VAL_TERM},
 };
 
+static struct regval_list sensor_fmt_rgb_bgr24[] = {  
+    {0x4300,0x23},  //BGR ?? this needs ISP working and possibly a Raw Bayer sensor and a fix in vfe.c
+};
+
+
 //static struct regval_list sensor_fmt_raw[] = {
 //  
 //};
@@ -2658,6 +4428,11 @@ static int sensor_s_denoise_value(struct v4l2_subdev *sd, unsigned char value);
 unsigned char ogain,oexposurelow,oexposuremid,oexposurehigh;
 unsigned int preview_exp_line,preview_fps;
 unsigned long preview_pclk;
+
+#if(DEV_DBG_EN == 1)
+unsigned int pv_fps;
+unsigned long pv_pclk;
+#endif
 
 static unsigned int cal_cap_gain(unsigned char prv_gain, unsigned char lum)
 {
@@ -2992,6 +4767,86 @@ static int sensor_get_fps(struct v4l2_subdev *sd)
   return 0;
 }
 
+#if(DEV_DBG_EN == 1)
+static int sensor_read_pclk(struct v4l2_subdev *sd)
+{
+    unsigned long pclk;
+    unsigned char pre_div, mul, sys_div, pll_rdiv, bit_div, sclk_rdiv;
+
+    sensor_read(sd, 0x3037, &pre_div);
+    pre_div = pre_div & 0x0f;
+
+    if (pre_div == 0)
+        pre_div = 1;
+
+    sensor_read(sd, 0x3036, &mul);
+    if (mul >= 128)
+        mul = mul / 2 * 2;
+
+    sensor_read(sd, 0x3035, &sys_div);
+    sys_div = (sys_div & 0xf0) >> 4;
+
+    sensor_read(sd, 0x3037, &pll_rdiv);
+    pll_rdiv = (pll_rdiv & 0x10) >> 4;
+    pll_rdiv = pll_rdiv + 1;
+
+    sensor_read(sd, 0x3034, &bit_div);
+    bit_div = (bit_div & 0x0f);
+
+    sensor_read(sd, 0x3108, &sclk_rdiv);
+    sclk_rdiv = (sclk_rdiv & 0x03);
+    sclk_rdiv = sclk_rdiv << sclk_rdiv;
+
+    vfe_dev_dbg("** pre_div = %d,mul = %d,sys_div = %d,pll_rdiv = %d,sclk_rdiv = %d\n", pre_div, mul, sys_div, pll_rdiv, sclk_rdiv);
+
+    if ((pre_div && sys_div && pll_rdiv && sclk_rdiv) == 0)
+        return -EFAULT;
+
+    if (bit_div == 8)
+        pclk = MCLK / MCLK_DIV / pre_div * mul / sys_div / pll_rdiv / 2 / sclk_rdiv;
+    else if (bit_div == 10)
+        pclk = MCLK / MCLK_DIV / pre_div * mul / sys_div / pll_rdiv * 2 / 5 / sclk_rdiv;
+    else
+        pclk = MCLK / MCLK_DIV / pre_div * mul / sys_div / pll_rdiv / 1 / sclk_rdiv;
+
+    vfe_dev_dbg("read pclk = %ld\n", pclk);
+
+    pv_pclk = pclk;
+    return 0;
+}
+
+static int sensor_print_fps(struct v4l2_subdev *sd)
+{
+    unsigned char vts_low, vts_high, hts_low, hts_high, vts_extra_high, vts_extra_low;
+    unsigned long vts, hts, vts_extra;
+    unsigned long ulres;
+
+    sensor_read(sd, 0x380c, &hts_high);
+    sensor_read(sd, 0x380d, &hts_low);
+    sensor_read(sd, 0x380e, &vts_high);
+    sensor_read(sd, 0x380f, &vts_low);
+    sensor_read(sd, 0x350c, &vts_extra_high);
+    sensor_read(sd, 0x350d, &vts_extra_low);
+
+    hts = hts_high * 256 + hts_low;
+    vts = vts_high * 256 + vts_low;
+    vts_extra = vts_extra_high * 256 + vts_extra_low;
+
+    if ((hts && (vts + vts_extra)) == 0)
+        return -EFAULT;
+
+    if (sensor_read_pclk(sd))
+        vfe_dev_err("read pclk error!\n");
+
+    pv_fps = ulres = pv_pclk / ((vts_extra + vts) * hts);
+
+    vfe_dev_print("pv_fps(%d) = pv_pclk(%lu) / ((vts_extra(%lu) + vts(%lu)) * hts(%lu))\n", pv_fps,pv_pclk,vts_extra,vts,hts);
+    vfe_dev_dbg("pv fps = %d - ulres = %lu\n", pv_fps, ulres);
+
+    return 0;
+}
+#endif
+
 static int sensor_get_preview_exposure(struct v4l2_subdev *sd)
 {
 	unsigned char vts_low,vts_high,vts_extra_high,vts_extra_low;
@@ -3075,6 +4930,9 @@ void check_to_flash(struct v4l2_subdev *sd)
 #endif
 
 /* stuff about auto focus */
+struct regval_list af_fw_reset_reg[] = {
+    {0x3000,0x20},
+};
 
 static int sensor_download_af_fw(struct v4l2_subdev *sd)
 {
@@ -3562,9 +5420,12 @@ static int sensor_g_hflip(struct v4l2_subdev *sd, __s32 *value)
   
   rdval &= (1<<1);
   rdval >>= 1;
+
+#if(DEV_DBG_EN == 1)
+    vfe_dev_print("sensor_g_hflip  = %d\n", rdval);
+#endif
     
   *value = rdval;
-
   info->hflip = *value;
   return 0;
 }
@@ -3593,6 +5454,11 @@ static int sensor_s_hflip(struct v4l2_subdev *sd, int value)
   LOG_ERR_RET(sensor_write(sd, 0x3821, rdval))
   
   usleep_range(10000,12000);
+  
+#if(DEV_DBG_EN == 1)
+    vfe_dev_print("sensor_s_hflip  = %d\n", value);
+#endif
+  
   info->hflip = value;
   return 0;
 }
@@ -3609,6 +5475,11 @@ static int sensor_g_vflip(struct v4l2_subdev *sd, __s32 *value)
   rdval >>= 1;
   
   info->vflip = *value;
+
+#if(DEV_DBG_EN == 1)
+    vfe_dev_print("sensor_g_vflip  = %d\n", *value);
+#endif
+  
   return 0;
 }
 
@@ -3637,6 +5508,11 @@ static int sensor_s_vflip(struct v4l2_subdev *sd, int value)
   
   usleep_range(10000,12000);
   info->vflip = value;
+
+#if(DEV_DBG_EN == 1)
+    vfe_dev_print("sensor_s_vflip  = %d\n", value);
+#endif
+  
   return 0;
 }
 
@@ -4161,7 +6037,7 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
       vfe_set_pmu_channel(sd,IOVDD,OFF);  
       //standby and reset io
       usleep_range(10000,12000);
-      vfe_gpio_write(sd,PWDN,CSI_STBY_ON);
+      vfe_gpio_write(sd,POWER_EN,CSI_STBY_OFF); // vfe_gpio_write(sd,PWDN,CSI_STBY_ON);
       vfe_gpio_write(sd,RESET,CSI_RST_ON);
       //set the io to hi-z
       vfe_gpio_set_status(sd,RESET,0);//set the gpio to input
@@ -4369,6 +6245,14 @@ static struct sensor_format_struct {
     .regs_size = ARRAY_SIZE(sensor_fmt_yuv422_vyuy),
     .bpp    = 2,
   },
+    {
+         .desc      = "RGB888",
+         .mbus_code = V4L2_MBUS_FMT_RGB888_24X1, // V4L2_MBUS_FMT_RGB444_2X8_PADHI_BE,
+         .regs      = sensor_fmt_rgb_bgr24,
+         .regs_size = ARRAY_SIZE(sensor_fmt_rgb_bgr24),
+         .bpp       = 1,
+    }
+
 //  {
 //    .desc   = "Raw RGB Bayer",
 //    .mbus_code  = V4L2_MBUS_FMT_SBGGR8_1X8,
@@ -4386,100 +6270,888 @@ static struct sensor_format_struct {
  */
 
 
-static struct sensor_win_size sensor_win_sizes[] = {
-  /* qsxga: 2592*1936 */
-  {
-    .width      = QSXGA_WIDTH,
-    .height     = QSXGA_HEIGHT,
-    .hoffset    = 0,
-    .voffset    = 0,
-    .regs       = sensor_qsxga_regs,
-    .regs_size  = ARRAY_SIZE(sensor_qsxga_regs),
-    .set_size   = NULL,
-  },
-  /* qxga: 2048*1536 */
-  {
-    .width      = QXGA_WIDTH,
-    .height     = QXGA_HEIGHT,
-    .hoffset    = 0,
-    .voffset    = 0,
-    .regs       = sensor_qxga_regs,
-    .regs_size  = ARRAY_SIZE(sensor_qxga_regs),
-    .set_size   = NULL,
-  },
-  /* 1080P */
-  {
-    .width      = HD1080_WIDTH,
-    .height     = HD1080_HEIGHT,
-    .hoffset    = 0,
-    .voffset    = 0,
-    .regs       = sensor_1080p_regs,
-    .regs_size  = ARRAY_SIZE(sensor_1080p_regs),
-    .set_size   = NULL,
-  },
-  /* UXGA */
-  {
-    .width      = UXGA_WIDTH,
-    .height     = UXGA_HEIGHT,
-    .hoffset    = 0,
-    .voffset    = 0,
-    .regs       = sensor_uxga_regs,
-    .regs_size  = ARRAY_SIZE(sensor_uxga_regs),
-    .set_size   = NULL,
-  },
-  /* SXGA */
-  {
-    .width      = SXGA_WIDTH,
-    .height     = SXGA_HEIGHT,
-    .hoffset    = 0,
-    .voffset    = 0,
-    .regs       = sensor_sxga_regs,
-    .regs_size  = ARRAY_SIZE(sensor_sxga_regs),
-    .set_size   = NULL,
-  },
-  /* 720p */
-  {
-    .width      = HD720_WIDTH,
-    .height     = HD720_HEIGHT,
-    .hoffset    = 0,
-    .voffset    = 0,
-    .regs       = sensor_720p_regs,
-    .regs_size  = ARRAY_SIZE(sensor_720p_regs),
-    .set_size   = NULL,
-  },
-  /* XGA */
-  {
-    .width      = XGA_WIDTH,
-    .height     = XGA_HEIGHT,
-    .hoffset    = 0,
-    .voffset    = 0,
-    .regs       = sensor_xga_regs,
-    .regs_size  = ARRAY_SIZE(sensor_xga_regs),
-    .set_size   = NULL,
-  },
-  /* SVGA */
-  {
-    .width      = SVGA_WIDTH,
-    .height     = SVGA_HEIGHT,
-    .hoffset    = 0,
-    .voffset    = 0,
-    .regs       = sensor_svga_regs,
-    .regs_size  = ARRAY_SIZE(sensor_svga_regs),
-    .set_size   = NULL,
-  },
-  /* VGA */
-  {
-    .width      = VGA_WIDTH,
-    .height     = VGA_HEIGHT,
-    .hoffset    = 0,
-    .voffset    = 0,
-    .regs       = sensor_vga_regs,
-    .regs_size  = ARRAY_SIZE(sensor_vga_regs),
-    .set_size   = NULL,
-  },
+static struct sensor_win_size *sensor_win_size_frame_rate_ptr;
+
+static struct sensor_win_size sensor_win_sizes[ov5640_max_fps][N_WIN_SIZES] = {
+    {
+        /* --------------- default FPS -------------- */
+        /* ****** NEED TO FIX ****** */
+        /* QSXGA: 2592x1936 */
+        {
+            .width      = QSXGA_WIDTH,
+            .height     = QSXGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_qsxga_7FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_qsxga_7FPS_regs),
+            .set_size   = NULL,
+        },
+        /* QXGA: 2048x1536 */
+        {
+            .width      = QXGA_WIDTH,
+            .height     = QXGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_qxga_7FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_qxga_7FPS_regs),
+            .set_size   = NULL,
+        },
+        /* 1080P: 1920x1080 */
+        {
+            .width      = HD1080_WIDTH,
+            .height     = HD1080_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_1080p_15FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_1080p_15FPS_regs),
+            .set_size   = NULL,
+        },
+        /* UXGA: 1600x1200 */
+        {
+            .width      = UXGA_WIDTH,
+            .height     = UXGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_uxga_7FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_uxga_7FPS_regs),
+            .set_size   = NULL,
+        },
+        /* UXGA: 1280x960 */
+        {
+            .width      = SXGA_WIDTH,
+            .height     = SXGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_sxga_15FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_sxga_15FPS_regs),
+            .set_size   = NULL,
+        },
+        /* 720P: 1280x720 */
+        {
+            .width      = HD720_WIDTH,
+            .height     = HD720_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_720p_15FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_720p_15FPS_regs),
+            .set_size   = NULL,
+        },
+        /* XGA: 1024x768 */
+        {
+            .width      = XGA_WIDTH,
+            .height     = XGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_xga_30FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_xga_30FPS_regs),
+            .set_size   = NULL,
+        },
+        /* SVGA: 800x600 */
+        {
+            .width      = SVGA_WIDTH,
+            .height     = SVGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_svga_30FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_svga_30FPS_regs),
+            .set_size   = NULL,
+        },
+        /* VGA: 640x480 */
+        {
+            .width      = VGA_WIDTH,
+            .height     = VGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_vga_30FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_vga_30FPS_regs),
+            .set_size   = NULL,
+        },
+        /* CIF: 352x288 */
+        /*
+        {
+            .width      = CIF_WIDTH,
+            .height     = CIF_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_cif_regs,
+            .regs_size  = ARRAY_SIZE(sensor_cif_regs),
+            .set_size   = NULL,
+        },
+        * */
+        /* QVGA: 320x240 */
+        {
+            .width      = QVGA_WIDTH,
+            .height     = QVGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_qvga_30FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_qvga_30FPS_regs),
+            .set_size   = NULL,
+        },
+        /* QCIF: 176x144 */
+        {
+            .width      = QCIF_WIDTH,
+            .height     = QCIF_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_qcif_30FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_qcif_30FPS_regs),
+            .set_size   = NULL,
+        },
+    },
+    {
+        /* --------------- 7.5 FPS -------------- */
+        /* QSXGA: 2592x1936 */
+        {
+            .width      = QSXGA_WIDTH,
+            .height     = QSXGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_qsxga_7FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_qsxga_7FPS_regs),
+            .set_size   = NULL,
+        },
+        /* QXGA: 2048x1536 */
+        {
+            .width      = QXGA_WIDTH,
+            .height     = QXGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_qxga_7FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_qxga_7FPS_regs),
+            .set_size   = NULL,
+        },
+        /* 1080P: 1920x1080 */
+        {
+            .width      = HD1080_WIDTH,
+            .height     = HD1080_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_1080p_7FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_1080p_7FPS_regs),
+            .set_size   = NULL,
+        },
+        /* UXGA: 1600x1200 */
+        {
+            .width      = UXGA_WIDTH,
+            .height     = UXGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_uxga_7FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_uxga_7FPS_regs),
+            .set_size   = NULL,
+        },
+        /* UXGA: 1280x960 */
+        {
+            .width      = SXGA_WIDTH,
+            .height     = SXGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_sxga_7FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_sxga_7FPS_regs),
+            .set_size   = NULL,
+        },
+        /* 720P: 1280x720 */
+        {
+            .width      = HD720_WIDTH,
+            .height     = HD720_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_720p_7FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_720p_7FPS_regs),
+            .set_size   = NULL,
+        },
+        /* XGA: 1024x768 */
+        {
+            .width      = XGA_WIDTH,
+            .height     = XGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_xga_7FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_xga_7FPS_regs),
+            .set_size   = NULL,
+        },
+        /* SVGA: 800x600 */
+        {
+            .width      = SVGA_WIDTH,
+            .height     = SVGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_svga_7FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_svga_7FPS_regs),
+            .set_size   = NULL,
+        },
+        /* VGA: 640x480 */
+        {
+            .width      = VGA_WIDTH,
+            .height     = VGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_vga_15FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_vga_15FPS_regs),
+            .set_size   = NULL,
+        },
+        /* CIF: 352x288 */
+        /*
+        {
+            .width      = CIF_WIDTH,
+            .height     = CIF_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_cif_regs,
+            .regs_size  = ARRAY_SIZE(sensor_cif_regs),
+            .set_size   = NULL,
+        },
+        * */
+        /* QVGA: 320x240 */
+        {
+            .width      = QVGA_WIDTH,
+            .height     = QVGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_qvga_30FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_qvga_30FPS_regs),
+            .set_size   = NULL,
+        },
+        /* QCIF: 176x144 */
+        {
+            .width      = QCIF_WIDTH,
+            .height     = QCIF_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_qcif_7FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_qcif_7FPS_regs),
+            .set_size   = NULL,
+        },
+    },
+    /* ---------------- 15 FPS --------------- */
+    {
+        /* QSXGA: 2592x1936 */
+        {
+            .width      = QSXGA_WIDTH,
+            .height     = QSXGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_qsxga_15FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_qsxga_15FPS_regs),
+            .set_size   = NULL,
+        },
+        /* QXGA: 2048x1536 */
+        {
+            .width      = QXGA_WIDTH,
+            .height     = QXGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_qxga_15FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_qxga_15FPS_regs),
+            .set_size   = NULL,
+        },
+        /* 1080P: 1920x1080 */
+        {
+            .width      = HD1080_WIDTH,
+            .height     = HD1080_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_1080p_15FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_1080p_15FPS_regs),
+            .set_size   = NULL,
+        },
+        /* UXGA: 1600x1200 */
+        {
+            .width      = UXGA_WIDTH,
+            .height     = UXGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_uxga_15FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_uxga_15FPS_regs),
+            .set_size   = NULL,
+        },
+        /* UXGA: 1280x960 */
+        {
+            .width      = SXGA_WIDTH,
+            .height     = SXGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_sxga_15FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_sxga_15FPS_regs),
+            .set_size   = NULL,
+        },
+        /* 720P: 1280x720 */
+        {
+            .width      = HD720_WIDTH,
+            .height     = HD720_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_720p_15FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_720p_15FPS_regs),
+            .set_size   = NULL,
+        },
+        /* XGA: 1024x768 */
+        {
+            .width      = XGA_WIDTH,
+            .height     = XGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_xga_15FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_xga_15FPS_regs),
+            .set_size   = NULL,
+        },
+        /* SVGA: 800x600 */
+        {
+            .width      = SVGA_WIDTH,
+            .height     = SVGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_svga_15FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_svga_15FPS_regs),
+            .set_size   = NULL,
+        },
+        /* VGA: 640x480 */
+        {
+            .width      = VGA_WIDTH,
+            .height     = VGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_vga_15FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_vga_15FPS_regs),
+            .set_size   = NULL,
+        },
+        /* CIF: 352x288 */
+        /*
+        {
+            .width      = CIF_WIDTH,
+            .height     = CIF_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_cif_regs,
+            .regs_size  = ARRAY_SIZE(sensor_cif_regs),
+            .set_size   = NULL,
+        },
+        * */
+        /* QVGA: 320x240 */
+        {
+            .width      = QVGA_WIDTH,
+            .height     = QVGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_qvga_30FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_qvga_30FPS_regs),
+            .set_size   = NULL,
+        },
+        /* QCIF: 176x144 */
+        {
+            .width      = QCIF_WIDTH,
+            .height     = QCIF_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_qcif_15FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_qcif_15FPS_regs),
+            .set_size   = NULL,
+        },
+    },
+    /* --------------- 30 FPS -------------- */
+    {
+        /* QSXGA: 2592x1936 */
+        {
+            .width      = QSXGA_WIDTH,
+            .height     = QSXGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_qsxga_15FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_qsxga_15FPS_regs),
+            .set_size   = NULL,
+        },
+        /* QXGA: 2048x1536 */
+        {
+            .width      = QXGA_WIDTH,
+            .height     = QXGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_qxga_15FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_qxga_15FPS_regs),
+            .set_size   = NULL,
+        },
+        /* 1080P: 1920x1080 */
+        {
+            .width      = HD1080_WIDTH,
+            .height     = HD1080_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_1080p_30FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_1080p_30FPS_regs),
+            .set_size   = NULL,
+        },
+        /* UXGA: 1600x1200 */
+        {
+            .width      = UXGA_WIDTH,
+            .height     = UXGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_uxga_30FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_uxga_30FPS_regs),
+            .set_size   = NULL,
+        },
+        /* UXGA: 1280x960 */
+        {
+            .width      = SXGA_WIDTH,
+            .height     = SXGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_sxga_30FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_sxga_30FPS_regs),
+            .set_size   = NULL,
+        },
+        /* 720P: 1280x720 */
+        {
+            .width      = HD720_WIDTH,
+            .height     = HD720_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_720p_30FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_720p_30FPS_regs),
+            .set_size   = NULL,
+        },
+        /* XGA: 1024x768 */
+        {
+            .width      = XGA_WIDTH,
+            .height     = XGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_xga_30FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_xga_30FPS_regs),
+            .set_size   = NULL,
+        },
+        /* SVGA: 800x600 */
+        {
+            .width      = SVGA_WIDTH,
+            .height     = SVGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_svga_30FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_svga_30FPS_regs),
+            .set_size   = NULL,
+        },
+        /* VGA: 640x480 */
+        {
+            .width      = VGA_WIDTH,
+            .height     = VGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_vga_30FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_vga_30FPS_regs),
+            .set_size   = NULL,
+        },
+        /* CIF: 352x288 */
+        /*
+        {
+            .width      = CIF_WIDTH,
+            .height     = CIF_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_cif_regs,
+            .regs_size  = ARRAY_SIZE(sensor_cif_regs),
+            .set_size   = NULL,
+        },
+        * */
+        /* QVGA: 320x240 */
+        {
+            .width      = QVGA_WIDTH,
+            .height     = QVGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_qvga_30FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_qvga_30FPS_regs),
+            .set_size   = NULL,
+        },
+        /* QCIF: 176x144 */
+        {
+            .width      = QCIF_WIDTH,
+            .height     = QCIF_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_qcif_30FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_qcif_30FPS_regs),
+            .set_size   = NULL,
+        },
+    },
+    /* --------------- 60 FPS Dreaming (just for testing different timings) ----------- */
+    {
+        /* QSXGA: 2592x1936 */
+        {
+            .width      = QSXGA_WIDTH,
+            .height     = QSXGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_qsxga_15FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_qsxga_15FPS_regs),
+            .set_size   = NULL,
+        },
+        /* QXGA: 2048x1536 */
+        {
+            .width      = QXGA_WIDTH,
+            .height     = QXGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_qxga_15FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_qxga_15FPS_regs),
+            .set_size   = NULL,
+        },
+        /* 1080P: 1920x1080 */
+        {
+            .width      = HD1080_WIDTH,
+            .height     = HD1080_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_1080p_60FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_1080p_60FPS_regs),
+            .set_size   = NULL,
+        },
+        /* UXGA: 1600x1200 */
+        {
+            .width      = UXGA_WIDTH,
+            .height     = UXGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_uxga_15FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_uxga_15FPS_regs),
+            .set_size   = NULL,
+        },
+        /* UXGA: 1280x960 */
+        {
+            .width      = SXGA_WIDTH,
+            .height     = SXGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_sxga_30FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_sxga_30FPS_regs),
+            .set_size   = NULL,
+        },
+        /* 720P: 1280x720 */
+        {
+            .width      = HD720_WIDTH,
+            .height     = HD720_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_720p_30FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_720p_30FPS_regs),
+            .set_size   = NULL,
+        },
+        /* XGA: 1024x768 */
+        {
+            .width      = XGA_WIDTH,
+            .height     = XGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_xga_30FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_xga_30FPS_regs),
+            .set_size   = NULL,
+        },
+        /* SVGA: 800x600 */
+        {
+            .width      = SVGA_WIDTH,
+            .height     = SVGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_svga_30FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_svga_30FPS_regs),
+            .set_size   = NULL,
+        },
+        /* VGA: 640x480 */
+        {
+            .width      = VGA_WIDTH,
+            .height     = VGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_vga_60FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_vga_60FPS_regs),
+            .set_size   = NULL,
+        },
+        /* CIF: 352x288 */
+        /*
+        {
+            .width      = CIF_WIDTH,
+            .height     = CIF_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_cif_regs,
+            .regs_size  = ARRAY_SIZE(sensor_cif_regs),
+            .set_size   = NULL,
+        },
+        * */
+        /* QVGA: 320x240 */
+        {
+            .width      = QVGA_WIDTH,
+            .height     = QVGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_qvga_30FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_qvga_30FPS_regs),
+            .set_size   = NULL,
+        },
+        /* QCIF: 176x144 */
+        {
+            .width      = QCIF_WIDTH,
+            .height     = QCIF_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_qcif_60FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_qcif_60FPS_regs),
+            .set_size   = NULL,
+        },
+    },
+    /* --------------- 90 FPS Dreaming (just for testing differnet timings)----------- */
+    {
+        /* QSXGA: 2592x1936 */
+        {
+            .width      = QSXGA_WIDTH,
+            .height     = QSXGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_qsxga_7FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_qsxga_7FPS_regs),
+            .set_size   = NULL,
+        },
+        /* QXGA: 2048x1536 */
+        {
+            .width      = QXGA_WIDTH,
+            .height     = QXGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_qxga_7FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_qxga_7FPS_regs),
+            .set_size   = NULL,
+        },
+        /* 1080P: 1920x1080 */
+        {
+            .width      = HD1080_WIDTH,
+            .height     = HD1080_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_1080p_60FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_1080p_60FPS_regs),
+            .set_size   = NULL,
+        },
+        /* UXGA: 1600x1200 */
+        {
+            .width      = UXGA_WIDTH,
+            .height     = UXGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_uxga_7FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_uxga_7FPS_regs),
+            .set_size   = NULL,
+        },
+        /* UXGA: 1280x960 */
+        {
+            .width      = SXGA_WIDTH,
+            .height     = SXGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_sxga_15FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_sxga_15FPS_regs),
+            .set_size   = NULL,
+        },
+        /* 720P: 1280x720 */
+        {
+            .width      = HD720_WIDTH,
+            .height     = HD720_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_720p_15FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_720p_15FPS_regs),
+            .set_size   = NULL,
+        },
+        /* XGA: 1024x768 */
+        {
+            .width      = XGA_WIDTH,
+            .height     = XGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_xga_7FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_xga_7FPS_regs),
+            .set_size   = NULL,
+        },
+        /* SVGA: 800x600 */
+        {
+            .width      = SVGA_WIDTH,
+            .height     = SVGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_svga_30FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_svga_30FPS_regs),
+            .set_size   = NULL,
+        },
+        /* VGA: 640x480 */
+        {
+            .width      = VGA_WIDTH,
+            .height     = VGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_vga_30FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_vga_30FPS_regs),
+            .set_size   = NULL,
+        },
+        /* CIF: 352x288 */
+        /*
+        {
+            .width      = CIF_WIDTH,
+            .height     = CIF_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_cif_regs,
+            .regs_size  = ARRAY_SIZE(sensor_cif_regs),
+            .set_size   = NULL,
+        },
+        * */
+        /* QVGA: 320x240 */
+        {
+            .width      = QVGA_WIDTH,
+            .height     = QVGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_qvga_30FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_qvga_30FPS_regs),
+            .set_size   = NULL,
+        },
+        /* QCIF: 176x144 */
+        {
+            .width      = QCIF_WIDTH,
+            .height     = QCIF_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_qcif_30FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_qcif_30FPS_regs),
+            .set_size   = NULL,
+        },
+    },
+    /* --------------- 120 FPS Dreaming (just for testing differnet timings)----------- */
+    {
+        /* QSXGA: 2592x1936 */
+        {
+            .width      = QSXGA_WIDTH,
+            .height     = QSXGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_qsxga_7FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_qsxga_7FPS_regs),
+            .set_size   = NULL,
+        },
+        /* QXGA: 2048x1536 */
+        {
+            .width      = QXGA_WIDTH,
+            .height     = QXGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_qxga_7FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_qxga_7FPS_regs),
+            .set_size   = NULL,
+        },
+        /* 1080P: 1920x1080 */
+        {
+            .width      = HD1080_WIDTH,
+            .height     = HD1080_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_1080p_120FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_1080p_120FPS_regs),
+            .set_size   = NULL,
+        },
+        /* UXGA: 1600x1200 */
+        {
+            .width      = UXGA_WIDTH,
+            .height     = UXGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_uxga_7FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_uxga_7FPS_regs),
+            .set_size   = NULL,
+        },
+        /* UXGA: 1280x960 */
+        {
+            .width      = SXGA_WIDTH,
+            .height     = SXGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_sxga_15FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_sxga_15FPS_regs),
+            .set_size   = NULL,
+        },
+        /* 720P: 1280x720 */
+        {
+            .width      = HD720_WIDTH,
+            .height     = HD720_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_720p_15FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_720p_15FPS_regs),
+            .set_size   = NULL,
+        },
+        /* XGA: 1024x768 */
+        {
+            .width      = XGA_WIDTH,
+            .height     = XGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_xga_7FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_xga_7FPS_regs),
+            .set_size   = NULL,
+        },
+        /* SVGA: 800x600 */
+        {
+            .width      = SVGA_WIDTH,
+            .height     = SVGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_svga_30FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_svga_30FPS_regs),
+            .set_size   = NULL,
+        },
+        /* VGA: 640x480 */
+        {
+            .width      = VGA_WIDTH,
+            .height     = VGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_vga_30FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_vga_30FPS_regs),
+            .set_size   = NULL,
+        },
+        /* CIF: 352x288 */
+        /*
+        {
+            .width      = CIF_WIDTH,
+            .height     = CIF_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_cif_regs,
+            .regs_size  = ARRAY_SIZE(sensor_cif_regs),
+            .set_size   = NULL,
+        },
+        * */
+        /* QVGA: 320x240 */
+        {
+            .width      = QVGA_WIDTH,
+            .height     = QVGA_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_qvga_30FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_qvga_30FPS_regs),
+            .set_size   = NULL,
+        },
+        /* QCIF: 176x144 */
+        {
+            .width      = QCIF_WIDTH,
+            .height     = QCIF_HEIGHT,
+            .hoffset    = 0,
+            .voffset    = 0,
+            .regs       = sensor_qcif_30FPS_regs,
+            .regs_size  = ARRAY_SIZE(sensor_qcif_30FPS_regs),
+            .set_size   = NULL,
+        },
+    },
 };
 
-#define N_WIN_SIZES (ARRAY_SIZE(sensor_win_sizes))
+// #define NMAX_WIN_SIZES (ARRAY_SIZE(sensor_win_sizes[0][]))
 
 static int sensor_enum_fmt(struct v4l2_subdev *sd, unsigned index,
                  enum v4l2_mbus_pixelcode *code)
@@ -4494,14 +7166,14 @@ static int sensor_enum_fmt(struct v4l2_subdev *sd, unsigned index,
 static int sensor_enum_size(struct v4l2_subdev *sd,
                             struct v4l2_frmsizeenum *fsize)
 {
-  if(fsize->index > N_WIN_SIZES-1)
-  	return -EINVAL;
-  
-  fsize->type = V4L2_FRMSIZE_TYPE_DISCRETE;
-  fsize->discrete.width = sensor_win_sizes[fsize->index].width;
-  fsize->discrete.height = sensor_win_sizes[fsize->index].height;
-  
-  return 0;
+    if (fsize->index > N_WIN_SIZES - 1)
+        return -EINVAL;
+
+    fsize->type = V4L2_FRMSIZE_TYPE_DISCRETE;
+    fsize->discrete.width = sensor_win_size_frame_rate_ptr[fsize->index].width;
+    fsize->discrete.height = sensor_win_size_frame_rate_ptr[fsize->index].height;
+
+    return 0;
 }
 
 
@@ -4521,34 +7193,32 @@ static int sensor_try_fmt_internal(struct v4l2_subdev *sd,
     return -EINVAL;
   
   if (ret_fmt != NULL)
-    *ret_fmt = sensor_formats + index;
-    
-  /*
-   * Fields: the sensor devices claim to be progressive.
-   */
-  
-  fmt->field = V4L2_FIELD_NONE;
-  
-  /*
-   * Round requested image size down to the nearest
-   * we support, but not below the smallest.
-   */
-  for (wsize = sensor_win_sizes; wsize < sensor_win_sizes + N_WIN_SIZES;
-       wsize++)
-    if (fmt->width >= wsize->width && fmt->height >= wsize->height)
-      break;
-    
-  if (wsize >= sensor_win_sizes + N_WIN_SIZES)
-    wsize--;   /* Take the smallest one */
-  if (ret_wsize != NULL)
-    *ret_wsize = wsize;
-  /*
-   * Note the size we'll actually handle.
-   */
-  fmt->width = wsize->width;
-  fmt->height = wsize->height;
-  //pix->bytesperline = pix->width*sensor_formats[index].bpp;
-  //pix->sizeimage = pix->height*pix->bytesperline;
+        *ret_fmt = sensor_formats + index;
+
+    /*
+     * Fields: the sensor devices claim to be progressive.
+     */
+    fmt->field = V4L2_FIELD_NONE;
+
+    /*
+     * Round requested image size down to the nearest
+     * we support, but not below the smallest.
+     */
+    for (wsize = sensor_win_size_frame_rate_ptr; wsize < sensor_win_size_frame_rate_ptr + N_WIN_SIZES; wsize++)
+        if (fmt->width >= wsize->width && fmt->height >= wsize->height)
+            break;
+
+    if (wsize >= sensor_win_size_frame_rate_ptr + N_WIN_SIZES)
+        wsize--;                /* Take the smallest one */
+    if (ret_wsize != NULL)
+        *ret_wsize = wsize;
+    /*
+     * Note the size we'll actually handle.
+     */
+    fmt->width = wsize->width;
+    fmt->height = wsize->height;
+
+
 
   return 0;
 }
@@ -4676,6 +7346,23 @@ static int sensor_s_fmt(struct v4l2_subdev *sd,
   struct sensor_info *info = to_state(sd);
   
   vfe_dev_dbg("sensor_s_fmt\n");
+
+#if(DEV_DBG_EN == 1)
+    if (info->capture_mode == V4L2_MODE_VIDEO) {
+        vfe_dev_dbg("capture_mode: V4L2_MODE_VIDEO\n");
+    } else {
+        if (info->capture_mode == V4L2_MODE_IMAGE) {
+            vfe_dev_dbg("capture_mode: V4L2_MODE_IMAGE\n");
+        } else {
+            if (info->capture_mode == V4L2_MODE_PREVIEW) {
+                vfe_dev_dbg("capture_mode: V4L2_MODE_PREVIEW\n");
+            } else {
+                // vfe_dev_dbg("capture_mode: V4L2_MODE_???\n");
+                vfe_dev_print("capture_mode: %d - V4L2_MODE_???\n", info->capture_mode);
+            }
+        }
+    }
+#endif
   
   sensor_write_array(sd, sensor_oe_disable_regs ,ARRAY_SIZE(sensor_oe_disable_regs));
   
@@ -4869,11 +7556,13 @@ static int sensor_s_fmt(struct v4l2_subdev *sd,
   info->fmt = sensor_fmt;
   info->width = wsize->width;
   info->height = wsize->height;
-  
-  vfe_dev_print("s_fmt set width = %d, height = %d\n",wsize->width,wsize->height);
-  
+
+#if(DEV_DBG_EN == 1)
+    vfe_dev_print("s_fmt set width = %d, height = %d\n",wsize->width,wsize->height);
+    sensor_print_fps(sd);
+#endif
+    
 	sensor_write_array(sd, sensor_oe_enable_regs, ARRAY_SIZE(sensor_oe_enable_regs));
-	
 	return 0;
 }
 
@@ -4906,7 +7595,7 @@ static int sensor_s_parm(struct v4l2_subdev *sd, struct v4l2_streamparm *parms)
   struct sensor_info *info = to_state(sd);
   unsigned char div;
   
-  vfe_dev_dbg("sensor_s_parm\n");
+  vfe_dev_dbg("sensor_s_parm: numerator/denominator = %d/%d\n", tpf->numerator, tpf->denominator);
   
   if (parms->type != V4L2_BUF_TYPE_VIDEO_CAPTURE){
   	vfe_dev_dbg("parms->type!=V4L2_BUF_TYPE_VIDEO_CAPTURE\n");
@@ -4919,6 +7608,22 @@ static int sensor_s_parm(struct v4l2_subdev *sd, struct v4l2_streamparm *parms)
   }
     
   info->capture_mode = cp->capturemode;
+
+#if (DEV_DBG_EN == 1)
+    if (info->capture_mode == V4L2_MODE_VIDEO) {
+        vfe_dev_dbg("capture_mode: V4L2_MODE_VIDEO\n");
+    } else {
+        if (info->capture_mode == V4L2_MODE_IMAGE) {
+            vfe_dev_dbg("capture_mode: V4L2_MODE_IMAGE\n");
+        } else {
+            if (info->capture_mode == V4L2_MODE_PREVIEW) {
+                vfe_dev_dbg("capture_mode: V4L2_MODE_PREVIEW\n");
+            } else {
+                vfe_dev_dbg("capture_mode: V4L2_MODE_???\n");
+            }
+        }
+    }
+#endif
   
   if (info->capture_mode == V4L2_MODE_IMAGE) {
     vfe_dev_dbg("capture mode is not video mode,can not set frame rate!\n");
@@ -5013,12 +7718,18 @@ static int sensor_queryctrl(struct v4l2_subdev *sd,
   case V4L2_CID_AUTO_FOCUS_WIN_NUM:
     return v4l2_ctrl_query_fill(qc, 0, 1, 1, 0);
   }
+#if (DEV_DBG_EN == 1)    
+    vfe_dev_dbg("sensor_queryctrl: %d *** EINVAL ***\n",qc->id);
+#endif    
+
   return -EINVAL;
 }
 
 static int sensor_g_ctrl(struct v4l2_subdev *sd, struct v4l2_control *ctrl)
 {
-  //vfe_dev_dbg("sensor_g_ctrl ctrl->id=0x%8x\n", ctrl->id);
+#if (DEV_DBG_EN == 1)        
+  vfe_dev_dbg("sensor_g_ctrl ctrl->id=0x%8x\n", ctrl->id);
+#endif  
   switch (ctrl->id) {
   case V4L2_CID_BRIGHTNESS:
     return sensor_g_brightness(sd, &ctrl->value);
@@ -5078,8 +7789,11 @@ static int sensor_s_ctrl(struct v4l2_subdev *sd, struct v4l2_control *ctrl)
 {
   struct v4l2_queryctrl qc;
   int ret;
-  
-//  vfe_dev_dbg("sensor_s_ctrl ctrl->id=0x%8x\n", ctrl->id);
+
+#if (DEV_DBG_EN == 1)  
+  vfe_dev_dbg("sensor_s_ctrl id: %d - value: %d\n",ctrl->id, (int)ctrl->value);
+#endif
+
   qc.id = ctrl->id;
   ret = sensor_queryctrl(sd, &qc);
   if (ret < 0) {
@@ -5153,7 +7867,11 @@ static int sensor_s_ctrl(struct v4l2_subdev *sd, struct v4l2_control *ctrl)
 	  	return sensor_s_af_zone(sd, (struct v4l2_win_coordinate *)(ctrl->user_pt));
 	  case V4L2_CID_AUTO_EXPOSURE_WIN_NUM:
 	  	return 0;
+    default:
+        vfe_dev_dbg("sensor_s_ctrl *** EINVAL\n");
+        return -EINVAL;
   }
+  vfe_dev_dbg("sensor_s_ctrl *** EINVAL\n");
   return -EINVAL;
 }
 
@@ -5262,7 +7980,11 @@ static __init int init_sensor(void)
 #else
 	MCLK_DIV = 1;
 #endif
-	return cci_dev_init_helper(&sensor_driver);
+    if (frame_rate >= ov5640_max_fps)
+        frame_rate = ov5640_default_fps;
+    sensor_win_size_frame_rate_ptr = &sensor_win_sizes[frame_rate][0];
+    vfe_dev_dbg("init_sensor - frame_rate: %u, max_win_size: %d\n", frame_rate, N_WIN_SIZES);
+    return cci_dev_init_helper(&sensor_driver);
 }
 
 static __exit void exit_sensor(void)
@@ -5272,4 +7994,3 @@ static __exit void exit_sensor(void)
 
 module_init(init_sensor);
 module_exit(exit_sensor);
-
