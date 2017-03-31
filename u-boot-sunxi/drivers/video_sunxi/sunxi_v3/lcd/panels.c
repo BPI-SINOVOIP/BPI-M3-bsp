@@ -5,11 +5,13 @@ struct sunxi_lcd_drv g_lcd_drv;
 extern __lcd_panel_t default_panel;
 extern __lcd_panel_t lt070me05000_panel;
 extern __lcd_panel_t S070WV20_MIPI_RGB_panel;
+extern __lcd_panel_t LHR050H41_MIPI_RGB_panel;
 
 __lcd_panel_t* panel_array[] = {
 	&default_panel,
 	&lt070me05000_panel,
 	&S070WV20_MIPI_RGB_panel,
+	&LHR050H41_MIPI_RGB_panel,
 	/* add new panel below */
 
 	NULL,
