@@ -690,7 +690,7 @@ lcd_y               = 1280
 lcd_width           = 62
 lcd_height          = 110
 
-lcd_dclk_freq       = 62
+lcd_dclk_freq       = 35
 
 lcd_pwm_used        = 1
 lcd_pwm_ch          = 0
