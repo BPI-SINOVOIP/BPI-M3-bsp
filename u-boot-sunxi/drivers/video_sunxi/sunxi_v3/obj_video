@@ -25,7 +25,7 @@ ifeq ($(CONFIG_ARCH_SUN8IW6P1),y)
 SUNXI_VIDEO_OBJ = sunxi_v3/dev_disp.o sunxi_v3/disp_sys_intf.o\
 				sunxi_v3/de/disp_display.o sunxi_v3/de/disp_features.o sunxi_v3/de/disp_device.o sunxi_v3/de/disp_lcd.o sunxi_v3/de/disp_manager.o sunxi_v3/de/disp_private.o \
 				sunxi_v3/de/disp_smart_backlight.o sunxi_v3/de/disp_enhance.o sunxi_v3/de/disp_capture.o sunxi_v3/de/disp_hdmi.o sunxi_v3/de/disp_vdevice.o\
-				sunxi_v3/lcd/panels.o sunxi_v3/lcd/lcd_source.o sunxi_v3/lcd/default_panel.o sunxi_v3/lcd/lt070me05000.o sunxi_v3/lcd/S070WV20_MIPI_RGB.o \
+				sunxi_v3/lcd/panels.o sunxi_v3/lcd/lcd_source.o sunxi_v3/lcd/default_panel.o sunxi_v3/lcd/lt070me05000.o sunxi_v3/lcd/S070WV20_MIPI_RGB.o sunxi_v3/lcd/LHR050H41_MIPI_RGB.o \
 				sunxi_v3/de/lowlevel_sun8iw6/de_fcc.o sunxi_v3/de/lowlevel_sun8iw6/de_gsu.o sunxi_v3/de/lowlevel_sun8iw6/de_hal.o sunxi_v3/de/lowlevel_sun8iw6/disp_al.o \
 				sunxi_v3/de/lowlevel_sun8iw6/de_peak.o sunxi_v3/de/lowlevel_sun8iw6/de_rtmx.o sunxi_v3/de/lowlevel_sun8iw6/de_scaler_table.o\
 				sunxi_v3/de/lowlevel_sun8iw6/de_vep_table.o sunxi_v3/de/lowlevel_sun8iw6/de_vsu.o sunxi_v3/de/lowlevel_sun8iw6/de_feat.o \
@@ -41,7 +41,7 @@ ifeq ($(CONFIG_ARCH_SUN8IW7P1),y)
 SUNXI_VIDEO_OBJ = sunxi_v3/dev_disp.o sunxi_v3/disp_sys_intf.o\
 				sunxi_v3/de/disp_display.o sunxi_v3/de/disp_features.o sunxi_v3/de/disp_device.o sunxi_v3/de/disp_lcd.o sunxi_v3/de/disp_manager.o sunxi_v3/de/disp_private.o \
 				sunxi_v3/de/disp_smart_backlight.o sunxi_v3/de/disp_enhance.o sunxi_v3/de/disp_capture.o sunxi_v3/de/disp_hdmi.o sunxi_v3/de/disp_vdevice.o\
-				sunxi_v3/lcd/panels.o sunxi_v3/lcd/lcd_source.o sunxi_v3/lcd/default_panel.o sunxi_v3/lcd/lt070me05000.o \
+				sunxi_v3/lcd/panels.o sunxi_v3/lcd/lcd_source.o sunxi_v3/lcd/default_panel.o sunxi_v3/lcd/lt070me05000.o sunxi_v3/lcd/S070WV20_MIPI_RGB.o sunxi_v3/lcd/LHR050H41_MIPI_RGB.o\
 				sunxi_v3/de/lowlevel_sun8iw7/de_fcc.o sunxi_v3/de/lowlevel_sun8iw7/de_gsu.o sunxi_v3/de/lowlevel_sun8iw7/de_hal.o sunxi_v3/de/lowlevel_sun8iw7/disp_al.o \
 				sunxi_v3/de/lowlevel_sun8iw7/de_peak.o sunxi_v3/de/lowlevel_sun8iw7/de_rtmx.o sunxi_v3/de/lowlevel_sun8iw7/de_scaler_table.o\
 				sunxi_v3/de/lowlevel_sun8iw7/de_vep_table.o sunxi_v3/de/lowlevel_sun8iw7/de_vsu.o sunxi_v3/de/lowlevel_sun8iw7/de_feat.o \
