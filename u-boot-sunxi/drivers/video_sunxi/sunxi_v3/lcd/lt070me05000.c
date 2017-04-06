@@ -139,6 +139,8 @@ static void LCD_panel_init(u32 sel)
 	bsp_disp_get_panel_info(sel, panel_info);
 	bright = bsp_disp_lcd_get_bright(sel);
 
+	printf("LCD_panel_init, bright=%d\n", bright);
+
 	sunxi_lcd_dsi_clk_enable(sel);
 	sunxi_lcd_delay_ms(5);
 	sunxi_lcd_dsi_dcs_write_0para(sel,DSI_DCS_SOFT_RESET);
@@ -147,7 +149,7 @@ static void LCD_panel_init(u32 sel)
 	sunxi_lcd_dsi_gen_write_5para(sel,0xb3,0x04,0x08,0x00,0x22,0x00);
 	sunxi_lcd_dsi_gen_write_1para(sel,0xb4,0x0c);
 	sunxi_lcd_dsi_gen_write_2para(sel,0xb6,0x3a,0xd3);
-	sunxi_lcd_dsi_dcs_write_1para(sel,0x51,bright);
+	sunxi_lcd_dsi_dcs_write_1para(sel,0x51,0xe6);
 	sunxi_lcd_dsi_dcs_write_1para(sel,0x53,0x2c);
 	sunxi_lcd_dsi_dcs_write_1para(sel,DSI_DCS_SET_PIXEL_FORMAT,0x77);
 	sunxi_lcd_dsi_dcs_write_4para(sel,DSI_DCS_SET_COLUMN_ADDRESS,0x00,0x00,0x04,0xaf);
@@ -205,7 +207,8 @@ static s32 LCD_user_defined_func(u32 sel, u32 para1, u32 para2, u32 para3)
 //sel: 0:lcd0; 1:lcd1
 static s32 LCD_set_bright(u32 sel, u32 bright)
 {
-	sunxi_lcd_dsi_dcs_write_1para(sel,0x51,bright);
+	printf("LCD_set_bright, bright=%d\n", bright);
+	sunxi_lcd_dsi_dcs_write_1para(sel,0x51,0xe6);
 	return 0;
 }
 
