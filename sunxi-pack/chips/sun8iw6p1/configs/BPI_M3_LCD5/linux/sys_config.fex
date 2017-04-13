@@ -690,7 +690,7 @@ lcd_y               = 1280
 lcd_width           = 62
 lcd_height          = 110
 
-lcd_dclk_freq       = 35
+lcd_dclk_freq       = 71
 
 lcd_pwm_used        = 1
 lcd_pwm_ch          = 0
@@ -698,12 +698,12 @@ lcd_pwm_freq        = 10000
 lcd_pwm_pol         = 1
 lcd_pwm_max_limit   = 150
 
-lcd_hbp             = 30
-lcd_ht              = 780
-lcd_hspw            = 20
-lcd_vbp             = 20
-lcd_vt              = 1320
-lcd_vspw            = 10
+lcd_hbp             = 124
+lcd_ht              = 896
+lcd_hspw            = 24
+lcd_vbp             = 24
+lcd_vt              = 1312
+lcd_vspw            = 4
 
 lcd_frm             = 0
 lcd_cmap_en         = 0
