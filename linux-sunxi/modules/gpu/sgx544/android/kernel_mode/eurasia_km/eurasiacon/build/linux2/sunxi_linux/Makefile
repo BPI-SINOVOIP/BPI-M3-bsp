@@ -38,7 +38,7 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ### ###########################################################################
-KERNELDIR=/home1/wangxianfei/AL5/cuiyuntao/bnana_pi/BPI-M3-bsp/linux-sunxi
+
 export ARCH=arm
 BUILD ?= release
 
