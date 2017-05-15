@@ -431,7 +431,7 @@ rtp_exchange_x_y_flag = 0
 ;notice ---    tp_int_port &  tp_io_port use the same port
 ;----------------------------------------------------------------------------------
 [ctp_para]
-ctp_used            = 1
+ctp_used            = 0
 ctp_gesture_wakeup  = 0
 ctp_twi_id          = 0
 ctp_twi_addr        = 0x38
@@ -586,7 +586,7 @@ nand1_ndqs          = port:PC16<2><default><default><default>
 [boot_disp]
 output_disp = 0
 output_type = 1
-output_mode = 5
+output_mode = 4
 
 ;----------------------------------------------------------------------------------
 ;disp init configuration
@@ -603,11 +603,11 @@ output_mode = 5
 disp_init_enable         = 1
 disp_mode                = 0
 
-screen0_output_type      = 3
-screen0_output_mode      = 5
+screen0_output_type      = 1
+screen0_output_mode      = 4
 
 screen1_output_type      = 3
-screen1_output_mode      = 5
+screen1_output_mode      = 4
 
 fb0_format               = 0
 fb0_width                = 0
@@ -690,7 +690,7 @@ lcd_y               = 1920
 lcd_width           = 95
 lcd_height          = 151
 
-lcd_dclk_freq       = 136
+lcd_dclk_freq       = 160
 
 lcd_pwm_used        = 0
 lcd_pwm_ch          = 0

@@ -3,6 +3,8 @@ KERNEL_DIR = $(LICHEE_KDIR)
 GPU_BUILD_TYPE = release
 endif
 
+$(warning ---------------------------kernel dir is $(KERNEL_DIR))
+
 include $(KERNEL_DIR)/.config
 
 
