@@ -434,16 +434,16 @@ rtp_exchange_x_y_flag = 0
 ctp_used            = 1
 ctp_gesture_wakeup  = 0
 ctp_twi_id          = 0
-ctp_twi_addr        = 0x38
-;ctp_name            = "ft5x_ts"
-ctp_screen_max_x    = 800
-ctp_screen_max_y    = 480
+ctp_twi_addr        = 0x5d
+ctp_name            = "gt9xxnew_ts"
+ctp_screen_max_x    = 720
+ctp_screen_max_y    = 1280
 ctp_revert_x_flag   = 0
 ctp_revert_y_flag   = 0
 ctp_exchange_x_y_flag = 0
 
 ctp_int_port        = port:PL07<3><default><default><default>
-ctp_wakeup          = port:PL06<1><default><default><1>
+ctp_wakeup          = port:PL06<1><default><default><default>
 ctp_power_ldo       = "vcc-tp-3v3"
 ctp_power_ldo_vol   =3300
 ctp_power_io        =
@@ -455,11 +455,11 @@ ctp_power_io        =
 ;--------------------------------------------------------------------------------
 [ctp_list_para]
 ctp_det_used              = 1
-ft5x_ts                   = 1
+ft5x_ts                   = 0
 gt82x                     = 0
 gslX680                   = 0
 gt9xx_ts                  = 0
-gt9xxnew_ts		  = 0
+gt9xxnew_ts		  = 1
 gt811                     = 0
 zet622x                   = 0
 aw5306_ts                 = 0
@@ -677,33 +677,33 @@ pll_video1      = 297
 [lcd0_para]
 lcd_used            = 1
 
-lcd_driver_name     = "S070WV20_MIPI_RGB"
+lcd_driver_name     = "LHR050H41_MIPI_RGB"
 lcd_bl_0_percent    = 0
 lcd_bl_40_percent   = 23
 lcd_bl_100_percent  = 100
 
 lcd_if              = 4
 
-lcd_x               = 800
-lcd_y               = 480
+lcd_x               = 720
+lcd_y               = 1280
 
-lcd_width           = 86
-lcd_height          = 154
+lcd_width           = 62
+lcd_height          = 110
 
-lcd_dclk_freq       = 20
+lcd_dclk_freq       = 71
 
 lcd_pwm_used        = 1
 lcd_pwm_ch          = 0
-lcd_pwm_freq        = 50000
+lcd_pwm_freq        = 10000
 lcd_pwm_pol         = 1
-lcd_pwm_max_limit   = 255
+lcd_pwm_max_limit   = 150
 
-lcd_hbp             = 88
-lcd_ht              = 928
-lcd_hspw            = 48
-lcd_vbp             = 32
-lcd_vt              = 525
-lcd_vspw            = 3
+lcd_hbp             = 124
+lcd_ht              = 896
+lcd_hspw            = 24
+lcd_vbp             = 24
+lcd_vt              = 1312
+lcd_vspw            = 4
 
 lcd_frm             = 0
 lcd_cmap_en         = 0

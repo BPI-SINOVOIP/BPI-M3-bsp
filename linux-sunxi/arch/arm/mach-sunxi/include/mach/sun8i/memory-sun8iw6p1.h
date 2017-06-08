@@ -19,7 +19,7 @@
 
 #define PLAT_PHYS_OFFSET         UL(0x40000000)
 #ifdef CONFIG_EVB_PLATFORM
-#define PLAT_MEM_SIZE            SZ_1G
+#define PLAT_MEM_SIZE            SZ_2G
 #else
 #define PLAT_MEM_SIZE            SZ_256M
 #endif

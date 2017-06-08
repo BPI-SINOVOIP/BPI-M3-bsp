@@ -850,7 +850,7 @@ static s32 lcd_clk_config(struct disp_device* lcd)
 	struct disp_lcd_private_data *lcdp = disp_lcd_get_priv(lcd);
 	struct lcd_clk_info clk_info;
 	unsigned long pll_rate, lcd_rate, dclk_rate, dsi_rate = 0;//hz
-	unsigned long pll_rate_set, lcd_rate_set, dclk_rate_set, dsi_rate_set = 0;//hz
+	unsigned long pll_rate_set, lcd_rate_set, dclk_rate_set, dsi_rate_get = 0, dsi_rate_set = 0;//hz
 
 	if((NULL == lcd) || (NULL == lcdp)) {
 		DE_WRN("NULL hdl!\n");
@@ -871,13 +871,14 @@ static s32 lcd_clk_config(struct disp_device* lcd)
 	if(LCD_IF_DSI == lcdp->panel_info.lcd_if) {
 		dsi_rate_set = pll_rate_set / clk_info.dsi_div;
 		disp_sys_clk_set_rate(lcdp->dsi_clk0, dsi_rate_set);
+		dsi_rate_get = disp_sys_clk_get_rate(lcdp->dsi_clk0);
 		//disp_sys_clk_set_rate(lcdp->dsi_clk1, dsi_rate_set);//FIXME, dsi clk0 = dsi clk1(rate)
 	}
 	dclk_rate_set = lcd_rate_set / clk_info.tcon_div;
 	if((pll_rate_set != pll_rate) || (lcd_rate_set != lcd_rate)
 		|| (dclk_rate_set != dclk_rate)) {
-			DE_WRN("disp %d, clk: pll(%ld),clk(%ld),dclk(%ld) dsi_rate(%ld)\n     clk real:pll(%ld),clk(%ld),dclk(%ld) dsi_rate(%ld)\n",
-				lcd->disp, pll_rate, lcd_rate, dclk_rate, dsi_rate, pll_rate_set, lcd_rate_set, dclk_rate_set, dsi_rate_set);
+			DE_WRN("disp %d, clk: pll(%ld),clk(%ld),dclk(%ld) dsi_rate(%ld)\n     clk real:pll(%ld),clk(%ld),dclk(%ld) dsi_rate(%ld) dsi_rate_get(%ld)\n",
+				lcd->disp, pll_rate, lcd_rate, dclk_rate, dsi_rate, pll_rate_set, lcd_rate_set, dclk_rate_set, dsi_rate_set, dsi_rate_get);
 	}
 
 	return 0;

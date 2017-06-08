@@ -431,7 +431,7 @@ rtp_exchange_x_y_flag = 0
 ;notice ---    tp_int_port &  tp_io_port use the same port
 ;----------------------------------------------------------------------------------
 [ctp_para]
-ctp_used            = 1
+ctp_used            = 0
 ctp_gesture_wakeup  = 0
 ctp_twi_id          = 0
 ctp_twi_addr        = 0x38
@@ -586,7 +586,7 @@ nand1_ndqs          = port:PC16<2><default><default><default>
 [boot_disp]
 output_disp = 0
 output_type = 1
-output_mode = 5
+output_mode = 4
 
 ;----------------------------------------------------------------------------------
 ;disp init configuration
@@ -603,11 +603,11 @@ output_mode = 5
 disp_init_enable         = 1
 disp_mode                = 0
 
-screen0_output_type      = 3
-screen0_output_mode      = 5
+screen0_output_type      = 1
+screen0_output_mode      = 4
 
 screen1_output_type      = 3
-screen1_output_mode      = 5
+screen1_output_mode      = 4
 
 fb0_format               = 0
 fb0_width                = 0
@@ -677,33 +677,33 @@ pll_video1      = 297
 [lcd0_para]
 lcd_used            = 1
 
-lcd_driver_name     = "S070WV20_MIPI_RGB"
+lcd_driver_name     = "lt070me05000"
 lcd_bl_0_percent    = 0
 lcd_bl_40_percent   = 23
 lcd_bl_100_percent  = 100
 
 lcd_if              = 4
 
-lcd_x               = 800
-lcd_y               = 480
+lcd_x               = 1200
+lcd_y               = 1920
 
-lcd_width           = 86
-lcd_height          = 154
+lcd_width           = 95
+lcd_height          = 151
 
-lcd_dclk_freq       = 20
+lcd_dclk_freq       = 160
 
-lcd_pwm_used        = 1
+lcd_pwm_used        = 0
 lcd_pwm_ch          = 0
 lcd_pwm_freq        = 50000
 lcd_pwm_pol         = 1
 lcd_pwm_max_limit   = 255
 
-lcd_hbp             = 88
-lcd_ht              = 928
-lcd_hspw            = 48
-lcd_vbp             = 32
-lcd_vt              = 525
-lcd_vspw            = 3
+lcd_hbp             = 48
+lcd_ht              = 1368
+lcd_hspw            = 16
+lcd_vbp             = 18
+lcd_vt              = 1955
+lcd_vspw            = 2
 
 lcd_frm             = 0
 lcd_cmap_en         = 0
