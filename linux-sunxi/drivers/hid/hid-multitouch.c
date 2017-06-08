@@ -1052,6 +1052,17 @@ static const struct hid_device_id mt_devices[] = {
 		HID_USB_DEVICE(USB_VENDOR_ID_XIROKU,
 			USB_DEVICE_ID_XIROKU_CSR2) },
 
+	/* ET&T panels */
+	{ .driver_data = MT_CLS_DEFAULT,
+		HID_USB_DEVICE(USB_VENDOR_ID_ETT,
+			USB_DEVICE_ID_ETIR_K) },
+	{ .driver_data = MT_CLS_DEFAULT,
+		HID_USB_DEVICE(USB_VENDOR_ID_ETT,
+			USB_DEVICE_ID_ETIR_G) },
+	{ .driver_data = MT_CLS_DEFAULT,
+		HID_USB_DEVICE(USB_VENDOR_ID_ETT,
+			USB_DEVICE_ID_ETIR_M) },
+
 	{ }
 };
 MODULE_DEVICE_TABLE(hid, mt_devices);
