@@ -11,7 +11,7 @@ service=linux
 #bin2fex script.bin > sys_config.fex
 #
 #usb0(microusb) host only
-script=script.bin
+script=script.bin.lcd5
 #
 #usb0(microusb) host only, for emmc boot, can use sd card 
 #script=script.bin.emmc
@@ -35,7 +35,7 @@ rdaddr=0x43100000
 #root=/dev/ram
 root=/dev/mmcblk0p2 rootfstype=ext4 rootwait bootmenutimeout=10 datadev=mmcblk0p2
 console=ttyS0,115200 console=tty1
-bootopts=enforcing=1 initcall_debug=0 loglevel=8 init=/init vmalloc=384M ion_cma_list="120m,176m,512m" panic=10
+bootopts=enforcing=1 initcall_debug=0 loglevel=8 init=/init vmalloc=384M ion_cma_list="120m,176m,512m" panic=10	touch=gt9xxnew_ts gpu=no
 #
 # from sys_config.fex
 #
@@ -46,7 +46,7 @@ bootopts=enforcing=1 initcall_debug=0 loglevel=8 init=/init vmalloc=384M ion_cma
 # output HDMI 720P (type:3 mode:5)
 # output HDMI 1080P (type:3 mode:10)
 # output LCD7/LCD5  (type:1 mode:5)
-otype=3
+otype=1
 omode=5
 #
 ##

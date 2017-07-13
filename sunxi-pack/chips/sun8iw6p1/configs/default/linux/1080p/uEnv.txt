@@ -47,7 +47,7 @@ bootopts=enforcing=1 initcall_debug=0 loglevel=8 init=/init vmalloc=384M ion_cma
 # output HDMI 1080P (type:3 mode:10)
 # output LCD7/LCD5  (type:1 mode:5)
 otype=3
-omode=5
+omode=10
 #
 ##
 #
