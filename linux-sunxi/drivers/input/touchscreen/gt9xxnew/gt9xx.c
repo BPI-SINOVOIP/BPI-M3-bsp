@@ -170,7 +170,7 @@ enum{
 	DEBUG_WAKEUP_INFO = 1U << 5,
 	DEBUG_OTHERS_INFO = 1U << 6,
 };
-#define dprintk(level_mask,fmt,arg...)    /*if(unlikely(debug_mask & level_mask))*/ \
+#define dprintk(level_mask,fmt,arg...)    if(unlikely(debug_mask & level_mask)) \
         pr_info("***CTP***"fmt, ## arg)
 module_param_named(debug_mask,debug_mask,int,S_IRUGO | S_IWUSR | S_IWGRP);
 static const unsigned short normal_i2c[2] = {0x5d, I2C_CLIENT_END};
@@ -314,29 +314,32 @@ static ssize_t gtp_gesture_enable_store(struct device *dev,struct device_attribu
 {
         unsigned long data;
         int error;
-		struct input_dev *input=dev_get_drvdata(dev);
 	
         error = strict_strtoul(buf, 10, &data);
         if (error) {
                 printk("%s strict_strtoul error\n", __FUNCTION__);
                 goto exit;
         }
-	dprintk(DEBUG_INIT,"%s g_suspend_flag=%d,gtp_gesture_wakeup=%d,enable=%ld\n",__func__,g_suspend_flag,gtp_gesture_wakeup,data);
-        if (!g_suspend_flag) {
-	    if(data) {
+		
+		dprintk(DEBUG_INIT,"%s g_suspend_flag=%d,gtp_gesture_wakeup=%d,enable=%ld\n",__func__,g_suspend_flag,gtp_gesture_wakeup,data);
+
+		if (!g_suspend_flag) {
+	    	if(data) {
                 gtp_gesture_wakeup = 1;
-		gtp_power_ctrl_sleep = 0;
-		dprintk(DEBUG_INIT,"%s gtp_gesture_wakeup=%d,enable=%ld\n",__func__,gtp_gesture_wakeup,data);
-	    }
-	    else {
+				gtp_power_ctrl_sleep = 0;
+				dprintk(DEBUG_INIT,"%s gtp_gesture_wakeup=%d,enable=%ld\n",__func__,gtp_gesture_wakeup,data);
+	    	}
+	   		else {
                 gtp_gesture_wakeup = 0;
                 gtp_power_ctrl_sleep = 1;
                 dprintk(DEBUG_INIT,"%s gtp_gesture_wakeup=%d,enable=%ld\n",__func__,gtp_gesture_wakeup,data);	
-	    }
-	}
-	else
-	    dprintk(DEBUG_INIT,"%s gtp is suspend!!!! gtp_gesture_wakeup cann't be set!! gtp_gesture_wakeup=%d,enable=%ld\n",__func__,gtp_gesture_wakeup,data);
-        return count;
+	    	}
+		}
+		else {
+	    	dprintk(DEBUG_INIT,"%s gtp is suspend!!!! gtp_gesture_wakeup cann't be set!! gtp_gesture_wakeup=%d,enable=%ld\n",__func__,gtp_gesture_wakeup,data);
+		}
+
+		return count;
 exit:
         return error;
 }
@@ -1767,7 +1770,7 @@ static s32 gtp_init_panel(struct goodix_ts_data *ts)
             sensor_id = 3;
             dprintk(DEBUG_INIT,"gt9xx:sensor_id = %d\n",sensor_id);
 			
-		} else if (!strcmp(config_info.name,"gt9271_noah")){
+		} else if (!strcmp(config_info.name,"gt9147_bpi")){
             sensor_id = 4;
             dprintk(DEBUG_INIT,"gt9xx:sensor_id = %d\n",sensor_id);
 		} else if (!strcmp(config_info.name,"gt9271_p2")){
@@ -1987,11 +1990,11 @@ static ssize_t gt91xx_config_write_proc(struct file *filp, const char __user *bu
 {
     s32 ret = 0;
 
-    GTP_DEBUG("write count %d\n", count);
+    GTP_DEBUG("write count %zu\n", count);
 
     if (count > GTP_CONFIG_MAX_LENGTH)
     {
-        GTP_ERROR("size not match [%d:%d]\n", GTP_CONFIG_MAX_LENGTH, count);
+        GTP_ERROR("size not match [%d:%zu]\n", GTP_CONFIG_MAX_LENGTH, count);
         return -EFAULT;
     }
 
