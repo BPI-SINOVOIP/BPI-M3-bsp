@@ -89,6 +89,9 @@ typedef struct block_dev_desc {
 	int	(*block_read_secure)(s32 dev_num,
 						u32 item,u8 *buf ,
 						lbaint_t blkcnt);
+	int	(*block_read_secure_backup)(s32 dev_num,
+						u32 item,u8 *buf ,
+						lbaint_t blkcnt);
 	int	(*block_write_secure)(s32 dev_num,
 						u32 item,u8 *buf ,
 						lbaint_t blkcnt);

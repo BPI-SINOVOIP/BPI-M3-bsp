@@ -76,3 +76,10 @@ config MMC_TEST
 
 	  This driver is only of interest to those developing or
 	  testing a host driver. Most people should say N here.
+
+config FATFS_FS_SUPPORT
+	tristate "support for FATFS"
+	default n
+	help
+	 Make sure this item is set to 'y' if fatfs is used. This part is
+	 used to read/write sd card by fatfs in low layer.

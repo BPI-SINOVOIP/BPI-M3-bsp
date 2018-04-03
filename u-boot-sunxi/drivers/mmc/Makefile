@@ -43,6 +43,7 @@ COBJS-$(CONFIG_SDHCI) += sdhci.o
 COBJS-$(CONFIG_SH_MMCIF) += sh_mmcif.o
 COBJS-$(CONFIG_TEGRA2_MMC) += tegra2_mmc.o
 COBJS-$(CONFIG_MMC_SUNXI) += sunxi_mmc.o
+COBJS-$(CONFIG_MMC_SUNXI) += mmc_test.o
 
 COBJS	:= $(COBJS-y)
 SRCS	:= $(COBJS:.o=.c)

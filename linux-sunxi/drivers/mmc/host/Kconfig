@@ -575,14 +575,24 @@ config MMC_SUNXI
 	  If you have a board based on such a SoC and with a SD/MMC slot,
 	  say Y or M here.
 
+config MMC_SUNXI_SMHC
+	tristate "Winner's(SUNXI SMHC v5.0) SD/Multimedia Card Interface support"
+	depends on MMC && (ARCH_SUN8IW9)
+	default y
+	help
+	  This selects support for the SD/MMC controller on AllWinner SoCs SMHC.
+	  If you have a board based on such a SoC and with a SD/MMC slot,
+	  say Y or M here.
+
+
 config MMC_DEBUG_SUNXI
 	bool "Winner's(SUNXI) MMC Host Debug support"
-	depends on MMC && MMC_SUNXI 
+	depends on MMC && (MMC_SUNXI || MMC_SUNXI_SMHC)
 	default n
 
 config MMC_PRE_DBGLVL_SUNXI
 	int "Pre-defined debug level for SUNXI MMC driver"
-	depends on MMC && MMC_SUNXI 
+	depends on MMC &&  (MMC_SUNXI || MMC_SUNXI_SMHC) 
 	default 0
 
 config MMC_JZ4740

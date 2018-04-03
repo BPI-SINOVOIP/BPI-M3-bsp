@@ -45,7 +45,8 @@
 #define MMC_VERSION_4_41	(MMC_VERSION_MMC | 0x44)
 #define MMC_VERSION_4_5		(MMC_VERSION_MMC | 0x45)
 #define MMC_VERSION_5_0		(MMC_VERSION_MMC | 0x50)
-
+#define MMC_VERSION_5_1		(MMC_VERSION_MMC | 0x501)
+#define MMC_VERSION_NEW_VER 	(MMC_VERSION_MMC | 0xFFF)
 
 
 
@@ -265,6 +266,7 @@
 #define EXT_CSD_SEC_GB_CL_EN	(1U << 4)
 #define EXT_CSD_SEC_SANITIZE	(1U << 6)  /* v4.5 only */
 
+#define EXT_CSD_RST_N_ENABLE            (0x1)
 
 /* MMC_SWITCH boot modes */
 #define MMC_SWITCH_MMCPART_NOAVAILABLE	(0xff)
@@ -296,6 +298,13 @@
 /*MMC HOST FUNC*/
 #define MMC_HOST_2XMODE_FUNC                      (0x1 << 0)
 #define MMC_NO_FUNC                               (0)
+
+/* MMC TEST */
+#define MMC_ITEST_RWC                       (0x1 << 0)
+#define MMC_ITEST_MEMCPY                    (0x1 << 1)
+#define MMC_ITEST_SEQ_W_SPD                 (0x1 << 2)
+#define MMC_ITEST_WHEN_BOOT                 (0x1 << 30)
+#define MMC_ITEST_WHEN_PRODUCT              (0x1 << 31)
 
 
 
@@ -492,8 +501,8 @@ struct tuning_sdly{
 
 
 struct mmc_func_en{
-	u32  ddr_func_en:1,
-		 rsvd:30;
+	u32 ddr_func_en              :1,
+		rsvd:30;
 };
 
 struct mmc {
@@ -528,6 +537,7 @@ struct mmc {
 
 	uint drv_wipe_feature;
 	uint drv_erase_feature;
+	uint drv_hwrst_feature;
 	uint erase_grp_size;
 	uint erase_timeout; /*default erasetimeout or hc_erase_timeout*/
 	uint trim_discard_timeout;
@@ -541,6 +551,7 @@ struct mmc {
 	void (*set_ios)(struct mmc *mmc);
 	int (*init)(struct mmc *mmc);
 	int (*update_phase)(struct mmc *mmc);
+	int (*set_phase)(struct mmc *mmc, u32 tx_phase, u32 rx_phase);
 
 	/*
 		add these members to impliment sample point auto-adaption
@@ -564,6 +575,7 @@ struct mmc {
 	unsigned char boot_bus_cond;
 	unsigned host_func;
 	struct mmc_func_en mmc_func_en;
+	unsigned mmc_test;
 };
 
 /* struct mmc/drv_wipe_feature, define for driver secure wipe opeation */
@@ -576,6 +588,8 @@ struct mmc {
 #define DRV_PARA_DISABLE_EMMC_ERASE               (1U<<0)
 #define DRV_PARA_ENABLE_EMMC_SANITIZE_WHEN_ERASE  (1U<<1)
 
+/*struct drv_hwrst_feature, define for drvier hw reset operation*/
+#define DRV_PARA_ENABLE_EMMC_HWRST	(1U<<0)
 
 int mmc_register(struct mmc *mmc);
 int mmc_unregister(int sdc_no);
@@ -587,7 +601,7 @@ struct mmc *find_mmc_device(int dev_num);
 int mmc_set_dev(int dev_num);
 
 int mmc_exit(void);
-int sunxi_mmc_exit(int sdc_no);
+//int sunxi_mmc_exit(int sdc_no);
 
 int mmc_switch_boot_bus_cond(int dev_num, u32 boot_mode, u32 rst_bus_cond, u32 bus_width);
 int mmc_switch_boot_part(int dev_num, u32 boot_ack, u32 boot_part);

@@ -399,7 +399,7 @@ int mmc_switch(struct mmc_card *card, u8 set, u8 index, u8 value,
 	if (err)
 		return err;
 
-	/* Must check status to be sure of no errors */
+    /* Must check status to be sure of no errors */
 	do {
 
         /*The purpose of set clk here is to make 2x mode to reset the sample point

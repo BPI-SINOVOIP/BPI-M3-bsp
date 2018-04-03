@@ -976,7 +976,6 @@ static int mmc_sd_init_card(struct mmc_host *host, u32 ocr,
 		mmc_decode_cid(card);
 	}
 
-	mmc_set_clock(host,25000000);
 	/*
 	 * Select card, as all following commands rely on that.
 	 */

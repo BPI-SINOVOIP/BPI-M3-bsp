@@ -36,12 +36,15 @@
 #include <sys_config.h>
 #include <asm/arch/clock.h>
 
+#include "mmc_test.h"
+
 DECLARE_GLOBAL_DATA_PTR;
 /* Set block count limit because of 16 bit register limit on some hardware*/
 #ifndef CONFIG_SYS_MMC_MAX_BLK_COUNT
 #define CONFIG_SYS_MMC_MAX_BLK_COUNT 65535
 #endif
 
+extern int sunxi_mmc_exit(int sdc_no);
 //static struct list_head mmc_devices;
 //static int cur_dev_num = -1;
 static ulong mmc_bread(int dev_num, ulong start, lbaint_t blkcnt, void *dst);
@@ -199,6 +202,8 @@ int mmc_set_blocklen(struct mmc *mmc, int len)
 int mmc_set_erase_start_addr(struct mmc *mmc, unsigned int address)
 {
 	struct mmc_cmd cmd;
+	int err = 0;
+	int timeout = 300; //ms
 
 	cmd.cmdidx = MMC_CMD_ERASE_GROUP_START;
 	cmd.resp_type = MMC_RSP_R1;
@@ -209,12 +214,23 @@ int mmc_set_erase_start_addr(struct mmc *mmc, unsigned int address)
 	else
 		cmd.cmdarg = address * mmc->write_bl_len;
 
-	return mmc_send_cmd(mmc, &cmd, NULL);
+	err = mmc_send_cmd(mmc, &cmd, NULL);
+	if (err) {
+		MMCINFO("%s: send erase start addr failed\n", __FUNCTION__);
+		goto ERR_RET;
+	}
+
+	err = mmc_send_status(mmc, timeout); //ms
+
+ERR_RET:
+	return err;
 }
 
 int mmc_set_erase_end_addr(struct mmc *mmc, unsigned int address)
 {
 	struct mmc_cmd cmd;
+	int err = 0;
+	int timeout = 300; //ms
 
 	cmd.cmdidx = MMC_CMD_ERASE_GROUP_END;
 	cmd.resp_type = MMC_RSP_R1;
@@ -225,7 +241,16 @@ int mmc_set_erase_end_addr(struct mmc *mmc, unsigned int address)
 	else
 		cmd.cmdarg = address * mmc->write_bl_len;
 
-	return mmc_send_cmd(mmc, &cmd, NULL);
+	err = mmc_send_cmd(mmc, &cmd, NULL);
+	if (err) {
+		MMCINFO("%s: send erase end addr failed\n", __FUNCTION__);
+		goto ERR_RET;
+	}
+
+	err = mmc_send_status(mmc, timeout); //ms
+
+ERR_RET:
+	return err;
 }
 
 int mmc_launch_erase(struct mmc *mmc, unsigned int erase_arg)
@@ -317,6 +342,21 @@ unsigned int mmc_mmc_update_timeout(struct mmc *mmc)
 		mmc->secure_erase_timeout = mmc->erase_timeout * mmc_ext_csd.sec_erase_mult;
 		mmc->secure_trim_timeout  = mmc->erase_timeout * mmc_ext_csd.sec_trim_mult;
 	}
+	else
+	{
+		if (mmc_ext_csd.rev == 3) {
+			if (mmc_ext_csd.erase_group_def && mmc_ext_csd.hc_erase_timeout)
+				mmc->erase_timeout = mmc_ext_csd.hc_erase_timeout;
+			else
+				mmc->erase_timeout = mmc_mmc_def_erase_timeout(mmc);
+		} else {
+			mmc->erase_timeout = mmc_mmc_def_erase_timeout(mmc);
+		}
+
+		mmc->trim_discard_timeout = 0x0;
+		mmc->secure_erase_timeout = 0x0;
+		mmc->secure_trim_timeout  = 0x0;
+	}
 
 ERR_RET:
 	MMCDBG("---%s %d\n", __FUNCTION__, ret);
@@ -328,15 +368,31 @@ unsigned int mmc_mmc_erase_timeout(struct mmc *mmc, unsigned int arg,
 {
 	unsigned int erase_timeout = 0;
 
-	if (arg == MMC_DISCARD_ARG || arg == MMC_TRIM_ARG)
+	if (arg == MMC_DISCARD_ARG || arg == MMC_TRIM_ARG) {
+		if (!mmc->trim_discard_timeout) {
+			MMCINFO("invalid trim_discard_timeout is %d\n", mmc->trim_discard_timeout);
+			goto ERR_RET;
+		}
 		erase_timeout = mmc->trim_discard_timeout;
-	else if (arg == MMC_ERASE_ARG)
+	} else if (arg == MMC_ERASE_ARG) {
+		if (!mmc->erase_timeout) {
+			MMCINFO("invalid erase_timeout is %d\n", mmc->erase_timeout);
+			goto ERR_RET;
+		}
 		erase_timeout = mmc->erase_timeout;
-	else if (arg == MMC_SECURE_ERASE_ARG)
+	} else if (arg == MMC_SECURE_ERASE_ARG) {
+		if (!mmc->secure_erase_timeout) {
+			MMCINFO("invalid secure_erase_timeout is %d\n", mmc->secure_erase_timeout);
+			goto ERR_RET;
+		}
 		erase_timeout = mmc->secure_erase_timeout;
-	else if (arg == MMC_SECURE_TRIM1_ARG || arg == MMC_SECURE_TRIM2_ARG)
+	} else if (arg == MMC_SECURE_TRIM1_ARG || arg == MMC_SECURE_TRIM2_ARG) {
+		if (!mmc->secure_trim_timeout) {
+			MMCINFO("invalid secure_trim_timeout is %d\n", mmc->secure_trim_timeout);
+			goto ERR_RET;
+		}
 		erase_timeout = mmc->secure_trim_timeout;
-	else {
+	} else {
 		MMCINFO("Unknown erase argument 0x%x\n", arg);
 		goto ERR_RET;
 	}
@@ -1258,6 +1314,72 @@ mmc_berase(int dev_num, unsigned long start, lbaint_t blkcnt)
 	*/
 }
 
+#if defined(CONFIG_ARCH_SUN8IW5P1) || defined(CONFIG_ARCH_SUN8IW6P1) || defined(CONFIG_ARCH_SUN8IW8P1)||(defined CONFIG_ARCH_SUN8IW7P1)
+/*
+ * 1. 18=3*6, each phase config try 3 times; don't try tx phase 2.
+ * 2. {1,1} is the best phase config to compile most of emmc
+ * 3. if retry ok, keep current phase and exit. use this new phase config for following operation.
+ *    if retry fail, set phase to defaul value.
+ */
+#define MAX_RETRY_CNT 18
+static int mmc_retry_request(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
+{
+	//char sunxi_phase[9][2]={{1,1},{0,0},{1,0},{0,1},{1,2},{0,2},{2,0},{2,1},{2,2}};
+	char sunxi_phase[9][2]={{1,1},{0,0},{1,0},{0,1},{1,2},{0,2}};
+	//char sunxi_phase[9][2]={{0,1},  {1,1},{0,0},{1,0},   {1,2},{0,2}};
+	int retry_cnt;
+	int ret, err = 0;
+	u32 timeout = 1000;
+
+	if (!mmc->set_phase) {
+		return -1;
+	}
+
+	/* send manual stop */
+	mmc_send_manual_stop(mmc);
+	/* Waiting for the ready status */
+	mmc_send_status(mmc, timeout);
+
+	retry_cnt = 0;
+	do
+	{
+		/* set phase */
+		ret = mmc->set_phase(mmc, sunxi_phase[retry_cnt/3][0], sunxi_phase[retry_cnt/3][1]);
+		if (ret) {
+			MMCINFO("set phase fail, retry fail\n");
+			err = -1;
+			break;
+		}
+
+		/* retry */
+		err = mmc->send_cmd(mmc, cmd, data);
+		if (!err) {
+			/* if retry ok, keep current phase and exit. */
+			MMCINFO("retry ok! retry cnt %d\n", retry_cnt);
+			break;
+		} else {
+			/* send manual stop */
+			mmc_send_manual_stop(mmc);
+			/* Waiting for the ready status */
+			mmc_send_status(mmc, timeout);
+		}
+
+		retry_cnt++;
+	} while (retry_cnt < MAX_RETRY_CNT);
+
+	/* reset to default phase if retry fail */
+	if (err)
+	{
+		mmc->set_phase(mmc, sunxi_phase[0][0], sunxi_phase[0][1]);
+		if (ret) {
+			MMCINFO("retry fail, set phase to default fail\n");
+		}
+	}
+
+	return err;
+}
+#endif
+
 static ulong
 mmc_write_blocks(struct mmc *mmc, ulong start, lbaint_t blkcnt, const void*src)
 {
@@ -1291,7 +1413,25 @@ mmc_write_blocks(struct mmc *mmc, ulong start, lbaint_t blkcnt, const void*src)
 
 	if (mmc_send_cmd(mmc, &cmd, &data)) {
 		MMCINFO("mmc write failed\n");
+
+		#if defined(CONFIG_ARCH_SUN8IW5P1) || \
+			defined(CONFIG_ARCH_SUN8IW6P1) || \
+			defined (CONFIG_ARCH_SUN8IW8P1)|| \
+			(defined CONFIG_ARCH_SUN8IW7P1)
+
+		MMCINFO("mmc write: start retry....\n");
+		if (mmc_retry_request(mmc, &cmd, &data)) {
+			MMCINFO("mmc write: retry fail\n");
+			return 0;
+		} else {
+			MMCINFO("mmc write: retry ok\n");
+		}
+
+		#else
+
 		return 0;
+
+		#endif
 	}
 
 	/* SPI multiblock writes terminate using a special
@@ -1526,10 +1666,29 @@ int mmc_read_blocks(struct mmc *mmc, void *dst, ulong start, lbaint_t blkcnt)
 	data.blocksize = mmc->read_bl_len;
 	data.flags = MMC_DATA_READ;
 
-	if (mmc_send_cmd(mmc, &cmd, &data)){
+	if (mmc_send_cmd(mmc, &cmd, &data)) {
 		MMCINFO(" read block failed\n");
+
+		#if defined(CONFIG_ARCH_SUN8IW5P1) || \
+			defined(CONFIG_ARCH_SUN8IW6P1) || \
+			defined (CONFIG_ARCH_SUN8IW8P1)|| \
+			(defined CONFIG_ARCH_SUN8IW7P1)
+
+		MMCINFO("mmc read: start retry....\n");
+		if (mmc_retry_request(mmc, &cmd, &data)) {
+			MMCINFO("mmc read: retry fail\n");
+			return 0;
+		} else {
+			MMCINFO("mmc read: retry ok\n");
+		}
+
+		#else
+
 		return 0;
+
+		#endif
 	}
+
 	if (blkcnt > 1) {
 		cmd.cmdidx = MMC_CMD_STOP_TRANSMISSION;
 		cmd.cmdarg = 0;
@@ -1565,7 +1724,7 @@ static ulong mmc_bread(int dev_num, ulong start, lbaint_t blkcnt, void *dst)
 			start + blkcnt, mmc->block_dev.lba);
 		return 0;
 	}
-	
+
 
 	if (mmc_set_blocklen(mmc, mmc->read_bl_len)){
 		MMCINFO("Set block len failed\n");
@@ -1813,8 +1972,7 @@ static int sdmmc_secure_storage_write(s32 dev_num,u32 item,u8 *buf , lbaint_t bl
 static int sdmmc_secure_storage_read(s32 dev_num,u32 item,u8 *buf , lbaint_t blkcnt)
 {
 	s32 ret = 0;
-	s32 *fst_bak = NULL;
-	s32 *sec_bak = NULL;
+	s32 *fst_bak = (s32 *)buf;
 
 	if(buf == NULL){
 		MMCINFO("intput buf is NULL %d\n");
@@ -1835,46 +1993,48 @@ static int sdmmc_secure_storage_read(s32 dev_num,u32 item,u8 *buf , lbaint_t blk
 		goto out;
 	}
 
-	fst_bak = malloc(blkcnt*512);
-	if(fst_bak == NULL){
-		MMCINFO("malloc buff failed in fun %s line %d\n",__FUNCTION__,__LINE__);
-		ret = -1;
-		goto out;
-	}
-	sec_bak = malloc(blkcnt*512);
-	if(sec_bak == NULL){
-		MMCINFO("malloc buff failed in fun %s line %d\n",__FUNCTION__,__LINE__);
-		ret = -1;
-		goto out_fst;
-	}
-
 	//first backups
 	ret = mmc_bread(dev_num,SDMMC_SECURE_STORAGE_START_ADD+SDMMC_ITEM_SIZE*2*item,blkcnt,fst_bak);
 	if(ret != blkcnt){
 		MMCINFO("read first backup failed in fun %s line %d\n",__FUNCTION__,__LINE__);
 		ret = -1;
-		goto out_sec;
 	}
+
+out:
+	return ret;
+}
+
+static int sdmmc_secure_storage_read_backup(s32 dev_num,u32 item,u8 *buf , lbaint_t blkcnt)
+{
+	s32 ret = 0;
+	s32 *sec_bak = (s32 *)buf;
+
+	if(buf == NULL){
+		MMCINFO("intput buf is NULL %d\n");
+		ret = -1;
+		goto out;
+
+	}
+
+	if(item > MAX_SECURE_STORAGE_MAX_ITEM){
+		MMCINFO("item exceed %d\n",MAX_SECURE_STORAGE_MAX_ITEM);
+		ret = -1;
+		goto out;
+	}
+
+	if(blkcnt > SDMMC_ITEM_SIZE){
+		MMCINFO("block count exceed %d\n",SDMMC_ITEM_SIZE);
+		ret = -1;
+		goto out;
+	}
+
 	//second backups
 	ret = mmc_bread(dev_num,SDMMC_SECURE_STORAGE_START_ADD+SDMMC_ITEM_SIZE*2*item+SDMMC_ITEM_SIZE,blkcnt,sec_bak);
 	if(ret != blkcnt){
 		MMCINFO("read second backup failed fun %s line %d\n",__FUNCTION__,__LINE__);
 		ret = -1;
-		goto out_sec;
 	}
 
-	if(memcmp(fst_bak,sec_bak,blkcnt*512)){
-		MMCINFO("first and second bak compare failed fun %s line %d\n",__FUNCTION__,__LINE__);
-		ret = -1;
-	}else{
-		memcpy(buf,fst_bak,blkcnt*512);
-		ret = blkcnt;
-	}
-
-out_sec:
-	free(sec_bak);
-out_fst:
-	free(fst_bak);
 out:
 	return ret;
 }
@@ -2094,10 +2254,10 @@ static int mmc_decode_ext_csd(struct mmc *mmc,
 
 
 	dec_ext_csd->rev = ext_csd[EXT_CSD_REV];
-	if (dec_ext_csd->rev > 7) {
-		MMCINFO("unrecognised EXT_CSD revision %d\n", dec_ext_csd->rev);
-		err = -1;
-		goto out;
+	if (dec_ext_csd->rev > 8) {
+		MMCINFO("unrecognised EXT_CSD revision %d, maybe ver5.2 or later version!\n", dec_ext_csd->rev);
+		//err = -1;
+		//goto out;
 	}
 
 	dec_ext_csd->raw_sectors[0] = ext_csd[EXT_CSD_SEC_CNT + 0];
@@ -2162,7 +2322,7 @@ static int mmc_decode_ext_csd(struct mmc *mmc,
 		dec_ext_csd->data_sector_size = 512;
 	}
 
-out:
+//out:
 	return err;
 }
 
@@ -2201,6 +2361,65 @@ int mmc_switch(struct mmc *mmc, u8 set, u8 index, u8 value)
 	int timeout = 1000;
 	return mmc_do_switch(mmc, set, index, value, timeout);
 }
+
+static int mmc_en_emmc_hw_rst(struct mmc *mmc)
+{
+		char ext_csd[512] = {0};
+		int err;
+
+		err = mmc_send_ext_csd(mmc, ext_csd);
+		if (err) {
+			MMCINFO("mmc get extcsd fail -0\n");
+			return err;
+		}
+
+		if (ext_csd[162] & 0x1) {
+			MMCINFO("hw rst already enabled\n");
+			goto OUT;
+		}
+
+		err = mmc_switch(mmc, EXT_CSD_CMD_SET_NORMAL, \
+				EXT_CSD_RST_N_FUNCTION, EXT_CSD_RST_N_ENABLE);
+		if (err) {
+			MMCINFO("mmc enable hw rst fail\n");
+			return err;
+		}
+
+		err = mmc_send_ext_csd(mmc, ext_csd);
+		if (err) {
+			MMCINFO("mmc get extcsd fail -1\n");
+			return err;
+		}
+
+		if (!(ext_csd[162] & 0x1)) {
+			MMCINFO("en hw rst fail, 0x%x\n", ext_csd[162]);
+			return -1;
+		} else {
+			MMCINFO("en hw rst ok, 0x%x\n", ext_csd[162]);
+		}
+
+OUT:
+		return 0;
+}
+
+
+static int mmc_chk_emmc_hw_rst(struct mmc *mmc)
+{
+		char ext_csd[512] = {0};
+		int err;
+
+		err = mmc_send_ext_csd(mmc, ext_csd);
+		if (err) {
+			MMCINFO("mmc get extcsd fail -0\n");
+			return err;
+		}
+
+		if (ext_csd[162] & 0x1)
+			MMCINFO("Warining:hw rst already enabled!!!!!\n");
+		return  0;
+}
+
+
 
 int mmc_change_freq(struct mmc *mmc)
 {
@@ -2268,14 +2487,14 @@ int mmc_change_freq(struct mmc *mmc)
 		mmc->card_caps |= MMC_MODE_HS_52MHz | MMC_MODE_HS;
 	else
 		mmc->card_caps |= MMC_MODE_HS;
-		
+
 	if (cardtype & MMC_DDR_52MHZ){
 		mmc->card_caps |= MMC_MODE_DDR_52MHz;
 		MMCDBG("get ddr OK!\n");
 	}else{
 		MMCINFO("get ddr fail!\n");
 	}
-		
+
 
 	return 0;
 }
@@ -2565,6 +2784,8 @@ void mmc_set_ios(struct mmc *mmc)
 	mmc->set_ios(mmc);
 }
 
+
+
 void mmc_set_clock(struct mmc *mmc, uint clock)
 {
 	if (clock > mmc->f_max)
@@ -2772,8 +2993,14 @@ int mmc_startup(struct mmc *mmc)
 				case 7:
 					mmc->version = MMC_VERSION_5_0;
 					break;
+				case 8:
+					mmc->version = MMC_VERSION_5_1;
+					break;
 				default:
-					MMCINFO("Invalid ext_csd revision %d\n", ext_csd[192]);
+					if (ext_csd[EXT_CSD_REV] > 8)
+						mmc->version = MMC_VERSION_NEW_VER;
+					else
+						MMCINFO("Invalid ext_csd revision %d\n", ext_csd[192]);
 					break;
 			}
 		}
@@ -2866,7 +3093,7 @@ int mmc_startup(struct mmc *mmc)
 		MMCINFO("update clock failed\n");
 		return err;
 	}
-	
+
 	/* Restrict card's capabilities by what the host can do */
 	mmc->card_caps &= mmc->host_caps;
 
@@ -2902,7 +3129,7 @@ int mmc_startup(struct mmc *mmc)
 			mmc_set_clock(mmc, 25000000);
 	} else {
 		if (mmc->card_caps & MMC_MODE_8BIT) {
-			
+
 			if( (mmc->card_caps & MMC_MODE_DDR_52MHz) ){
 				MMCINFO("ddr8 \n");
 				/* Set the card to use 8 bit ddr*/
@@ -2919,14 +3146,14 @@ int mmc_startup(struct mmc *mmc)
 				err = mmc_switch(mmc, EXT_CSD_CMD_SET_NORMAL,
 						EXT_CSD_BUS_WIDTH,
 						EXT_CSD_BUS_WIDTH_8);
-	
+
 				if (err){
 					MMCINFO("mmc switch bus width8 failed\n");
 					return err;
 				}
 				mmc_set_bus_width(mmc, 8);
 			}
-			
+
 		}else if (mmc->card_caps & MMC_MODE_4BIT) {
 			if ( (mmc->card_caps & MMC_MODE_DDR_52MHz) ){
 				MMCINFO("ddr4 \n");
@@ -2950,8 +3177,8 @@ int mmc_startup(struct mmc *mmc)
 				}
 				mmc_set_bus_width(mmc, 4);
 			}
-		}	
-				
+		}
+
 		if( (mmc->card_caps & MMC_MODE_DDR_52MHz) ){
 			mmc->io_mode = MMC_MODE_DDR_52MHz;
 			MMCDBG("mmc mmc->io_mode = %x\n",mmc->io_mode);
@@ -3047,20 +3274,37 @@ int mmc_startup(struct mmc *mmc)
 			case MMC_VERSION_5_0:
 				MMCINFO("MMC ver 5.0\n");
 				break;
+			case MMC_VERSION_5_1:
+				MMCINFO("MMC v5.1\n");
+				break;
+			case MMC_VERSION_NEW_VER:
+				MMCINFO("MMC v5.2 or later version\n");
+				break;
 			default:
 				MMCINFO("Unknow MMC ver\n");
 				break;
 		}
 	}
 
-	mmc->clock_after_init = mmc->clock;//back up clock after mmc init
+	mmc->clock_after_init = mmc->clock;/*back up clock after mmc init*/
+	if (!IS_SD(mmc)) {
+		if (mmc->drv_hwrst_feature & DRV_PARA_ENABLE_EMMC_HWRST) {
+			err = mmc_en_emmc_hw_rst(mmc);
+			if (err)
+				return err;
+		} else {
+			err = mmc_chk_emmc_hw_rst(mmc);
+			if (err)
+				return err;
+		}
+	}
 
 	MMCINFO("mmc clk %d\n", mmc->clock);
 	//MMCINFO("---mmc bus_width %d---\n", mmc->bus_width);
 	MMCINFO("SD/MMC Card: %dbit, capacity: %ldMB\n",(mmc->card_caps & MMC_MODE_8BIT)?8:(mmc->card_caps & MMC_MODE_4BIT ? 4 : 1), mmc->block_dev.lba>>11);
 	MMCINFO("boot0 capacity: %dKB,boot1 capacity: %dKB\n"
 						,mmc->boot1_lba*512/1024,mmc->boot2_lba*512/1024);
-	MMCINFO("***SD/MMC %d init OK!!!***\n",mmc->control_num);
+	MMCINFO("***SD/MMC %d init OK!!!***\n", mmc->control_num);
 	//init_part(&mmc->block_dev);
 
 	return 0;
@@ -3126,6 +3370,7 @@ int mmc_register(struct mmc *mmc)
 	mmc->block_dev.block_read_mass_pro  = mmc_bread_mass_pro_secure;
 	mmc->block_dev.block_write_mass_pro = mmc_bwrite_mass_pro_secure;
 	mmc->block_dev.block_read_secure 	= sdmmc_secure_storage_read;
+	mmc->block_dev.block_read_secure_backup 	= sdmmc_secure_storage_read_backup;
 	mmc->block_dev.block_write_secure	= sdmmc_secure_storage_write;
 	mmc->block_dev.block_get_item_secure= get_sdmmc_secure_storage_max_item;
 
@@ -5247,7 +5492,6 @@ retry:
 		goto retry;
 	}
 
-
 	err = sunxi_write_tuning(mmc);
 	if(err){
 		MMCINFO("Write pattern failed\n");
@@ -5407,17 +5651,49 @@ int mmc_init(struct mmc *mmc)
 	//MMCINFO("trim_discard_to:         %d ms\n", mmc->trim_discard_timeout);
 	//MMCINFO("secure_tirm_to:          %d ms\n", mmc->secure_erase_timeout);
 	//MMCINFO("secure_erase_to:         %d ms\n", mmc->secure_trim_timeout);
-	
-    
-    MMCDBG("support sanitze:         %d \n", mmc->secure_feature & EXT_CSD_SEC_SANITIZE);
-	MMCDBG("support trim:            %d \n", mmc->secure_feature & EXT_CSD_SEC_GB_CL_EN);
-	MMCDBG("support secure purge op: %d \n", mmc->secure_feature & EXT_CSD_SEC_ER_EN);
-	MMCDBG("secure removal type:     0x%x\n", mmc->secure_removal_type);
-	
+
+	MMCDBG("support sanitze:         %d\n",\
+			mmc->secure_feature & EXT_CSD_SEC_SANITIZE);
+	MMCDBG("support trim:            %d\n", \
+			mmc->secure_feature & EXT_CSD_SEC_GB_CL_EN);
+	MMCDBG("support secure purge op: %d\n", \
+			mmc->secure_feature & EXT_CSD_SEC_ER_EN);
+	MMCDBG("secure removal type:     0x%x\n", \
+			mmc->secure_removal_type);
+
     MMCINFO("secure_feature 0x%x\n", mmc->secure_feature);
     MMCINFO("secure_removal_type  0x%x\n", mmc->secure_removal_type);
 
     //MMCINFO("========================================\n\n");
+
+
+#ifdef MMC_INTERNAL_TEST
+	if (((mmc->mmc_test&MMC_ITEST_WHEN_BOOT) && (work_mode == WORK_MODE_BOOT))
+		|| ((mmc->mmc_test&MMC_ITEST_WHEN_PRODUCT) && (work_mode != WORK_MODE_BOOT)) )
+	{
+		if (mmc->mmc_test & MMC_ITEST_RWC) {
+			ret = mmc_t_rwc(mmc, 1024*1024*2, 10);
+			if (ret) {
+				MMCINFO("%s: mmc_t_rwc fail\n", __FUNCTION__);
+			}
+		}
+
+		if (mmc->mmc_test & MMC_ITEST_MEMCPY) {
+			ret = mmc_t_memcpy();
+			if (ret) {
+				MMCINFO("%s: mmc_t_memcpy fail\n", __FUNCTION__);
+			}
+		}
+
+		if (mmc->mmc_test & MMC_ITEST_SEQ_W_SPD) {
+			/* from 1GB, len: 64MB, each: 64KB */
+			ret = mmc_t_seq_write_speed_test(mmc, 1024*1024*2, 64*1024*2, 128);
+			if (ret) {
+				MMCINFO("%s: mmc_t_write_speed_test fail\n", __FUNCTION__);
+			}
+		}
+	}
+#endif
 
 	return ret;
 }
@@ -5544,7 +5820,7 @@ int mmc_exit(void)
 */
 
 	sunxi_mmc_exit(sdc_no);
-	
+
 	MMCINFO("mmc %d exit ok\n",mmc->control_num);
 	return err;
 }

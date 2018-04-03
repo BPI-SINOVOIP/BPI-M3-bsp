@@ -55,6 +55,7 @@ obj-$(CONFIG_MMC_SDHCI_OF_ESDHC)	+= sdhci-of-esdhc.o
 obj-$(CONFIG_MMC_SDHCI_OF_HLWD)		+= sdhci-of-hlwd.o
 
 obj-$(CONFIG_MMC_SUNXI)		+= sunxi-mci.o
+obj-$(CONFIG_MMC_SUNXI_SMHC)		+= sunxi-smhc.o
 
 ifeq ($(CONFIG_CB710_DEBUG),y)
 	CFLAGS-cb710-mmc	+= -DDEBUG

@@ -136,6 +136,17 @@ struct mmc_host_ops {
 	void	(*enable_preset_value)(struct mmc_host *host, bool enable);
 	int	(*select_drive_strength)(unsigned int max_dtr, int host_drv, int card_drv);
 	void	(*hw_reset)(struct mmc_host *host);
+#if defined(CONFIG_ARCH_SUN8IW5P1) \
+		|| defined(CONFIG_ARCH_SUN8IW6P1) \
+		|| defined(CONFIG_ARCH_SUN8IW8P1) \
+		|| defined(CONFIG_ARCH_SUN8IW7P1) \
+		|| defined(CONFIG_ARCH_SUN8IW9P1)
+		int (*sunxi_set_phase)(struct mmc_host *host, \
+						struct mmc_request *req, \
+						int tx_phase, \
+						int rx_phase, \
+						bool send_stop);
+#endif
 };
 
 struct mmc_card;

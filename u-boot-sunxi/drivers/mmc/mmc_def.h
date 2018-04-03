@@ -14,7 +14,7 @@
 #endif
 
 
-#define DRIVER_VER  "2015-04-13 14:50:00"
+#define DRIVER_VER  "2017-011-13 11:02:00"
 
 //#define TUNING_LEN		(1)//The address which store the tuninng pattern
 //#define TUNING_ADD		(38192-TUNING_LEN)//The address which store the tuninng pattern
@@ -30,7 +30,8 @@
 #define SDMMC_SECURE_STORAGE_START_ADD	(6*1024*1024/512)//6M
 #define SDMMC_ITEM_SIZE					(4*1024/512)//4K
 
-
+/**unit us***/
+#define MMC_TRANS_BY_CPU_TIMOUT_US     (1000000)
 
 
 #endif

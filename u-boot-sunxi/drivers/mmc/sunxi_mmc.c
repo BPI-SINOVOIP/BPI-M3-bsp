@@ -55,13 +55,13 @@ static void dumphex32(char* name, char* base, int len)
 {
 	__u32 i;
 
-	MMCMSG("dump %s registers:", name);
+	printf("dump %s registers:", name);
 	for (i=0; i<len; i+=4) {
 		if (!(i&0xf))
-			MMCMSG("\n0x%p : ", base + i);
-		MMCMSG("0x%08x ", smc_readl((uint)base + i));
+			printf("\n0x%p : ", base + i);
+		printf("0x%08x ", smc_readl((uint)base + i));
 	}
-	MMCMSG("\n");
+	printf("\n");
 }
 
 /*
@@ -230,6 +230,7 @@ struct sunxi_mmc_host {
 struct mmc mmc_dev[4];
 struct sunxi_mmc_host mmc_host[4];
 
+struct sunxi_mmc reg_bakup;
 
 void mmc_dump_errinfo(struct sunxi_mmc_host* smc_host, struct mmc_cmd *cmd)
 {
@@ -298,6 +299,7 @@ static int mmc_resource_init(int sdc_no)
 	mmchost->mmc_clk_dly[MMC_CLK_50M].mode 			= MMC_CLK_50M;
 	mmchost->mmc_clk_dly[MMC_CLK_50M].oclk_dly 	= 5;
 	mmchost->mmc_clk_dly[MMC_CLK_50M].sclk_dly 	= 4;
+
 #elif defined CONFIG_ARCH_SUN8IW6P1
 	mmchost->mmc_clk_dly[MMC_CLK_25M].mode 			= MMC_CLK_25M;
 	mmchost->mmc_clk_dly[MMC_CLK_25M].oclk_dly 	= 0;
@@ -484,7 +486,14 @@ static void get_fex_para(int sdc_no)
 				}
 		}
 
-
+		ret = script_parser_fetch("card0_boot_para","sdc_test", &rval, 1);
+		if (ret < 0) {
+			MMCINFO("get sdc_test fail.\n");
+			mmc_dev[sdc_no].mmc_test = 0;
+		} else {
+			MMCINFO("get sdc_test 0x%x\n", rval);
+			mmc_dev[sdc_no].mmc_test = rval;
+		}
 
 	}else {// if(sdc_no == 2)
 		gpio_request_simple("card2_boot_para", NULL);
@@ -521,7 +530,26 @@ static void get_fex_para(int sdc_no)
 			}
 		}
 
-#if defined(CONFIG_ARCH_SUN8IW5P1) || defined(CONFIG_ARCH_SUN8IW6P1) || defined(CONFIG_ARCH_SUN8IW8P1)||(defined CONFIG_ARCH_SUN8IW7P1)
+		ret = script_parser_fetch\
+		("card2_boot_para", "sdc_hw_rst", &rval, 1);
+		if (ret < 0) {
+			MMCINFO("get sdc2 sdc_hw_rst fail.\n");
+			mmc_dev[sdc_no].drv_hwrst_feature \
+			&= ~DRV_PARA_ENABLE_EMMC_HWRST;
+		} else {
+			if (rval & DRV_PARA_ENABLE_EMMC_HWRST) {
+				MMCINFO("enable emmc hw reset.\n");
+				mmc_dev[sdc_no].drv_hwrst_feature \
+				|= DRV_PARA_ENABLE_EMMC_HWRST;
+			} else	{
+				MMCINFO("disable emmc hw reset.\n");
+				mmc_dev[sdc_no].drv_hwrst_feature\
+				&= ~DRV_PARA_ENABLE_EMMC_HWRST;
+			}
+		}
+
+
+#if defined(CONFIG_ARCH_SUN8IW5P1) || defined(CONFIG_ARCH_SUN8IW6P1) || defined(CONFIG_ARCH_SUN8IW8P1)||(defined CONFIG_ARCH_SUN8IW7P1)|| (defined CONFIG_ARCH_SUN8IW9P1)
 		/*************************sdc_2xmode*************************************/
 		ret = script_parser_fetch("card2_boot_para","sdc_2xmode", &rval, 1);
 		if(ret < 0)
@@ -607,6 +635,16 @@ static void get_fex_para(int sdc_no)
 					MMCINFO("get card_line ok, card_line = %d\n", rval);
 				}
 #endif
+		}
+
+
+		ret = script_parser_fetch("card2_boot_para","sdc_test", &rval, 1);
+		if (ret < 0) {
+			MMCINFO("get sdc_test fail.\n");
+			mmc_dev[sdc_no].mmc_test = 0;
+		} else {
+			MMCINFO("get sdc_test 0x%x\n", rval);
+			mmc_dev[sdc_no].mmc_test = rval;
 		}
 
 
@@ -696,35 +734,26 @@ static void get_fex_para(int sdc_no)
 				}
 		}
 
-
 	}
 }
 
-
-static int mmc_clk_io_onoff(int sdc_no,int onoff)
+static void mmc_host_ahb_gate_rst_onoff(struct sunxi_mmc_host* mmchost, int on)
 {
-	int rval;
-	struct sunxi_mmc_host* mmchost = &mmc_host[sdc_no];
-#if defined(CONFIG_ARCH_SUN9IW1P1)
-	if(gd->securemode == SUNXI_SECURE_MODE_NO_SECUREOS)  //burn mode
-	{
-		if(sdc_no == 0)
-		{
-		    gpio_request_simple("card0_boot_para", NULL);
-		}
-		else // if(sdc_no == 2)
-		{
-		    gpio_request_simple("card2_boot_para", NULL);
-		}
-		return 0;
-	}
+	u32 rval = 0;
+#ifndef CONFIG_ARCH_SUN9IW1P1
+	u32 sdc_no = mmchost->mmc_no;
 #endif
 
-	get_fex_para(sdc_no);
+#if defined (CONFIG_ARCH_SUN8IW1P1) || \
+	defined (CONFIG_ARCH_SUN8IW3P1) || \
+	defined (CONFIG_ARCH_SUN8IW5P1) || \
+	defined (CONFIG_ARCH_SUN8IW6P1) || \
+	defined (CONFIG_ARCH_SUN8IW7P1) || \
+	defined (CONFIG_ARCH_SUN8IW8P1) || \
+	defined (CONFIG_ARCH_SUN8IW9P1)
 
-#if defined(CONFIG_ARCH_SUN8IW1P1) || defined(CONFIG_ARCH_SUN8IW3P1) || defined(CONFIG_ARCH_SUN8IW5P1) || defined(CONFIG_ARCH_SUN8IW6P1) ||(defined CONFIG_ARCH_SUN8IW7P1) || defined(CONFIG_ARCH_SUN8IW8P1) || defined(CONFIG_ARCH_SUN8IW9P1)
 	/* config ahb clock */
-	if(onoff)
+	if(on)
 	{
 		rval = readl(mmchost->hclkrst);
 		rval |= (1 << (8 + sdc_no));
@@ -743,48 +772,88 @@ static int mmc_clk_io_onoff(int sdc_no,int onoff)
 		rval &= ~ (1 << (8 + sdc_no));
 		writel(rval, mmchost->hclkrst);
 	}
+
 #elif defined(CONFIG_ARCH_SUN7I) || defined(CONFIG_ARCH_SUN5I)
 	/* config ahb clock */
-	rval = readl(mmchost->hclkbase);
-	rval |= (1 << (8 + sdc_no));
-	writel(rval, mmchost->hclkbase);
+	if (on)
+	{
+		rval = readl(mmchost->hclkbase);
+		rval |= (1 << (8 + sdc_no));
+		writel(rval, mmchost->hclkbase);
+	}
+	else
+	{
+		rval = readl(mmchost->hclkbase);
+		rval &= (~(1 << (8 + sdc_no)));
+		writel(rval, mmchost->hclkbase);
+	}
+
 #elif defined(CONFIG_ARCH_SUN9IW1P1)
+
 	/* config ahb clock */
-	if (onoff)
+	if (on)
 	{
 		rval = smc_readl(mmchost->hclkbase);
 		rval |= (1 << 8);
 		smc_writel(rval, mmchost->hclkbase);
-	
+
 		rval = smc_readl(mmchost->hclkrst);
 		rval |= (1 << 8);
 		smc_writel(rval, mmchost->hclkrst);
-	
+
 		rval = smc_readl(mmchost->commreg);
 		rval |= (1<<16)|(1<<18);
 		smc_writel(rval, mmchost->commreg);
-	} 
-	else 
-	{
+	} else {
 		rval = smc_readl(mmchost->hclkbase);
 		rval &= (~(1 << 8));
 		smc_writel(rval, mmchost->hclkbase);
-	
+
 		rval = smc_readl(mmchost->hclkrst);
 		rval &= (~(1 << 8));
 		smc_writel(rval, mmchost->hclkrst);
-	
+
 		rval = smc_readl(mmchost->commreg);
 		rval &= (~((1<<16)|(1<<18)));
 		smc_writel(rval, mmchost->commreg);
 	}
+
 #else
 	#error The platform is not seleted
 #endif
+}
+
+
+
+
+
+
+static int mmc_clk_io_onoff(int sdc_no,int onoff)
+{
+	struct sunxi_mmc_host* mmchost = &mmc_host[sdc_no];
+#if defined(CONFIG_ARCH_SUN9IW1P1)
+	if(gd->securemode == SUNXI_SECURE_MODE_NO_SECUREOS)  //burn mode
+	{
+		if(sdc_no == 0)
+		{
+		    gpio_request_simple("card0_boot_para", NULL);
+		}
+		else // if(sdc_no == 2)
+		{
+		    gpio_request_simple("card2_boot_para", NULL);
+		}
+		return 0;
+	}
+#endif
+
+	get_fex_para(sdc_no);
+
+	mmc_host_ahb_gate_rst_onoff(mmchost, onoff);
+
 	/* config mod clock */
 	smc_writel(0x80000000, mmchost->mclkbase);
 	mmchost->mod_clk = 24000000;
-	dumphex32("ccmu", (char*)SUNXI_CCM_BASE, 0x100);
+	dumphex32("ccmu", (char*)SUNXI_CCM_BASE, 0x310);
 	dumphex32("gpio", (char*)SUNXI_PIO_BASE, 0x100);
 	dumphex32("mmc", (char*)mmchost->reg, 0x100);
 
@@ -800,7 +869,7 @@ static int mmc_update_clk(struct mmc *mmc)
 	cmd = (1U << 31) | (1 << 21) | (1 << 13);
   	writel(cmd, &mmchost->reg->cmd);
 	while((readl(&mmchost->reg->cmd)&0x80000000) && --timeout){
-		__msdelay(1);
+		__usdelay(1);
 	}
 	if (!timeout){
 		MMCINFO("mmc %d,update clk failed\n",mmchost->mmc_no);
@@ -815,19 +884,19 @@ static int mmc_update_clk(struct mmc *mmc)
 static int mmc_update_phase(struct mmc *mmc)
 {
 	struct sunxi_mmc_host* mmchost = (struct sunxi_mmc_host *)mmc->priv;
-	
+
 	if( (mmchost->mmc_no== 2) && (mmc->host_func & MMC_HOST_2XMODE_FUNC) )
 	{
 		MMCINFO("mmc re-update_phase\n");
 		return mmc_update_clk(mmc);
 	}
-	
+
 	return 0;
 }
 
 
 
-#if defined(CONFIG_ARCH_SUN8IW5P1) || defined(CONFIG_ARCH_SUN8IW6P1)||defined(CONFIG_ARCH_SUN8IW8P1) ||(defined CONFIG_ARCH_SUN8IW7P1)
+#if defined(CONFIG_ARCH_SUN8IW5P1) || defined(CONFIG_ARCH_SUN8IW6P1)||defined(CONFIG_ARCH_SUN8IW8P1) ||(defined CONFIG_ARCH_SUN8IW7P1) || (defined CONFIG_ARCH_SUN8IW9P1)
 static int mmc_2xmode_config_clock(struct mmc *mmc, unsigned clk)
 {
 	struct sunxi_mmc_host* mmchost = (struct sunxi_mmc_host *)mmc->priv;
@@ -847,10 +916,11 @@ static int mmc_2xmode_config_clock(struct mmc *mmc, unsigned clk)
 	MMCDBG("mmc %d mclkbase 0x%x\n",mmchost->mmc_no, readl(mmchost->mclkbase));
 
 	/*NTSR*/
+	rntsr |= (1U<<4); //(1U<<4); /* tx phase 1, rx phase 1 */
 	rntsr |= (1<<31);
 	MMCDBG("mmc %d rntsr 0x%x\n",mmchost->mmc_no,rntsr);
 	writel(rntsr, &mmchost->reg->ntsr);
-	
+
 
 	/*set ddr mode*/
 	if(mmc->io_mode == MMC_MODE_DDR_52MHz){
@@ -859,10 +929,10 @@ static int mmc_2xmode_config_clock(struct mmc *mmc, unsigned clk)
 		writel(rgctrl, &mmchost->reg->gctrl);
 		MMCDBG("after %d rgctrl 0x%x\n",mmchost->mmc_no,readl(&mmchost->reg->gctrl));
 	}
-	else{		
+	else{
 		MMCDBG("mmc not set ddr mmc->io_mode = %x\n",mmc->io_mode);
 	}
-	
+
 	if (clk <=400000) {
 		mmchost->mod_clk = 400000;
 		writel(0x4001000e, mmchost->mclkbase);
@@ -916,7 +986,7 @@ static int mmc_2xmode_config_clock(struct mmc *mmc, unsigned clk)
 	/* Change Divider Factor */
 	rval &= ~(0xFF);
 	if (mmc->io_mode == MMC_MODE_DDR_52MHz)
-		rval |= 0x1; 
+		rval |= 0x1;
 	writel(rval, &mmchost->reg->clkcr);
 	if(mmc_update_clk(mmc)){
 		MMCINFO("mmc %d disable clock failed\n",mmchost->mmc_no);
@@ -936,7 +1006,33 @@ static int mmc_2xmode_config_clock(struct mmc *mmc, unsigned clk)
 
 	MMCDBG("mmc %d ntsr 0x%x\n",mmchost->mmc_no,readl(&mmchost->reg->ntsr));
 	return 0;
+}
 
+static int mmc_2xmode_set_phase(struct mmc *mmc, u32 tx_phase, u32 rx_phase)
+{
+	struct sunxi_mmc_host* mmchost = (struct sunxi_mmc_host *)mmc->priv;
+	unsigned int rval = readl(&mmchost->reg->ntsr);
+	int ret = 0;
+
+	if (!((mmchost->mmc_no == 2) && (mmc->host_func & MMC_HOST_2XMODE_FUNC)))
+	{
+		return 0;
+	}
+
+	rval &=~((3<<4)|(3));
+	rval |= ((rx_phase&3)<<4)|(tx_phase&3);
+	rval &= ~(1<<31);
+	writel(rval, &mmchost->reg->ntsr);
+	rval |= (1<<31);
+	writel(rval, &mmchost->reg->ntsr);
+	MMCINFO("mmc %d set phase %x\n", mmchost->mmc_no, readl(&mmchost->reg->ntsr));
+	ret = mmc_update_clk(mmc);
+	if (ret) {
+		MMCINFO("mmc %d set phase udate clk fail! %x\n", mmchost->mmc_no, readl(&mmchost->reg->ntsr));
+		return -1;
+	}
+
+	return 0;
 }
 #endif
 
@@ -948,7 +1044,9 @@ static int mmc_config_clock(struct mmc *mmc, unsigned clk)
 	u32 sdly = 0;
 	u32 odly = 0;
 
-#if defined(CONFIG_ARCH_SUN8IW5P1) || defined(CONFIG_ARCH_SUN8IW6P1)||defined(CONFIG_ARCH_SUN8IW8P1)||(defined CONFIG_ARCH_SUN8IW7P1)
+	MMCINFO("mmc_config_clock: clk %d\n", clk);
+
+#if defined(CONFIG_ARCH_SUN8IW5P1) || defined(CONFIG_ARCH_SUN8IW6P1)||defined(CONFIG_ARCH_SUN8IW8P1)||(defined CONFIG_ARCH_SUN8IW7P1) || (defined CONFIG_ARCH_SUN8IW9P1)
 	if( (mmchost->mmc_no== 2) && (mmc->host_func & MMC_HOST_2XMODE_FUNC) )
 	{
 		MMCDBG("mmc %d 2xmode config clk\n",mmchost->mmc_no);
@@ -1054,7 +1152,7 @@ static int mmc_config_clock(struct mmc *mmc, unsigned clk)
 static void mmc_set_ios(struct mmc *mmc)
 {
 	struct sunxi_mmc_host* mmchost = (struct sunxi_mmc_host *)mmc->priv;
-	
+
 
 	MMCDBG("mmc %d ios: bus: %d, clock: %d\n", mmchost->mmc_no,mmc->bus_width, mmc->clock);
 
@@ -1098,29 +1196,29 @@ static int mmc_trans_data_by_cpu(struct mmc *mmc, struct mmc_data *data)
 	unsigned i;
 	unsigned byte_cnt = data->blocksize * data->blocks;
 	unsigned *buff;
-	unsigned timeout = 1000;
+	unsigned timeout = MMC_TRANS_BY_CPU_TIMOUT_US;
 
 	if (data->flags & MMC_DATA_READ) {
 		buff = (unsigned int *)data->dest;
 		for (i=0; i<(byte_cnt>>2); i++) {
 			while(--timeout && (readl(&mmchost->reg->status)&(1 << 2))){
-				__msdelay(1);
+				__usdelay(1);
 			}
 			if (timeout <= 0)
 				goto out;
 			buff[i] = readl(mmchost->database);
-			timeout = 1000;
+			timeout = MMC_TRANS_BY_CPU_TIMOUT_US;
 		}
 	} else {
 		buff = (unsigned int *)data->src;
 		for (i=0; i<(byte_cnt>>2); i++) {
 			while(--timeout && (readl(&mmchost->reg->status)&(1 << 3))){
-				__msdelay(1);
+				__usdelay(1);
 			}
 			if (timeout <= 0)
 				goto out;
 			writel(buff[i], mmchost->database);
-			timeout = 1000;
+			timeout = MMC_TRANS_BY_CPU_TIMOUT_US;
 		}
 	}
 
@@ -1131,6 +1229,93 @@ out:
 	}
 
 	return 0;
+}
+
+
+
+void sunxi_mci_regs_save(struct sunxi_mmc_host* mmchost)
+{
+	memset((void*)&reg_bakup, 0, sizeof(struct sunxi_mmc));
+
+	reg_bakup.gctrl		= readl(&mmchost->reg->gctrl);
+	reg_bakup.clkcr		= readl(&mmchost->reg->clkcr);
+	reg_bakup.timeout	= readl(&mmchost->reg->timeout);
+	reg_bakup.width	= readl(&mmchost->reg->width);
+	reg_bakup.imask	= readl(&mmchost->reg->imask);
+	reg_bakup.ftrglevel	= readl(&mmchost->reg->ftrglevel);
+	reg_bakup.funcsel	= readl(&mmchost->reg->funcsel);
+	reg_bakup.dbgc	= readl(&mmchost->reg->dbgc);
+	reg_bakup.dmac	= readl(&mmchost->reg->dmac);
+#if defined(CONFIG_ARCH_SUN50IW1P1) \
+	|| defined(CONFIG_ARCH_SUN8IW10P1)\
+	|| defined(CONFIG_ARCH_SUN8IW11P1)
+	reg_bakup.thldc	= readl(&mmchost->reg->thldc);
+#endif
+#if defined(CONFIG_ARCH_SUN8IW5P1) || defined(CONFIG_ARCH_SUN8IW6P1) \
+			|| defined(CONFIG_ARCH_SUN8IW8P1) || defined(CONFIG_ARCH_SUN8IW7P1) \
+			|| defined(CONFIG_ARCH_SUN8IW9P1)
+	reg_bakup.ntsr		= readl(&mmchost->reg->ntsr);
+#endif
+
+#if 0
+	printf("======================= save regs ===========================\n");
+	{
+		__u32 i;
+		char* base =  (char*)&reg_bakup;
+		char* name = "mmc";
+		u32 len = 0x100;
+
+		printf("dump %s registers:", name);
+		for (i=0; i<len; i+=4) {
+			if (!(i&0xf))
+				printf("\n0x%p : ", base + i);
+			printf("0x%08x ", smc_readl((uint)base + i));
+		}
+		printf("\n");
+	}
+#endif
+}
+
+void sunxi_mci_regs_restore(struct sunxi_mmc_host* mmchost)
+{
+	writel(reg_bakup.gctrl   , &mmchost->reg->gctrl);
+	writel(reg_bakup.clkcr    , &mmchost->reg->clkcr);
+	writel(reg_bakup.timeout , &mmchost->reg->timeout);
+	writel(reg_bakup.width  , &mmchost->reg->width);
+	writel(reg_bakup.imask  , &mmchost->reg->imask);
+	writel(reg_bakup.ftrglevel, &mmchost->reg->ftrglevel);
+	writel(reg_bakup.funcsel , &mmchost->reg->funcsel);
+	writel(reg_bakup.dbgc  , &mmchost->reg->dbgc);
+	writel(reg_bakup.dmac  , &mmchost->reg->dmac);
+#if defined(CONFIG_ARCH_SUN50IW1P1) \
+	|| defined(CONFIG_ARCH_SUN8IW10P1)\
+	|| defined(CONFIG_ARCH_SUN8IW11P1)
+	writel(reg_bakup.thldc  , &mmchost->reg->thldc);
+#endif
+#if defined(CONFIG_ARCH_SUN8IW5P1) || defined(CONFIG_ARCH_SUN8IW6P1) \
+		|| defined(CONFIG_ARCH_SUN8IW8P1) || defined(CONFIG_ARCH_SUN8IW7P1) \
+		|| defined(CONFIG_ARCH_SUN8IW9P1)
+	writel(reg_bakup.ntsr   , &mmchost->reg->ntsr);
+#endif
+
+#if 0
+	//dumphex32("mmc", (char*)mmchost->reg, 0x100);
+	printf("======================= restore regs -===========================\n");
+	{
+		__u32 i;
+		char* base =  (char*)mmchost->reg;
+		char* name = "mmc";
+		u32 len = 0x100;
+
+		printf("dump %s registers:", name);
+		for (i=0; i<len; i+=4) {
+			if (!(i&0xf))
+				printf("\n0x%p : ", base + i);
+			printf("0x%08x ", smc_readl((uint)base + i));
+		}
+		printf("\n");
+	}
+#endif
 }
 
 static int mmc_trans_data_by_dma(struct mmc *mmc, struct mmc_data *data)
@@ -1245,6 +1430,10 @@ static int mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd,
         } while (status & (1 << 9));
         return 0;
 	}
+
+	/* update clk for each cmd to clear 2xclk mode phase */
+	mmc_update_clk(mmc);
+
 	/*
 	 * CMDREG
 	 * CMD[5:0]	: Command index
@@ -1324,6 +1513,7 @@ static int mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd,
 			error = readl(&mmchost->reg->rint) & 0xbfc2;
 			if(!error)
 				error = 0xffffffff;
+			MMCINFO("mmc %d cmd %d err %x\n", mmchost->mmc_no, cmd->cmdidx, error);
 			goto out;
 		}
 	}
@@ -1354,7 +1544,7 @@ static int mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd,
 				error = status & 0xbfc2;
 				if(!error)
 					error = 0xffffffff;//represet software timeout
-				MMCINFO("mmc %d data err %x\n",mmchost->mmc_no, error);
+				MMCINFO("mmc %d cmd%d: data err %x\n",mmchost->mmc_no, cmd->cmdidx, error);
 				goto out;
 			}
 			if ((data->blocks > 1)&&!(cmd->flags&MMC_CMD_MANUAL))//not wait auto stop when MMC_CMD_MANUAL is set
@@ -1467,12 +1657,23 @@ out:
 
 		}
 
+		#if 1
+			sunxi_mci_regs_save(mmchost);
+			mmc_host_ahb_gate_rst_onoff(mmchost, 0);
+			udelay(500);
+			mmc_host_ahb_gate_rst_onoff(mmchost, 1);
+			sunxi_mci_regs_restore(mmchost);
+		#endif
 
-		writel(0x7, &mmchost->reg->gctrl);
-		while(readl(&mmchost->reg->gctrl)&0x7){
+		#if 0  /* global reset will clear reg0x0 bit10 and clear ddr mode. */
+			writel(0x7, &mmchost->reg->gctrl);
+			while(readl(&mmchost->reg->gctrl)&0x7){
+			}
+		#endif
+
+		if (mmc_update_clk(mmc)) {
+			MMCINFO("mmc_send_cmd: udpate clock fail\n");
 		}
-
-		mmc_update_clk(mmc);
 		//MMCINFO("mmc %d mmc cmd %d err 0x%08x\n",mmchost->mmc_no, cmd->cmdidx, error);
 	}
 	writel(0xffffffff, &mmchost->reg->rint);
@@ -1708,6 +1909,9 @@ int sunxi_mmc_init(int sdc_no)
 	mmc->init = mmc_core_init;
 	mmc->control_num = sdc_no;
 	mmc->update_phase = mmc_update_phase;
+#if defined(CONFIG_ARCH_SUN8IW5P1) || defined(CONFIG_ARCH_SUN8IW6P1)||defined(CONFIG_ARCH_SUN8IW8P1) ||(defined CONFIG_ARCH_SUN8IW7P1) || (defined CONFIG_ARCH_SUN8IW9P1)
+	mmc->set_phase = mmc_2xmode_set_phase;
+#endif
 
 	mmc->voltages = MMC_VDD_32_33 | MMC_VDD_33_34
 		| MMC_VDD_27_28 | MMC_VDD_28_29 | MMC_VDD_29_30
@@ -1716,7 +1920,7 @@ int sunxi_mmc_init(int sdc_no)
 	//bus width will be change in mmc_clk_io_onoff according to sys_config.fex
 	mmc->host_caps = MMC_MODE_4BIT | MMC_MODE_8BIT;
 	mmc->host_caps |= MMC_MODE_HS_52MHz | MMC_MODE_HS| MMC_MODE_HC | MMC_MODE_DDR_52MHz;
-	
+
 	if(sdc_no == 0){
        mmc->f_min = 400000;
 #if defined(CONFIG_ARCH_SUN9IW1P1)
@@ -1751,7 +1955,7 @@ int sunxi_mmc_init(int sdc_no)
 		mmc->update_sdly =sunxi_update_sdly;
 		mmc->get_detail_errno = sunxi_detail_errno;
 	}
-	
+
 	/****************mmc function enable*********************/
 	if(mmc->mmc_func_en.ddr_func_en){
 		mmc->host_caps |= MMC_MODE_DDR_52MHz;
