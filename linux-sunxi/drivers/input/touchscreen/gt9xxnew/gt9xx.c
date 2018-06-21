@@ -2988,7 +2988,7 @@ Output:
 *******************************************************/
 static void goodix_ts_late_resume(struct early_suspend *h)
 {
-    struct goodix_ts_data *ts = = container_of(h, struct goodix_ts_data, early_suspend);
+    struct goodix_ts_data *ts = container_of(h, struct goodix_ts_data, early_suspend);
 
 	if(ts) {
 		GTP_INFO("late resume enter");
