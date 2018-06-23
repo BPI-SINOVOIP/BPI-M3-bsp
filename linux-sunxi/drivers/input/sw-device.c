@@ -4,10 +4,10 @@
  
 #include "sw-device.h"
 
-static int ctp_mask = 0x0;
-static u32 debug_mask = 0x0;
-#define dprintk(level_mask, fmt, arg...)	if (unlikely(debug_mask & level_mask)) \
-	printk(KERN_DEBUG fmt , ## arg)
+static int ctp_mask = 0x1;
+static u32 debug_mask = 0;
+#define dprintk(level_mask, fmt, arg...)	/*if (unlikely(debug_mask & level_mask))*/ \
+	printk(KERN_INFO fmt , ## arg)
 
 module_param_named(debug_mask, debug_mask, int, S_IRUGO | S_IWUSR | S_IWGRP);
 module_param_named(ctp_mask, ctp_mask, int , S_IRUGO | S_IWUSR | S_IWGRP);
@@ -518,20 +518,21 @@ static void get_detect_list(struct sw_device *sw)
         int number = sw->support_number;
         
         while((number)--) {
-                i = 0;
-                val = get_device_para_value(sw->name->detect_keyname,  sw->info[number].name);
-                if(val == -1) {
-			sw->info[number].is_support = 0;
-	                printk("%s: script_get_item err.support_number = %d. \n", __func__, number);
-	                continue;
+            i = 0;
+            val = get_device_para_value(sw->name->detect_keyname,  sw->info[number].name);
+            if(val == -1) {
+				sw->info[number].is_support = 0;
+	            printk("%s: script_get_item err.support_number = %d. \n", __func__, number);
+	            continue;
 	        } 
 		
-		if(val == 0) {
-			sw->info[number].is_support = 0;
-		}
-		else {
-			sw->info[number].is_support = 1;	
-		}
+			if(val == 0) {
+				sw->info[number].is_support = 0;
+			}
+			else {
+				sw->info[number].is_support = 1;	
+			}
+			
         	dprintk(DEBUG_INIT, "number %d, module_name:%s  is_support:%u\n", number,sw->info[number].name, sw->info[number].is_support);
         } 
  }

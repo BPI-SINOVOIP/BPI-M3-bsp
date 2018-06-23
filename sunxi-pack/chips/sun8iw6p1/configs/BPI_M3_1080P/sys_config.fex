@@ -431,7 +431,7 @@ rtp_exchange_x_y_flag = 0
 ;notice ---    tp_int_port &  tp_io_port use the same port
 ;----------------------------------------------------------------------------------
 [ctp_para]
-ctp_used            = 1
+ctp_used            = 0
 ctp_gesture_wakeup  = 0
 ctp_twi_id          = 0
 ctp_twi_addr        = 0x38
@@ -454,7 +454,7 @@ ctp_power_io        =
 ;Module name postposition 1 said detection, 0 means no detection.
 ;--------------------------------------------------------------------------------
 [ctp_list_para]
-ctp_det_used              = 1
+ctp_det_used              = 0
 ft5x_ts                   = 1
 gt82x                     = 0
 gslX680                   = 0

@@ -65,7 +65,7 @@ aboot=if fatload $device $partition $rdaddr ${bpi}/${board}/${service}/uInitrd; 
 #
 ##
 #
-aload_script=fatload $device $partition $saddr ${bpi}/${board}/${service}/${script}
+aload_script=fatload $device $partition $saddr ${bpi}/${board}/${service}/${bpiuser}/${script}
 #
 ##
 #

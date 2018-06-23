@@ -11,7 +11,7 @@ service=linux
 #bin2fex script.bin > sys_config.fex
 #
 #usb0(microusb) host only
-script=script.bin.lcd5
+script=script.bin
 #
 #usb0(microusb) host only, for emmc boot, can use sd card 
 #script=script.bin.emmc
@@ -69,7 +69,7 @@ aload_script=fatload $device $partition $saddr ${bpi}/${board}/${service}/${scri
 #
 ##
 #
-aload_kernel=fatload $device $partition $kaddr ${bpi}/${board}/${service}/${kernel}
+aload_kernel=fatload $device $partition $kaddr ${bpi}/${board}/${service}/${bpiuser}/${kernel}
 #
 ##
 #
