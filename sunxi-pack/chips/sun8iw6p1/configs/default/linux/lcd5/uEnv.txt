@@ -35,7 +35,7 @@ rdaddr=0x43100000
 #root=/dev/ram
 root=/dev/mmcblk0p2 rootfstype=ext4 rootwait bootmenutimeout=0 datadev=mmcblk0p2
 console=tty1 console=ttyS0,115200
-bootopts=enforcing=1 initcall_debug=0 loglevel=8 init=/init vmalloc=384M ion_cma_list="120m,176m,512m" touch=gt9xxnew_ts gpu=no fsck.mode=force fsck.repair=yes
+bootopts=enforcing=1 initcall_debug=0 loglevel=8 init=/init vmalloc=384M ion_cma_list="120m,176m,512m" panic=10 touch=gt9xxnew_ts gpu=no fsck.mode=force fsck.repair=yes
 #
 # from sys_config.fex
 #
