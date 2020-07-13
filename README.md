@@ -1,62 +1,22 @@
-# BPI-M3-bsp
-
-Getting Started
----------------
-
-1. Choose a board doing:
-   `./build.sh`,
-
-2. Choose a board doing
-
-"This tool supports the following BPI board(s):"
-
-************************************************"
-
-	1. BPI_M3_720P"
-
-	2. BPI_M3_1080P"
-	
-	3. BPI_M3_LCD7"
-	
-	4. BPI_M3_USB_720P"
-	
-	5. BPI_M3_USB_1080P"
-	
-*************************************************"
+## **BPI-M3-bsp**
+Banana Pi M3 board bsp (u-boot 2014.7 & Kernel 3.4.39)
 
 
-BPI-M3 SD Card Info
---------------------
+----------
+**Prepare**
 
-Step 1.To be on safe side erase the first part of your SD Card (also clears the partition table).
+Get the docker image from [Sinovoip Docker Hub](https://hub.docker.com/r/sinovoip/bpi-build/) , Build the source code with this docker environment.
 
+ **Build**
 
-       sudo  dd if=/dev/zero of=${card} bs=1M count=1
+Build a target board bsp packages, please run
 
-Step 2.Go to folder "Download", put the file(s) to 100MB of the SD Card with DD command.
+`#./build.sh 1`
 
+Target download packages in SD/ after build. Please check the build.sh and Makefile for detail
 
+**Install**
 
-	 sudo dd if=boot0_sdcard.fex     of=${card} bs=1k seek=8
+Get the image from [bpi](http://wiki.banana-pi.org/Banana_Pi_BPI-M3#Image_Release) and download it to the SD card. After finish, insert the SD card to PC and run this script in a normal terminal(not the docker image)
 
-	sudo dd if=u-boot.fex 	        of=${card} bs=1k seek=19096
-	
-	sudo dd if=sunxi_mbr.fex 	of=${card} bs=1k seek=20480
-	
-	sudo dd if=boot-resource.fex 	of=${card} bs=1k seek=36864
-
-	sudo dd if=env.fex 		    of=${card} bs=1k seek=69632
-
-	sudo dd if=boot.fex 		of=${card} bs=1k seek=86016
-
-
-
-
-Overview
---------
-You may go to http://www.banana-pi.org to download Ubuntu15.04 images and burn them into the Sdcard to see the architecture.
-
-
-
-
-
+    # ./update_bsp2sd.sh /dev/sdX
